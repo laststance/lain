@@ -1,0 +1,44 @@
+import { useAuth } from "@/contexts/AuthContext"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+
+/**
+ * Login screen displayed when the user is not authenticated.
+ * Shows a card with app branding and a "Login with Raindrop.io" button.
+ * Handles loading state during the OAuth flow.
+ *
+ * @example
+ *   <LoginScreen />
+ */
+export function LoginScreen() {
+  const { login, isLoading } = useAuth()
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Lain</CardTitle>
+          <CardDescription>
+            Sign in with your Raindrop.io account to get started.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={login}
+            disabled={isLoading}
+          >
+            {isLoading ? "Connecting..." : "Login with Raindrop.io"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

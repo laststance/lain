@@ -30,3 +30,5 @@ logs/
 
 # Electron Builder output
 release/
+
+claudedocs

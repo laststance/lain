@@ -6,12 +6,15 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import type { AuthState } from '../src/lib/types.ts'
 
 import { RaindropAuth } from './raindrop-auth.ts'
+import { registerTestAuthIPC } from './test-auth.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const isTestMode = process.env.LAIN_TEST_MODE === '1'
+
 const clientId = process.env.VITE_RAINDROP_CLIENT_ID ?? ''
 const clientSecret = process.env.RAINDROP_CLIENT_SECRET ?? ''
-const auth = new RaindropAuth(clientId, clientSecret)
+const auth = isTestMode ? null : new RaindropAuth(clientId, clientSecret)
 
 let mainWindow: BrowserWindow | null = null
 
@@ -46,36 +49,36 @@ function createWindow(): void {
 function registerAuthIPC(): void {
   ipcMain.handle('auth:login', async (event) => {
     validateSender(event)
-    await auth.login()
-    const user = await auth.getUser()
+    await auth!.login()
+    const user = await auth!.getUser()
     const state: AuthState = { isAuthenticated: true, user }
     mainWindow?.webContents.send('auth:state-changed', state)
   })
 
   ipcMain.handle('auth:logout', async (event) => {
     validateSender(event)
-    await auth.logout()
+    await auth!.logout()
     const state: AuthState = { isAuthenticated: false, user: null }
     mainWindow?.webContents.send('auth:state-changed', state)
   })
 
   ipcMain.handle('auth:get-user', async (event) => {
     validateSender(event)
-    return auth.getUser()
+    return auth!.getUser()
   })
 
   ipcMain.handle('auth:get-state', async (event) => {
     validateSender(event)
-    if (!auth.isAuthenticated()) {
+    if (!auth!.isAuthenticated()) {
       return { isAuthenticated: false, user: null } satisfies AuthState
     }
-    const user = await auth.getUser()
+    const user = await auth!.getUser()
     return { isAuthenticated: !!user, user } satisfies AuthState
   })
 
   ipcMain.handle('auth:get-token', async (event) => {
     validateSender(event)
-    return auth.getValidToken()
+    return auth!.getValidToken()
   })
 }
 
@@ -111,7 +114,13 @@ app.commandLine.appendSwitch('remote-debugging-port', '9222')
 
 app.whenReady().then(() => {
   registerShellIPC()
-  registerAuthIPC()
+
+  if (isTestMode) {
+    registerTestAuthIPC(() => mainWindow)
+  } else {
+    registerAuthIPC()
+  }
+
   createWindow()
 
   app.on('activate', () => {

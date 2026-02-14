@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron"
+import { app, BrowserWindow, ipcMain, shell } from "electron"
 import path from "path"
 import { fileURLToPath } from "url"
 import { RaindropAuth } from "./raindrop-auth.ts"
@@ -85,7 +85,24 @@ function validateSender(event: Electron.IpcMainInvokeEvent): void {
 
 // --- App Lifecycle ---
 
+/**
+ * Open a URL in the user's default system browser.
+ * Validates the URL protocol to prevent arbitrary command execution.
+ */
+function registerShellIPC(): void {
+  ipcMain.handle("shell:open-external", async (event, url: string) => {
+    validateSender(event)
+    if (url.startsWith("https://") || url.startsWith("http://")) {
+      await shell.openExternal(url)
+    }
+  })
+}
+
+// Enable remote debugging for Electron MCP integration
+app.commandLine.appendSwitch("remote-debugging-port", "9222")
+
 app.whenReady().then(() => {
+  registerShellIPC()
   registerAuthIPC()
   createWindow()
 

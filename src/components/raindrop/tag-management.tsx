@@ -1,0 +1,444 @@
+import { useState, useMemo } from "react"
+import {
+  Tag,
+  Search,
+  ArrowUpDown,
+  Pencil,
+  Merge,
+  Trash2,
+  Check,
+  X,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
+/**
+ * A tag entry with its name and usage count across all raindrops.
+ */
+interface TagEntry {
+  name: string
+  count: number
+}
+
+/**
+ * Props for the TagManagement component.
+ */
+interface TagManagementProps {
+  /** List of all tags with usage counts */
+  tags: TagEntry[]
+  /** Whether the management panel is open */
+  open: boolean
+  /** Callback to toggle panel visibility */
+  onOpenChange: (open: boolean) => void
+  /** Callback when a tag is renamed */
+  onRename?: (oldName: string, newName: string) => void
+  /** Callback when tags are merged */
+  onMerge?: (sourceNames: string[], targetName: string) => void
+  /** Callback when a tag is deleted */
+  onDelete?: (tagName: string) => void
+}
+
+type SortMode = "name" | "count"
+
+/**
+ * Tag management panel for viewing, renaming, merging, and deleting tags.
+ * Accessible from the sidebar or toolbar. Shows all tags with usage counts
+ * and provides bulk operations.
+ *
+ * @param tags - Array of tag entries with name and count
+ * @param open - Whether the dialog is open
+ * @param onOpenChange - Callback when open state changes
+ * @param onRename - Callback when a tag is renamed
+ * @param onMerge - Callback when tags are merged
+ * @param onDelete - Callback when a tag is deleted
+ *
+ * @example
+ *   <TagManagement
+ *     tags={[{ name: "react", count: 15 }, { name: "typescript", count: 8 }]}
+ *     open={isOpen}
+ *     onOpenChange={setIsOpen}
+ *     onRename={(old, next) => renameTag(old, next)}
+ *     onDelete={(name) => deleteTag(name)}
+ *   />
+ */
+export function TagManagement({
+  tags,
+  open,
+  onOpenChange,
+  onRename,
+  onMerge,
+  onDelete,
+}: TagManagementProps) {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortMode, setSortMode] = useState<SortMode>("count")
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+  const [editingTag, setEditingTag] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState("")
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
+  const [mergeTargetName, setMergeTargetName] = useState("")
+
+  const filteredAndSortedTags = useMemo(() => {
+    let filtered = tags
+    if (searchQuery) {
+      const lower = searchQuery.toLowerCase()
+      filtered = tags.filter((t) => t.name.toLowerCase().includes(lower))
+    }
+    return [...filtered].sort((a, b) => {
+      if (sortMode === "name") return a.name.localeCompare(b.name)
+      return b.count - a.count
+    })
+  }, [tags, searchQuery, sortMode])
+
+  const toggleTag = (tagName: string) => {
+    setSelectedTags((prev) => {
+      const next = new Set(prev)
+      if (next.has(tagName)) {
+        next.delete(tagName)
+      } else {
+        next.add(tagName)
+      }
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selectedTags.size === filteredAndSortedTags.length) {
+      setSelectedTags(new Set())
+    } else {
+      setSelectedTags(new Set(filteredAndSortedTags.map((t) => t.name)))
+    }
+  }
+
+  const startRename = (tagName: string) => {
+    setEditingTag(tagName)
+    setEditValue(tagName)
+  }
+
+  const confirmRename = () => {
+    if (editingTag && editValue.trim() && editValue.trim() !== editingTag) {
+      onRename?.(editingTag, editValue.trim())
+    }
+    setEditingTag(null)
+    setEditValue("")
+  }
+
+  const cancelRename = () => {
+    setEditingTag(null)
+    setEditValue("")
+  }
+
+  const handleMerge = () => {
+    if (selectedTags.size >= 2 && mergeTargetName.trim()) {
+      onMerge?.(Array.from(selectedTags), mergeTargetName.trim())
+      setSelectedTags(new Set())
+      setMergeDialogOpen(false)
+      setMergeTargetName("")
+    }
+  }
+
+  const handleDelete = () => {
+    if (deleteTarget) {
+      onDelete?.(deleteTarget)
+      selectedTags.delete(deleteTarget)
+      setSelectedTags(new Set(selectedTags))
+      setDeleteTarget(null)
+    }
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Tag Management
+            </DialogTitle>
+            <DialogDescription>
+              View, rename, merge, and delete tags across all bookmarks.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Search and sort controls */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-8 pl-8"
+                />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1">
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    {sortMode === "name" ? "Name" : "Count"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSortMode("name")}>
+                    Sort by name
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortMode("count")}>
+                    Sort by count
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Bulk actions */}
+            {selectedTags.size > 0 && (
+              <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2">
+                <span className="text-xs text-muted-foreground">
+                  {selectedTags.size} selected
+                </span>
+                <Separator orientation="vertical" className="h-4" />
+                {selectedTags.size >= 2 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => {
+                      setMergeTargetName("")
+                      setMergeDialogOpen(true)
+                    }}
+                  >
+                    <Merge className="h-3.5 w-3.5" />
+                    Merge
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+                  onClick={() => {
+                    for (const name of selectedTags) {
+                      onDelete?.(name)
+                    }
+                    setSelectedTags(new Set())
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              </div>
+            )}
+
+            {/* Tag list */}
+            <ScrollArea className="h-[320px]">
+              <div className="space-y-0.5">
+                {/* Select all header */}
+                <div className="flex items-center gap-3 px-2 py-1.5">
+                  <Checkbox
+                    checked={
+                      filteredAndSortedTags.length > 0 &&
+                      selectedTags.size === filteredAndSortedTags.length
+                    }
+                    onCheckedChange={toggleAll}
+                    aria-label="Select all tags"
+                  />
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {filteredAndSortedTags.length} tags
+                  </span>
+                </div>
+                <Separator />
+
+                {filteredAndSortedTags.map((tag) => (
+                  <div
+                    key={tag.name}
+                    className={cn(
+                      "group flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent",
+                      selectedTags.has(tag.name) && "bg-accent/50",
+                    )}
+                  >
+                    <Checkbox
+                      checked={selectedTags.has(tag.name)}
+                      onCheckedChange={() => toggleTag(tag.name)}
+                      aria-label={`Select tag ${tag.name}`}
+                    />
+
+                    {editingTag === tag.name ? (
+                      <div className="flex flex-1 items-center gap-1">
+                        <Input
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") confirmRename()
+                            if (e.key === "Escape") cancelRename()
+                          }}
+                          className="h-7 text-sm"
+                          autoFocus
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={confirmRename}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={cancelRename}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Badge variant="secondary" className="text-xs">
+                          {tag.name}
+                        </Badge>
+                        <span className="ml-auto text-xs text-muted-foreground">
+                          {tag.count}
+                        </span>
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => startRename(tag.name)}
+                            title="Rename tag"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(tag.name)}
+                            title="Delete tag"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {filteredAndSortedTags.length === 0 && (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    {searchQuery ? "No tags match your search" : "No tags yet"}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge dialog */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Merge Tags</DialogTitle>
+            <DialogDescription>
+              Merge {selectedTags.size} selected tags into one.
+              All bookmarks will be updated.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-1">
+              {Array.from(selectedTags).map((name) => (
+                <Badge key={name} variant="secondary" className="text-xs">
+                  {name}
+                </Badge>
+              ))}
+            </div>
+            <Input
+              placeholder="New tag name..."
+              value={mergeTargetName}
+              onChange={(e) => setMergeTargetName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleMerge()
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setMergeDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMerge}
+              disabled={!mergeTargetName.trim()}
+            >
+              Merge Tags
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete tag &ldquo;{deleteTarget}&rdquo;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This tag will be removed from all bookmarks that use it.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}

@@ -73,8 +73,87 @@ export interface AuthAPI {
   ) => () => void
 }
 
+/**
+ * Shell API exposed to renderer via contextBridge for safe external URL opening.
+ */
+export interface ShellAPI {
+  openExternal: (url: string) => Promise<void>
+}
+
+// --- Figma Make UI Types ---
+
+export type ContentType = "link" | "article" | "image" | "video" | "document" | "audio"
+
+export type ViewMode = "grid" | "list" | "table" | "directory"
+
+export type SortOption = "newest" | "oldest" | "title-asc" | "title-desc" | "domain" | "relevance"
+
+export type SearchScope = "all" | "url" | "title" | "description"
+
+/**
+ * Raindrop bookmark entity from the UI prototype.
+ * @example
+ *   const r: Raindrop = {
+ *     id: "1", title: "React Docs", url: "https://react.dev",
+ *     type: "link", tags: ["react"], createdAt: "2024-01-15",
+ *     updatedAt: "2024-01-15", collectionId: "dev"
+ *   }
+ */
+export type Raindrop = {
+  id: string
+  title: string
+  url: string
+  type: ContentType
+  description?: string
+  coverImage?: string
+  favicon?: string
+  domain?: string
+  tags: string[]
+  createdAt: string
+  updatedAt: string
+  collectionId: string
+  isImportant?: boolean
+  notes?: string
+  highlights?: string[]
+}
+
+/**
+ * Collection within a group, supporting nested children.
+ */
+export type Collection = {
+  id: string
+  name: string
+  icon: string
+  color?: string
+  faviconUrl?: string
+  count: number
+  groupId: string
+  parentId?: string
+  children?: Collection[]
+}
+
+/**
+ * Top-level group containing collections.
+ */
+export type Group = {
+  id: string
+  name: string
+  collections: Collection[]
+}
+
+/**
+ * System-level collection (All Bookmarks, Unsorted, Trash).
+ */
+export type SystemCollection = {
+  id: string
+  name: string
+  icon: string
+  count: number
+}
+
 declare global {
   interface Window {
     auth: AuthAPI
+    shell: ShellAPI
   }
 }

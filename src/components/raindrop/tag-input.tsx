@@ -1,0 +1,200 @@
+import { useState, useRef, useCallback, type KeyboardEvent } from "react"
+import { X } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
+/**
+ * Props for the TagInput component.
+ */
+interface TagInputProps {
+  /** Current list of tags */
+  value: string[]
+  /** Callback when tags change */
+  onChange: (tags: string[]) => void
+  /** List of existing tags for autocomplete suggestions */
+  suggestions?: string[]
+  /** Placeholder text for the input */
+  placeholder?: string
+  /** Optional label text */
+  label?: string
+  /** Maximum number of tags allowed */
+  maxTags?: number
+  /** Whether the input is disabled */
+  disabled?: boolean
+}
+
+/**
+ * Multi-value tag input with autocomplete suggestions.
+ * Tags can be added by pressing Enter or comma, removed by clicking X
+ * or pressing Backspace on an empty input.
+ *
+ * @param value - Current array of tag strings
+ * @param onChange - Callback when the tag array changes
+ * @param suggestions - Optional array of existing tags for autocomplete
+ * @param placeholder - Input placeholder text
+ * @param label - Optional label above the input
+ * @param maxTags - Maximum number of tags allowed (default unlimited)
+ * @param disabled - Whether input is disabled
+ *
+ * @example
+ *   <TagInput
+ *     value={["react", "typescript"]}
+ *     onChange={setTags}
+ *     suggestions={allTags}
+ *     placeholder="Add tags..."
+ *   />
+ */
+export function TagInput({
+  value,
+  onChange,
+  suggestions = [],
+  placeholder = "Add tag...",
+  label,
+  maxTags,
+  disabled = false,
+}: TagInputProps) {
+  const [inputValue, setInputValue] = useState("")
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const filteredSuggestions = suggestions.filter(
+    (s) =>
+      s.toLowerCase().includes(inputValue.toLowerCase()) &&
+      !value.includes(s) &&
+      inputValue.length > 0,
+  )
+
+  const addTag = useCallback(
+    (tag: string) => {
+      const trimmed = tag.trim().toLowerCase()
+      if (!trimmed) return
+      if (value.includes(trimmed)) return
+      if (maxTags && value.length >= maxTags) return
+      onChange([...value, trimmed])
+      setInputValue("")
+      setShowSuggestions(false)
+      setSelectedSuggestionIndex(-1)
+    },
+    [value, onChange, maxTags],
+  )
+
+  const removeTag = useCallback(
+    (tagToRemove: string) => {
+      onChange(value.filter((t) => t !== tagToRemove))
+    },
+    [value, onChange],
+  )
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      if (
+        selectedSuggestionIndex >= 0 &&
+        selectedSuggestionIndex < filteredSuggestions.length
+      ) {
+        addTag(filteredSuggestions[selectedSuggestionIndex])
+      } else {
+        addTag(inputValue)
+      }
+    } else if (e.key === "Backspace" && inputValue === "" && value.length > 0) {
+      removeTag(value[value.length - 1])
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault()
+      setSelectedSuggestionIndex((prev) =>
+        Math.min(prev + 1, filteredSuggestions.length - 1),
+      )
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault()
+      setSelectedSuggestionIndex((prev) => Math.max(prev - 1, -1))
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false)
+      setSelectedSuggestionIndex(-1)
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {label && (
+        <Label className="text-sm font-medium">{label}</Label>
+      )}
+      <div
+        className={cn(
+          "flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background",
+          "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
+          disabled && "cursor-not-allowed opacity-50",
+        )}
+        onClick={() => inputRef.current?.focus()}
+      >
+        {value.map((tag) => (
+          <Badge
+            key={tag}
+            variant="secondary"
+            className="gap-1 px-2 py-0.5 text-xs"
+          >
+            {tag}
+            {!disabled && (
+              <button
+                type="button"
+                className="ml-0.5 rounded-sm hover:bg-muted-foreground/20"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removeTag(tag)
+                }}
+                aria-label={`Remove ${tag} tag`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </Badge>
+        ))}
+        <Input
+          ref={inputRef}
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value)
+            setShowSuggestions(true)
+            setSelectedSuggestionIndex(-1)
+          }}
+          onFocus={() => setShowSuggestions(true)}
+          onBlur={() => {
+            setTimeout(() => setShowSuggestions(false), 200)
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={value.length === 0 ? placeholder : ""}
+          disabled={disabled || (maxTags !== undefined && value.length >= maxTags)}
+          className="h-auto min-w-[80px] flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
+      </div>
+      {showSuggestions && filteredSuggestions.length > 0 && (
+        <div className="relative">
+          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 shadow-md">
+            {filteredSuggestions.slice(0, 8).map((suggestion, index) => (
+              <button
+                key={suggestion}
+                type="button"
+                className={cn(
+                  "flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
+                  index === selectedSuggestionIndex && "bg-accent",
+                )}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  addTag(suggestion)
+                }}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {maxTags && (
+        <p className="text-xs text-muted-foreground">
+          {value.length}/{maxTags} tags
+        </p>
+      )}
+    </div>
+  )
+}

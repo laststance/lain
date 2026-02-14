@@ -1,10 +1,14 @@
 import { AuthProvider, useAuth } from "@/contexts/AuthContext"
+import { ThemeProvider } from "@/components/theme-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { LoginScreen } from "@/components/LoginScreen"
-import { UserProfile } from "@/components/UserProfile"
+import { MainApp } from "@/components/main-app"
 
 /**
- * Root component that switches between login and main content
- * based on authentication state.
+ * Root component that switches between login and the main 3-panel UI
+ * based on Raindrop.io OAuth authentication state.
+ *
+ * Flow: ThemeProvider → AuthProvider → LoginScreen | MainApp
  */
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -21,14 +25,18 @@ function AuthenticatedApp() {
     return <LoginScreen />
   }
 
-  return <UserProfile />
+  return <MainApp />
 }
 
 export function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-    </AuthProvider>
+    <ThemeProvider defaultTheme="system">
+      <TooltipProvider>
+        <AuthProvider>
+          <AuthenticatedApp />
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   )
 }
 

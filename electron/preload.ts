@@ -14,6 +14,12 @@ import type { AuthState } from "../src/lib/types.ts"
  *   })
  *   // Later: cleanup() to remove listener
  */
+contextBridge.exposeInMainWorld("shell", {
+  /** Open a URL in the user's default browser. */
+  openExternal: (url: string): Promise<void> =>
+    ipcRenderer.invoke("shell:open-external", url),
+})
+
 contextBridge.exposeInMainWorld("auth", {
   /** Initiate OAuth login flow (opens Raindrop.io auth window). */
   login: (): Promise<void> => ipcRenderer.invoke("auth:login"),

@@ -1,15 +1,16 @@
-import { useState, useMemo } from "react"
-import { Check, ChevronsUpDown, ChevronRight, Folder } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Check, ChevronsUpDown, ChevronRight, Folder } from 'lucide-react'
+import { useState, useMemo } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import type { Group, Collection } from "@/lib/types"
+} from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import type { Group, Collection } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * Props for CollectionSelector component.
@@ -49,11 +50,11 @@ export function CollectionSelector({
   groups,
   value,
   onChange,
-  placeholder = "Select collection...",
+  placeholder = 'Select collection...',
   allowNone = false,
 }: CollectionSelectorProps) {
   const [open, setOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState('')
 
   const selectedCollection = useMemo(() => {
     const findCollection = (
@@ -98,10 +99,7 @@ export function CollectionSelector({
     }, [])
   }
 
-  const renderCollection = (
-    collection: Collection,
-    depth: number = 0,
-  ) => {
+  const renderCollection = (collection: Collection, depth: number = 0) => {
     const isSelected = value === collection.id
 
     return (
@@ -109,28 +107,28 @@ export function CollectionSelector({
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent",
-            isSelected && "bg-accent",
+            'hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+            isSelected && 'bg-accent',
           )}
           style={{ paddingLeft: `${8 + depth * 16}px` }}
           onClick={() => {
             onChange(collection.id)
             setOpen(false)
-            setSearchQuery("")
+            setSearchQuery('')
           }}
         >
           {collection.children && collection.children.length > 0 && (
-            <ChevronRight className="h-3 w-3 text-muted-foreground" />
+            <ChevronRight className="text-muted-foreground h-3 w-3" />
           )}
           <div
-            className="h-3 w-3 rounded-sm flex-shrink-0"
-            style={{ backgroundColor: collection.color || "#8b5cf6" }}
+            className="h-3 w-3 flex-shrink-0 rounded-sm"
+            style={{ backgroundColor: collection.color || '#8b5cf6' }}
           />
-          <span className="truncate flex-1 text-left">{collection.name}</span>
-          <span className="text-xs text-muted-foreground">
+          <span className="flex-1 truncate text-left">{collection.name}</span>
+          <span className="text-muted-foreground text-xs">
             {collection.count}
           </span>
-          {isSelected && <Check className="h-4 w-4 text-primary" />}
+          {isSelected && <Check className="text-primary h-4 w-4" />}
         </button>
         {collection.children?.map((child) =>
           renderCollection(child, depth + 1),
@@ -151,9 +149,9 @@ export function CollectionSelector({
           {selectedCollection ? (
             <div className="flex items-center gap-2">
               <div
-                className="h-3 w-3 rounded-sm flex-shrink-0"
+                className="h-3 w-3 flex-shrink-0 rounded-sm"
                 style={{
-                  backgroundColor: selectedCollection.color || "#8b5cf6",
+                  backgroundColor: selectedCollection.color || '#8b5cf6',
                 }}
               />
               <span className="truncate">{selectedCollection.name}</span>
@@ -179,18 +177,18 @@ export function CollectionSelector({
               <button
                 type="button"
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent",
-                  !value && "bg-accent",
+                  'hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm',
+                  !value && 'bg-accent',
                 )}
                 onClick={() => {
-                  onChange("")
+                  onChange('')
                   setOpen(false)
-                  setSearchQuery("")
+                  setSearchQuery('')
                 }}
               >
-                <Folder className="h-4 w-4 text-muted-foreground" />
+                <Folder className="text-muted-foreground h-4 w-4" />
                 <span>None (root level)</span>
-                {!value && <Check className="ml-auto h-4 w-4 text-primary" />}
+                {!value && <Check className="text-primary ml-auto h-4 w-4" />}
               </button>
             )}
             {groups.map((group) => {
@@ -202,7 +200,7 @@ export function CollectionSelector({
 
               return (
                 <div key={group.id} className="mb-1">
-                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <div className="text-muted-foreground px-2 py-1.5 text-xs font-medium tracking-wider uppercase">
                     {group.name}
                   </div>
                   {(searchQuery ? filteredCollections : group.collections).map(

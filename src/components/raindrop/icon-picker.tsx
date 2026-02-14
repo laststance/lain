@@ -1,4 +1,3 @@
-import { useState, useMemo } from "react"
 import {
   Folder,
   Globe,
@@ -49,72 +48,74 @@ import {
   Compass,
   Lightbulb,
   Puzzle,
-} from "lucide-react"
-import type { LucideIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { useState, useMemo } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Label } from "@/components/ui/label"
+} from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 
 /**
  * Available icon entries for the picker grid.
  */
 const ICON_ENTRIES: { name: string; icon: LucideIcon }[] = [
-  { name: "Folder", icon: Folder },
-  { name: "Globe", icon: Globe },
-  { name: "Code2", icon: Code2 },
-  { name: "BookOpen", icon: BookOpen },
-  { name: "Music", icon: Music },
-  { name: "Video", icon: Video },
-  { name: "Image", icon: Image },
-  { name: "FileText", icon: FileText },
-  { name: "Star", icon: Star },
-  { name: "Heart", icon: Heart },
-  { name: "Home", icon: Home },
-  { name: "Settings", icon: Settings },
-  { name: "Mail", icon: Mail },
-  { name: "Phone", icon: Phone },
-  { name: "Camera", icon: Camera },
-  { name: "Bookmark", icon: Bookmark },
-  { name: "Tag", icon: Tag },
-  { name: "Search", icon: Search },
-  { name: "Layout", icon: Layout },
-  { name: "Palette", icon: Palette },
-  { name: "Brain", icon: Brain },
-  { name: "Wrench", icon: Wrench },
-  { name: "Component", icon: Component },
-  { name: "Sparkles", icon: Sparkles },
-  { name: "Plane", icon: Plane },
-  { name: "CookingPot", icon: CookingPot },
-  { name: "ShoppingCart", icon: ShoppingCart },
-  { name: "Gamepad2", icon: Gamepad2 },
-  { name: "GraduationCap", icon: GraduationCap },
-  { name: "Briefcase", icon: Briefcase },
-  { name: "Building2", icon: Building2 },
-  { name: "Newspaper", icon: Newspaper },
-  { name: "Podcast", icon: Podcast },
-  { name: "Rss", icon: Rss },
-  { name: "Database", icon: Database },
-  { name: "Server", icon: Server },
-  { name: "Cloud", icon: Cloud },
-  { name: "Shield", icon: Shield },
-  { name: "Lock", icon: Lock },
-  { name: "Key", icon: Key },
-  { name: "Zap", icon: Zap },
-  { name: "Flame", icon: Flame },
-  { name: "Trophy", icon: Trophy },
-  { name: "Target", icon: Target },
-  { name: "Flag", icon: Flag },
-  { name: "Map", icon: Map },
-  { name: "Compass", icon: Compass },
-  { name: "Lightbulb", icon: Lightbulb },
-  { name: "Puzzle", icon: Puzzle },
+  { name: 'Folder', icon: Folder },
+  { name: 'Globe', icon: Globe },
+  { name: 'Code2', icon: Code2 },
+  { name: 'BookOpen', icon: BookOpen },
+  { name: 'Music', icon: Music },
+  { name: 'Video', icon: Video },
+  { name: 'Image', icon: Image },
+  { name: 'FileText', icon: FileText },
+  { name: 'Star', icon: Star },
+  { name: 'Heart', icon: Heart },
+  { name: 'Home', icon: Home },
+  { name: 'Settings', icon: Settings },
+  { name: 'Mail', icon: Mail },
+  { name: 'Phone', icon: Phone },
+  { name: 'Camera', icon: Camera },
+  { name: 'Bookmark', icon: Bookmark },
+  { name: 'Tag', icon: Tag },
+  { name: 'Search', icon: Search },
+  { name: 'Layout', icon: Layout },
+  { name: 'Palette', icon: Palette },
+  { name: 'Brain', icon: Brain },
+  { name: 'Wrench', icon: Wrench },
+  { name: 'Component', icon: Component },
+  { name: 'Sparkles', icon: Sparkles },
+  { name: 'Plane', icon: Plane },
+  { name: 'CookingPot', icon: CookingPot },
+  { name: 'ShoppingCart', icon: ShoppingCart },
+  { name: 'Gamepad2', icon: Gamepad2 },
+  { name: 'GraduationCap', icon: GraduationCap },
+  { name: 'Briefcase', icon: Briefcase },
+  { name: 'Building2', icon: Building2 },
+  { name: 'Newspaper', icon: Newspaper },
+  { name: 'Podcast', icon: Podcast },
+  { name: 'Rss', icon: Rss },
+  { name: 'Database', icon: Database },
+  { name: 'Server', icon: Server },
+  { name: 'Cloud', icon: Cloud },
+  { name: 'Shield', icon: Shield },
+  { name: 'Lock', icon: Lock },
+  { name: 'Key', icon: Key },
+  { name: 'Zap', icon: Zap },
+  { name: 'Flame', icon: Flame },
+  { name: 'Trophy', icon: Trophy },
+  { name: 'Target', icon: Target },
+  { name: 'Flag', icon: Flag },
+  { name: 'Map', icon: Map },
+  { name: 'Compass', icon: Compass },
+  { name: 'Lightbulb', icon: Lightbulb },
+  { name: 'Puzzle', icon: Puzzle },
 ]
 
 /**
@@ -158,7 +159,7 @@ function resolveIcon(name?: string): LucideIcon {
  */
 export function IconPicker({ value, onChange, label }: IconPickerProps) {
   const [open, setOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filteredIcons = useMemo(() => {
     if (!searchQuery) return ICON_ENTRIES
@@ -172,9 +173,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
 
   return (
     <div className="space-y-2">
-      {label && (
-        <Label className="text-sm font-medium">{label}</Label>
-      )}
+      {label && <Label className="text-sm font-medium">{label}</Label>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -182,7 +181,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
             className="w-full justify-start gap-2 font-normal"
           >
             <SelectedIcon className="h-4 w-4 flex-shrink-0" />
-            <span className="text-sm">{value || "Select icon..."}</span>
+            <span className="text-sm">{value || 'Select icon...'}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-3" align="start">
@@ -203,13 +202,14 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
                       key={entry.name}
                       type="button"
                       className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-accent",
-                        isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
+                        'hover:bg-accent flex h-8 w-8 items-center justify-center rounded-md transition-colors',
+                        isSelected &&
+                          'bg-primary text-primary-foreground hover:bg-primary/90',
                       )}
                       onClick={() => {
                         onChange(entry.name)
                         setOpen(false)
-                        setSearchQuery("")
+                        setSearchQuery('')
                       }}
                       title={entry.name}
                     >
@@ -219,7 +219,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
                 })}
               </div>
               {filteredIcons.length === 0 && (
-                <div className="py-6 text-center text-sm text-muted-foreground">
+                <div className="text-muted-foreground py-6 text-center text-sm">
                   No icons found
                 </div>
               )}

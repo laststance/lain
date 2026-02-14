@@ -1,28 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Globe,
   FileText,
@@ -43,16 +19,46 @@ import {
   PanelRightOpen,
   Check,
   Highlighter,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { extractDomain, getFaviconUrl, getDomainColor, getDomainInitial } from "@/utils/favicon"
-import type { Raindrop, Group, ContentType } from "@/lib/types"
+} from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import type { Raindrop, Group, ContentType } from '@/lib/types'
+import { cn } from '@/lib/utils'
+import {
+  extractDomain,
+  getFaviconUrl,
+  getDomainColor,
+  getDomainInitial,
+} from '@/utils/favicon'
 
 const raindropSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  url: z.string().url("Please enter a valid URL"),
+  title: z.string().min(1, 'Title is required'),
+  url: z.string().url('Please enter a valid URL'),
   description: z.string().optional(),
-  type: z.enum(["link", "article", "image", "video", "document", "audio"]),
+  type: z.enum(['link', 'article', 'image', 'video', 'document', 'audio']),
   notes: z.string().optional(),
   isImportant: z.boolean(),
 })
@@ -125,7 +131,7 @@ export function RightDetailPanel({
   onDelete,
 }: RightDetailPanelProps) {
   const [tags, setTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState("")
+  const [tagInput, setTagInput] = useState('')
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
@@ -140,18 +146,18 @@ export function RightDetailPanel({
   } = useForm<RaindropFormValues>({
     resolver: zodResolver(raindropSchema),
     defaultValues: {
-      title: "",
-      url: "",
-      description: "",
-      type: "link",
-      notes: "",
+      title: '',
+      url: '',
+      description: '',
+      type: 'link',
+      notes: '',
       isImportant: false,
     },
   })
 
-  const selectedType = watch("type")
-  const isImportant = watch("isImportant")
-  const currentUrl = watch("url")
+  const selectedType = watch('type')
+  const isImportant = watch('isImportant')
+  const currentUrl = watch('url')
 
   // Reset form when raindrop changes
   useEffect(() => {
@@ -159,9 +165,9 @@ export function RightDetailPanel({
       reset({
         title: raindrop.title,
         url: raindrop.url,
-        description: raindrop.description || "",
+        description: raindrop.description || '',
         type: raindrop.type,
-        notes: raindrop.notes || "",
+        notes: raindrop.notes || '',
         isImportant: raindrop.isImportant || false,
       })
       setTags(raindrop.tags || [])
@@ -187,7 +193,7 @@ export function RightDetailPanel({
     if (trimmed && !tags.includes(trimmed)) {
       setTags([...tags, trimmed])
     }
-    setTagInput("")
+    setTagInput('')
     setTagSuggestions([])
   }
 
@@ -196,14 +202,14 @@ export function RightDetailPanel({
   }
 
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault()
       if (tagSuggestions.length > 0) {
         addTag(tagSuggestions[0])
       } else if (tagInput.trim()) {
         addTag(tagInput)
       }
-    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+    } else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
       removeTag(tags[tags.length - 1])
     }
   }
@@ -239,22 +245,22 @@ export function RightDetailPanel({
     onClose()
   }
 
-  const domain = currentUrl ? extractDomain(currentUrl) : ""
-  const faviconUrl = domain ? getFaviconUrl(domain) : ""
-  const domainColor = domain ? getDomainColor(domain) : "oklch(0.7 0.15 250)"
-  const domainInitial = domain ? getDomainInitial(domain) : "?"
+  const domain = currentUrl ? extractDomain(currentUrl) : ''
+  const faviconUrl = domain ? getFaviconUrl(domain) : ''
+  const domainColor = domain ? getDomainColor(domain) : 'oklch(0.7 0.15 250)'
+  const domainInitial = domain ? getDomainInitial(domain) : '?'
 
   const TypeIcon = selectedType ? TYPE_ICONS[selectedType] : Globe
 
   const formatDate = (dateStr: string) => {
     try {
       const date = new Date(dateStr)
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       })
     } catch {
       return dateStr
@@ -263,7 +269,7 @@ export function RightDetailPanel({
 
   // Find collection name from groups
   const collectionName = (() => {
-    if (!raindrop) return ""
+    if (!raindrop) return ''
     for (const group of groups) {
       for (const col of group.collections) {
         if (col.id === raindrop.collectionId) return col.name
@@ -274,23 +280,25 @@ export function RightDetailPanel({
         }
       }
     }
-    return "Unknown"
+    return 'Unknown'
   })()
 
   return (
     <div
       className={cn(
-        "h-screen border-l bg-background transition-all duration-200 ease-in-out flex flex-col",
-        isOpen ? "w-[360px] min-w-[360px]" : "w-0 min-w-0 overflow-hidden border-l-0",
+        'bg-background flex h-screen flex-col border-l transition-all duration-200 ease-in-out',
+        isOpen
+          ? 'w-[360px] min-w-[360px]'
+          : 'w-0 min-w-0 overflow-hidden border-l-0',
       )}
     >
       {isOpen && raindrop && (
         <>
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b flex-shrink-0">
+          <div className="flex flex-shrink-0 items-center justify-between border-b p-3">
             <div className="flex items-center gap-2">
-              <TypeIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium truncate max-w-[200px]">
+              <TypeIcon className="text-muted-foreground h-4 w-4" />
+              <span className="max-w-[200px] truncate text-sm font-medium">
                 Details
               </span>
             </div>
@@ -312,19 +320,16 @@ export function RightDetailPanel({
           </div>
 
           <ScrollArea className="flex-1">
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="p-4 space-y-4"
-            >
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
               {/* Cover Image */}
               {raindrop.coverImage && (
-                <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                <div className="bg-muted relative aspect-video overflow-hidden rounded-lg">
                   <img
                     src={raindrop.coverImage}
                     alt={raindrop.title}
                     className="h-full w-full object-cover"
                     onError={(e) => {
-                      ;(e.target as HTMLImageElement).style.display = "none"
+                      ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
                   <Badge
@@ -348,7 +353,7 @@ export function RightDetailPanel({
                     />
                   ) : (
                     <div
-                      className="h-8 w-8 rounded-md flex items-center justify-center text-white text-sm font-medium"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium text-white"
                       style={{ backgroundColor: domainColor }}
                     >
                       {domainInitial}
@@ -356,15 +361,15 @@ export function RightDetailPanel({
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="text-muted-foreground truncate text-sm">
                     {domain}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     in {collectionName}
                   </p>
                 </div>
                 {isImportant && (
-                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />
+                  <Star className="h-4 w-4 flex-shrink-0 fill-yellow-500 text-yellow-500" />
                 )}
               </div>
 
@@ -373,12 +378,9 @@ export function RightDetailPanel({
               {/* Title */}
               <div className="grid gap-2">
                 <Label htmlFor="detail-title">Title</Label>
-                <Input
-                  id="detail-title"
-                  {...register("title")}
-                />
+                <Input id="detail-title" {...register('title')} />
                 {errors.title && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {errors.title.message}
                   </p>
                 )}
@@ -389,11 +391,11 @@ export function RightDetailPanel({
                 <Label htmlFor="detail-url">URL</Label>
                 <div className="flex gap-1">
                   <div className="relative flex-1">
-                    <Link className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Link className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                     <Input
                       id="detail-url"
                       className="pl-8 text-xs"
-                      {...register("url")}
+                      {...register('url')}
                     />
                   </div>
                   <TooltipProvider>
@@ -430,13 +432,13 @@ export function RightDetailPanel({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {copied ? "Copied!" : "Copy URL"}
+                        {copied ? 'Copied!' : 'Copy URL'}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
                 {errors.url && (
-                  <p className="text-sm text-destructive">
+                  <p className="text-destructive text-sm">
                     {errors.url.message}
                   </p>
                 )}
@@ -450,7 +452,7 @@ export function RightDetailPanel({
                   className="resize-none text-sm"
                   rows={3}
                   placeholder="Add a description..."
-                  {...register("description")}
+                  {...register('description')}
                 />
               </div>
 
@@ -459,9 +461,7 @@ export function RightDetailPanel({
                 <Label htmlFor="detail-type">Type</Label>
                 <Select
                   value={selectedType}
-                  onValueChange={(val) =>
-                    setValue("type", val as ContentType)
-                  }
+                  onValueChange={(val) => setValue('type', val as ContentType)}
                 >
                   <SelectTrigger id="detail-type">
                     <SelectValue />
@@ -490,18 +490,14 @@ export function RightDetailPanel({
                   <Tag className="h-3.5 w-3.5" />
                   Tags
                 </Label>
-                <div className="flex flex-wrap items-center gap-1.5 rounded-md border px-3 py-2 min-h-[40px]">
+                <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border px-3 py-2">
                   {tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="gap-1 pr-1"
-                    >
+                    <Badge key={tag} variant="secondary" className="gap-1 pr-1">
                       {tag}
                       <button
                         type="button"
                         onClick={() => removeTag(tag)}
-                        className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                        className="hover:bg-muted-foreground/20 ml-0.5 rounded-sm p-0.5"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -512,17 +508,17 @@ export function RightDetailPanel({
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleTagKeyDown}
-                    placeholder={tags.length === 0 ? "Add tags..." : ""}
-                    className="flex-1 min-w-[60px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    placeholder={tags.length === 0 ? 'Add tags...' : ''}
+                    className="placeholder:text-muted-foreground min-w-[60px] flex-1 bg-transparent text-sm outline-none"
                   />
                 </div>
                 {tagSuggestions.length > 0 && (
-                  <div className="rounded-md border bg-popover p-1 shadow-md">
+                  <div className="bg-popover rounded-md border p-1 shadow-md">
                     {tagSuggestions.map((suggestion) => (
                       <button
                         key={suggestion}
                         type="button"
-                        className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                        className="hover:bg-accent flex w-full items-center rounded-sm px-2 py-1.5 text-sm"
                         onClick={() => addTag(suggestion)}
                       >
                         {suggestion}
@@ -545,7 +541,7 @@ export function RightDetailPanel({
                   id="detail-important"
                   checked={isImportant}
                   onCheckedChange={(checked: boolean) =>
-                    setValue("isImportant", checked)
+                    setValue('isImportant', checked)
                   }
                 />
               </div>
@@ -558,7 +554,7 @@ export function RightDetailPanel({
                   className="resize-none text-sm"
                   rows={4}
                   placeholder="Personal notes..."
-                  {...register("notes")}
+                  {...register('notes')}
                 />
               </div>
 
@@ -573,9 +569,9 @@ export function RightDetailPanel({
                     {raindrop.highlights.map((highlight, index) => (
                       <div
                         key={index}
-                        className="rounded-md border-l-2 border-primary bg-primary/5 px-3 py-2"
+                        className="border-primary bg-primary/5 rounded-md border-l-2 px-3 py-2"
                       >
-                        <p className="text-sm italic text-foreground/80">
+                        <p className="text-foreground/80 text-sm italic">
                           &ldquo;{highlight}&rdquo;
                         </p>
                       </div>
@@ -587,7 +583,7 @@ export function RightDetailPanel({
               <Separator />
 
               {/* Metadata */}
-              <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="text-muted-foreground space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3.5 w-3.5" />
                   <span>Created: {formatDate(raindrop.createdAt)}</span>
@@ -605,7 +601,10 @@ export function RightDetailPanel({
                 <Button
                   type="submit"
                   className="flex-1"
-                  disabled={!isDirty && tags.join(",") === (raindrop.tags || []).join(",")}
+                  disabled={
+                    !isDirty &&
+                    tags.join(',') === (raindrop.tags || []).join(',')
+                  }
                 >
                   Save Changes
                 </Button>
@@ -627,7 +626,7 @@ export function RightDetailPanel({
 
       {/* Collapsed toggle button (shown when panel is closed) */}
       {!isOpen && (
-        <div className="fixed right-0 top-1/2 -translate-y-1/2 z-10">
+        <div className="fixed top-1/2 right-0 z-10 -translate-y-1/2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

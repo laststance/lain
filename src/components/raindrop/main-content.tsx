@@ -1,4 +1,3 @@
-import { useState, useMemo } from "react"
 import {
   Search,
   Plus,
@@ -9,18 +8,12 @@ import {
   SlidersHorizontal,
   BookmarkPlus,
   X,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+} from 'lucide-react'
+import { useState, useMemo } from 'react'
+
+import { RaindropCard } from '@/components/raindrop/raindrop-card'
+import { RaindropListItem } from '@/components/raindrop/raindrop-list-item'
+import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -28,19 +21,24 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { RaindropCard } from "@/components/raindrop/raindrop-card"
-import { RaindropListItem } from "@/components/raindrop/raindrop-list-item"
+} from '@/components/ui/tooltip'
 import type {
   Raindrop,
   Group,
@@ -48,7 +46,7 @@ import type {
   ViewMode,
   SortOption,
   SearchScope,
-} from "@/lib/types"
+} from '@/lib/types'
 
 /**
  * Props for the MainContent component.
@@ -116,10 +114,10 @@ export function MainContent({
   // Reserved for bulk action "Move to..." functionality
   void _groups
   void _collections
-  const [viewMode, setViewMode] = useState<ViewMode>("list")
-  const [sortOption, setSortOption] = useState<SortOption>("newest")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchScope, setSearchScope] = useState<SearchScope>("all")
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [sortOption, setSortOption] = useState<SortOption>('newest')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
 
   /**
@@ -133,18 +131,18 @@ export function MainContent({
 
     return raindrops.filter((r) => {
       switch (searchScope) {
-        case "url":
+        case 'url':
           return r.url.toLowerCase().includes(query)
-        case "title":
+        case 'title':
           return r.title.toLowerCase().includes(query)
-        case "description":
-          return (r.description || "").toLowerCase().includes(query)
-        case "all":
+        case 'description':
+          return (r.description || '').toLowerCase().includes(query)
+        case 'all':
         default:
           return (
             r.title.toLowerCase().includes(query) ||
             r.url.toLowerCase().includes(query) ||
-            (r.description || "").toLowerCase().includes(query) ||
+            (r.description || '').toLowerCase().includes(query) ||
             r.tags.some((t) => t.toLowerCase().includes(query))
           )
       }
@@ -159,23 +157,23 @@ export function MainContent({
     const sorted = [...filteredRaindrops]
 
     switch (sortOption) {
-      case "newest":
+      case 'newest':
         return sorted.sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         )
-      case "oldest":
+      case 'oldest':
         return sorted.sort(
           (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         )
-      case "title-asc":
+      case 'title-asc':
         return sorted.sort((a, b) => a.title.localeCompare(b.title))
-      case "title-desc":
+      case 'title-desc':
         return sorted.sort((a, b) => b.title.localeCompare(a.title))
-      case "domain":
+      case 'domain':
         return sorted.sort((a, b) =>
-          (a.domain || "").localeCompare(b.domain || "")
+          (a.domain || '').localeCompare(b.domain || ''),
         )
       default:
         return sorted
@@ -200,17 +198,15 @@ export function MainContent({
     } else if (event.shiftKey && selectedRaindropId) {
       // Range select
       const currentIndex = sortedRaindrops.findIndex(
-        (r) => r.id === selectedRaindropId
+        (r) => r.id === selectedRaindropId,
       )
       const clickedIndex = sortedRaindrops.findIndex(
-        (r) => r.id === raindrop.id
+        (r) => r.id === raindrop.id,
       )
       if (currentIndex !== -1 && clickedIndex !== -1) {
         const start = Math.min(currentIndex, clickedIndex)
         const end = Math.max(currentIndex, clickedIndex)
-        const rangeIds = sortedRaindrops
-          .slice(start, end + 1)
-          .map((r) => r.id)
+        const rangeIds = sortedRaindrops.slice(start, end + 1).map((r) => r.id)
         onSelectedRaindropIdsChange(new Set(rangeIds))
       }
     } else {
@@ -231,15 +227,15 @@ export function MainContent({
    * Clear all search state.
    */
   const clearSearch = () => {
-    setSearchQuery("")
-    setSearchScope("all")
+    setSearchQuery('')
+    setSearchScope('all')
     setIsAdvancedSearchOpen(false)
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/60 flex-shrink-0 border-b backdrop-blur">
         {/* Top row: Breadcrumb + Actions */}
         <div className="flex items-center justify-between px-4 py-2">
           <Breadcrumb>
@@ -250,7 +246,7 @@ export function MainContent({
                   <BreadcrumbItem key={`${crumb}-${index}`}>
                     {!isLast ? (
                       <>
-                        <BreadcrumbLink className="text-sm cursor-pointer hover:text-foreground">
+                        <BreadcrumbLink className="hover:text-foreground cursor-pointer text-sm">
                           {crumb}
                         </BreadcrumbLink>
                         <BreadcrumbSeparator />
@@ -267,14 +263,14 @@ export function MainContent({
           </Breadcrumb>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-muted-foreground text-xs tabular-nums">
               {sortedRaindrops.length} items
             </span>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button size="sm" onClick={onAddBookmark} className="h-8">
-                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  <Plus className="mr-1 h-3.5 w-3.5" />
                   Add
                 </Button>
               </TooltipTrigger>
@@ -286,32 +282,32 @@ export function MainContent({
         {/* Second row: Search + View Controls */}
         <div className="flex items-center gap-2 px-4 pb-2">
           {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <div className="relative max-w-md flex-1">
+            <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
               placeholder="Search bookmarks... (Cmd+K)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 pl-8 pr-8 text-sm"
+              className="h-8 pr-8 pl-8 text-sm"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={clearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-accent"
+                className="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5"
               >
-                <X className="h-3 w-3 text-muted-foreground" />
+                <X className="text-muted-foreground h-3 w-3" />
               </button>
             )}
           </div>
 
           {/* Search Scope Badge */}
-          {searchScope !== "all" && (
-            <Badge variant="secondary" className="text-xs gap-1">
+          {searchScope !== 'all' && (
+            <Badge variant="secondary" className="gap-1 text-xs">
               {searchScope}
               <button
                 type="button"
-                onClick={() => setSearchScope("all")}
+                onClick={() => setSearchScope('all')}
                 className="ml-0.5"
               >
                 <X className="h-2.5 w-2.5" />
@@ -323,7 +319,7 @@ export function MainContent({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={isAdvancedSearchOpen ? "secondary" : "ghost"}
+                variant={isAdvancedSearchOpen ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 flex-shrink-0"
                 onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
@@ -422,21 +418,21 @@ export function MainContent({
         {/* Advanced Search Options */}
         {isAdvancedSearchOpen && (
           <div className="flex items-center gap-2 px-4 pb-2">
-            <span className="text-xs text-muted-foreground">Search in:</span>
+            <span className="text-muted-foreground text-xs">Search in:</span>
             <div className="flex gap-1">
               {(
                 [
-                  { value: "all", label: "All Fields" },
-                  { value: "url", label: "URL Only" },
-                  { value: "title", label: "Title Only" },
-                  { value: "description", label: "Description Only" },
+                  { value: 'all', label: 'All Fields' },
+                  { value: 'url', label: 'URL Only' },
+                  { value: 'title', label: 'Title Only' },
+                  { value: 'description', label: 'Description Only' },
                 ] as const
               ).map((scope) => (
                 <Button
                   key={scope.value}
-                  variant={searchScope === scope.value ? "secondary" : "ghost"}
+                  variant={searchScope === scope.value ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="h-6 text-xs px-2"
+                  className="h-6 px-2 text-xs"
                   onClick={() => setSearchScope(scope.value)}
                 >
                   {scope.label}
@@ -448,7 +444,7 @@ export function MainContent({
 
         {/* Bulk Actions Bar */}
         {selectedRaindropIds.size > 0 && (
-          <div className="flex items-center gap-2 px-4 pb-2 border-t bg-muted/30 pt-2">
+          <div className="bg-muted/30 flex items-center gap-2 border-t px-4 pt-2 pb-2">
             <span className="text-xs font-medium">
               {selectedRaindropIds.size} selected
             </span>
@@ -470,7 +466,7 @@ export function MainContent({
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-xs text-destructive hover:text-destructive"
+              className="text-destructive hover:text-destructive h-6 text-xs"
             >
               Delete
             </Button>
@@ -482,15 +478,15 @@ export function MainContent({
       <ScrollArea className="flex-1">
         {sortedRaindrops.length === 0 ? (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center py-20 px-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted mb-4">
-              <BookmarkPlus className="h-8 w-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center px-4 py-20">
+            <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
+              <BookmarkPlus className="text-muted-foreground h-8 w-8" />
             </div>
-            <h3 className="text-lg font-semibold mb-1">No bookmarks found</h3>
-            <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
+            <h3 className="mb-1 text-lg font-semibold">No bookmarks found</h3>
+            <p className="text-muted-foreground mb-4 max-w-sm text-center text-sm">
               {searchQuery
                 ? `No results for "${searchQuery}". Try a different search term or clear filters.`
-                : "This collection is empty. Add your first bookmark to get started."}
+                : 'This collection is empty. Add your first bookmark to get started.'}
             </p>
             {searchQuery ? (
               <Button variant="outline" size="sm" onClick={clearSearch}>
@@ -498,14 +494,14 @@ export function MainContent({
               </Button>
             ) : (
               <Button size="sm" onClick={onAddBookmark}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
+                <Plus className="mr-1 h-3.5 w-3.5" />
                 Add Bookmark
               </Button>
             )}
           </div>
-        ) : viewMode === "grid" ? (
+        ) : viewMode === 'grid' ? (
           /* Grid View */
-          <div className="p-4 grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4">
             {sortedRaindrops.map((raindrop) => (
               <RaindropCard
                 key={raindrop.id}

@@ -1,4 +1,3 @@
-import { useState } from "react"
 import {
   Inbox,
   FileQuestion,
@@ -11,10 +10,26 @@ import {
   Tag,
   FolderPlus,
   Layers,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+} from 'lucide-react'
+import { useState } from 'react'
+
+import { CollectionSearch } from '@/components/raindrop/collection-search'
+import { ThemeToggle } from '@/components/raindrop/theme-toggle'
+import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import {
   Sidebar,
   SidebarContent,
@@ -27,27 +42,13 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/sidebar'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { ThemeToggle } from "@/components/raindrop/theme-toggle"
-import { CollectionSearch } from "@/components/raindrop/collection-search"
-import type { SystemCollection, Group, Collection } from "@/lib/types"
+} from '@/components/ui/tooltip'
+import type { SystemCollection, Group, Collection } from '@/lib/types'
 
 /**
  * Map system collection icon name to lucide component.
@@ -123,10 +124,10 @@ export function LeftSidebar({
   onManageTags,
 }: LeftSidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
-    new Set(groups.map((g) => g.id))
+    new Set(groups.map((g) => g.id)),
   )
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(
-    new Set()
+    new Set(),
   )
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -182,7 +183,7 @@ export function LeftSidebar({
             className="group/collection h-8 w-full"
             style={{ paddingLeft: `${12 + depth * 16}px` }}
           >
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               {hasChildren ? (
                 <button
                   type="button"
@@ -190,12 +191,12 @@ export function LeftSidebar({
                     e.stopPropagation()
                     toggleCollection(collection.id)
                   }}
-                  className="flex-shrink-0 p-0.5 rounded hover:bg-accent/50"
+                  className="hover:bg-accent/50 flex-shrink-0 rounded p-0.5"
                 >
                   {isExpanded ? (
-                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                    <ChevronDown className="text-muted-foreground h-3 w-3" />
                   ) : (
-                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                    <ChevronRight className="text-muted-foreground h-3 w-3" />
                   )}
                 </button>
               ) : (
@@ -203,14 +204,14 @@ export function LeftSidebar({
               )}
 
               <div
-                className="h-3 w-3 rounded-sm flex-shrink-0"
-                style={{ backgroundColor: collection.color || "#8b5cf6" }}
+                className="h-3 w-3 flex-shrink-0 rounded-sm"
+                style={{ backgroundColor: collection.color || '#8b5cf6' }}
               />
 
               <span className="truncate text-sm">{collection.name}</span>
             </div>
 
-            <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0 opacity-0 group-hover/collection:opacity-100 transition-opacity">
+            <span className="text-muted-foreground flex-shrink-0 text-xs tabular-nums opacity-0 transition-opacity group-hover/collection:opacity-100">
               {collection.count}
             </span>
           </SidebarMenuButton>
@@ -219,7 +220,7 @@ export function LeftSidebar({
         {hasChildren && isExpanded && (
           <div>
             {collection.children!.map((child) =>
-              renderCollection(child, depth + 1)
+              renderCollection(child, depth + 1),
             )}
           </div>
         )}
@@ -232,7 +233,7 @@ export function LeftSidebar({
       <SidebarHeader className="px-3 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <div className="bg-primary text-primary-foreground flex h-7 w-7 items-center justify-center rounded-lg">
               <Layers className="h-4 w-4" />
             </div>
             <span className="text-sm font-semibold tracking-tight">Lain</span>
@@ -243,23 +244,21 @@ export function LeftSidebar({
 
       <SidebarContent>
         {/* Quick Actions */}
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden px-3 py-1">
+        <SidebarGroup className="px-3 py-1 group-data-[collapsible=icon]:hidden">
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-8 text-xs"
+                  className="h-8 flex-1 text-xs"
                   onClick={onAddBookmark}
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  <Plus className="mr-1 h-3.5 w-3.5" />
                   Add Bookmark
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">
-                Add a new bookmark
-              </TooltipContent>
+              <TooltipContent side="bottom">Add a new bookmark</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -273,16 +272,14 @@ export function LeftSidebar({
                   <Search className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">
-                Search collections
-              </TooltipContent>
+              <TooltipContent side="bottom">Search collections</TooltipContent>
             </Tooltip>
           </div>
         </SidebarGroup>
 
         {/* Collection Search */}
         {isSearchOpen && (
-          <div className="group-data-[collapsible=icon]:hidden px-3 pb-1">
+          <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
             <CollectionSearch
               groups={groups}
               onSelect={(collectionId) => {
@@ -299,7 +296,7 @@ export function LeftSidebar({
         <ScrollArea className="flex-1">
           {/* System Collections */}
           <SidebarGroup>
-            <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3">
+            <SidebarGroupLabel className="text-muted-foreground px-3 text-xs font-medium tracking-wider uppercase">
               Library
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -318,7 +315,7 @@ export function LeftSidebar({
                       >
                         <Icon className="h-4 w-4" />
                         <span className="flex-1 truncate">{sc.name}</span>
-                        <span className="text-xs text-muted-foreground tabular-nums">
+                        <span className="text-muted-foreground text-xs tabular-nums">
                           {sc.count}
                         </span>
                       </SidebarMenuButton>
@@ -342,9 +339,9 @@ export function LeftSidebar({
                 onOpenChange={() => toggleGroup(group.id)}
               >
                 <SidebarGroup>
-                  <div className="flex items-center group/groupheader">
+                  <div className="group/groupheader flex items-center">
                     <CollapsibleTrigger asChild>
-                      <SidebarGroupLabel className="flex-1 cursor-pointer text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 hover:text-foreground transition-colors">
+                      <SidebarGroupLabel className="text-muted-foreground hover:text-foreground flex-1 cursor-pointer px-3 text-xs font-medium tracking-wider uppercase transition-colors">
                         <span className="flex items-center gap-1">
                           {isExpanded ? (
                             <ChevronDown className="h-3 w-3" />
@@ -356,7 +353,7 @@ export function LeftSidebar({
                       </SidebarGroupLabel>
                     </CollapsibleTrigger>
 
-                    <div className="opacity-0 group-hover/groupheader:opacity-100 transition-opacity flex items-center gap-0.5 pr-2 group-data-[collapsible=icon]:hidden">
+                    <div className="flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/groupheader:opacity-100 group-data-[collapsible=icon]:hidden">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -386,7 +383,7 @@ export function LeftSidebar({
                     <SidebarGroupContent>
                       <SidebarMenu>
                         {group.collections.map((collection) =>
-                          renderCollection(collection)
+                          renderCollection(collection),
                         )}
                       </SidebarMenu>
                     </SidebarGroupContent>

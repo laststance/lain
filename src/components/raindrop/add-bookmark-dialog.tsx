@@ -1,34 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
-import { Badge } from "@/components/ui/badge"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { CollectionSelector } from "@/components/raindrop/collection-selector"
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Globe,
   FileText,
@@ -42,16 +12,47 @@ import {
   X,
   Plus,
   Sparkles,
-} from "lucide-react"
-import { extractDomain, getFaviconUrl } from "@/utils/favicon"
-import type { Group, ContentType } from "@/lib/types"
+} from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+
+import { CollectionSelector } from '@/components/raindrop/collection-selector'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import type { Group, ContentType } from '@/lib/types'
+import { extractDomain, getFaviconUrl } from '@/utils/favicon'
 
 const bookmarkSchema = z.object({
-  url: z.string().url("Please enter a valid URL"),
+  url: z.string().url('Please enter a valid URL'),
   title: z.string().optional(),
   description: z.string().optional(),
   collectionId: z.string().optional(),
-  type: z.enum(["link", "article", "image", "video", "document", "audio"]),
+  type: z.enum(['link', 'article', 'image', 'video', 'document', 'audio']),
   notes: z.string().optional(),
   isImportant: z.boolean(),
 })
@@ -119,10 +120,10 @@ export function AddBookmarkDialog({
   onSave,
 }: AddBookmarkDialogProps) {
   const [tags, setTags] = useState<string[]>([])
-  const [tagInput, setTagInput] = useState("")
+  const [tagInput, setTagInput] = useState('')
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
   const [isParsing, setIsParsing] = useState(false)
-  const [parsedFavicon, setParsedFavicon] = useState("")
+  const [parsedFavicon, setParsedFavicon] = useState('')
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [autoIcon, setAutoIcon] = useState(true)
 
@@ -136,35 +137,35 @@ export function AddBookmarkDialog({
   } = useForm<BookmarkFormValues>({
     resolver: zodResolver(bookmarkSchema),
     defaultValues: {
-      url: "",
-      title: "",
-      description: "",
-      collectionId: defaultCollectionId || "",
-      type: "link",
-      notes: "",
+      url: '',
+      title: '',
+      description: '',
+      collectionId: defaultCollectionId || '',
+      type: 'link',
+      notes: '',
       isImportant: false,
     },
   })
 
-  const url = watch("url")
-  const selectedType = watch("type")
-  const isImportant = watch("isImportant")
+  const url = watch('url')
+  const selectedType = watch('type')
+  const isImportant = watch('isImportant')
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       reset({
-        url: "",
-        title: "",
-        description: "",
-        collectionId: defaultCollectionId || "",
-        type: "link",
-        notes: "",
+        url: '',
+        title: '',
+        description: '',
+        collectionId: defaultCollectionId || '',
+        type: 'link',
+        notes: '',
         isImportant: false,
       })
       setTags([])
-      setTagInput("")
-      setParsedFavicon("")
+      setTagInput('')
+      setParsedFavicon('')
       setIsNotesOpen(false)
       setAutoIcon(true)
     }
@@ -193,25 +194,25 @@ export function AddBookmarkDialog({
         if (
           urlValue.match(/youtube\.com|vimeo\.com|dailymotion\.com|\.mp4$/i)
         ) {
-          setValue("type", "video")
+          setValue('type', 'video')
         } else if (urlValue.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
-          setValue("type", "image")
+          setValue('type', 'image')
         } else if (urlValue.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i)) {
-          setValue("type", "document")
+          setValue('type', 'document')
         } else if (urlValue.match(/\.(mp3|wav|ogg|flac|aac)$/i)) {
-          setValue("type", "audio")
+          setValue('type', 'audio')
         } else if (
           urlValue.match(
             /medium\.com|dev\.to|hashnode\.dev|substack\.com|blog\./i,
           )
         ) {
-          setValue("type", "article")
+          setValue('type', 'article')
         }
 
         // Auto-fill title from domain if empty
-        const currentTitle = watch("title")
+        const currentTitle = watch('title')
         if (!currentTitle) {
-          setValue("title", domain ? `${domain} - Untitled` : "")
+          setValue('title', domain ? `${domain} - Untitled` : '')
         }
 
         setIsParsing(false)
@@ -247,7 +248,7 @@ export function AddBookmarkDialog({
     if (trimmed && !tags.includes(trimmed)) {
       setTags([...tags, trimmed])
     }
-    setTagInput("")
+    setTagInput('')
     setTagSuggestions([])
   }
 
@@ -256,14 +257,14 @@ export function AddBookmarkDialog({
   }
 
   const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
+    if (e.key === 'Enter') {
       e.preventDefault()
       if (tagSuggestions.length > 0) {
         addTag(tagSuggestions[0])
       } else if (tagInput.trim()) {
         addTag(tagInput)
       }
-    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+    } else if (e.key === 'Backspace' && !tagInput && tags.length > 0) {
       removeTag(tags[tags.length - 1])
     }
   }
@@ -279,7 +280,7 @@ export function AddBookmarkDialog({
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-primary" />
+              <Plus className="text-primary h-5 w-5" />
               Add Bookmark
             </DialogTitle>
             <DialogDescription>
@@ -292,22 +293,20 @@ export function AddBookmarkDialog({
             <div className="grid gap-2">
               <Label htmlFor="bookmark-url">URL</Label>
               <div className="relative">
-                <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Link className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <Input
                   id="bookmark-url"
                   placeholder="https://..."
                   className="pl-9"
-                  {...register("url")}
+                  {...register('url')}
                   autoFocus
                 />
                 {isParsing && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                  <Loader2 className="text-muted-foreground absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 animate-spin" />
                 )}
               </div>
               {errors.url && (
-                <p className="text-sm text-destructive">
-                  {errors.url.message}
-                </p>
+                <p className="text-destructive text-sm">{errors.url.message}</p>
               )}
             </div>
 
@@ -319,9 +318,9 @@ export function AddBookmarkDialog({
                   <img
                     src={parsedFavicon}
                     alt=""
-                    className="h-5 w-5 rounded-sm flex-shrink-0"
+                    className="h-5 w-5 flex-shrink-0 rounded-sm"
                     onError={(e) => {
-                      ;(e.target as HTMLImageElement).style.display = "none"
+                      ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
                 )}
@@ -329,7 +328,7 @@ export function AddBookmarkDialog({
                   id="bookmark-title"
                   placeholder="Bookmark title"
                   className="flex-1"
-                  {...register("title")}
+                  {...register('title')}
                 />
               </div>
             </div>
@@ -342,7 +341,7 @@ export function AddBookmarkDialog({
                 placeholder="Brief description..."
                 className="resize-none"
                 rows={2}
-                {...register("description")}
+                {...register('description')}
               />
             </div>
 
@@ -351,8 +350,8 @@ export function AddBookmarkDialog({
               <Label>Collection</Label>
               <CollectionSelector
                 groups={groups}
-                value={watch("collectionId")}
-                onChange={(id) => setValue("collectionId", id)}
+                value={watch('collectionId')}
+                onChange={(id) => setValue('collectionId', id)}
                 placeholder="Select collection..."
               />
             </div>
@@ -360,18 +359,14 @@ export function AddBookmarkDialog({
             {/* Tags */}
             <div className="grid gap-2">
               <Label>Tags</Label>
-              <div className="flex flex-wrap items-center gap-1.5 rounded-md border px-3 py-2 min-h-[40px]">
+              <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border px-3 py-2">
                 {tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="gap-1 pr-1"
-                  >
+                  <Badge key={tag} variant="secondary" className="gap-1 pr-1">
                     {tag}
                     <button
                       type="button"
                       onClick={() => removeTag(tag)}
-                      className="ml-0.5 rounded-sm hover:bg-muted-foreground/20 p-0.5"
+                      className="hover:bg-muted-foreground/20 ml-0.5 rounded-sm p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -382,17 +377,17 @@ export function AddBookmarkDialog({
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagKeyDown}
-                  placeholder={tags.length === 0 ? "Add tags..." : ""}
-                  className="flex-1 min-w-[80px] bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                  placeholder={tags.length === 0 ? 'Add tags...' : ''}
+                  className="placeholder:text-muted-foreground min-w-[80px] flex-1 bg-transparent text-sm outline-none"
                 />
               </div>
               {tagSuggestions.length > 0 && (
-                <div className="rounded-md border bg-popover p-1 shadow-md">
+                <div className="bg-popover rounded-md border p-1 shadow-md">
                   {tagSuggestions.map((suggestion) => (
                     <button
                       key={suggestion}
                       type="button"
-                      className="flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent"
+                      className="hover:bg-accent flex w-full items-center rounded-sm px-2 py-1.5 text-sm"
                       onClick={() => addTag(suggestion)}
                     >
                       {suggestion}
@@ -404,13 +399,11 @@ export function AddBookmarkDialog({
 
             {/* Type & Important row */}
             <div className="flex items-end gap-4">
-              <div className="grid gap-2 flex-1">
+              <div className="grid flex-1 gap-2">
                 <Label htmlFor="bookmark-type">Type</Label>
                 <Select
                   value={selectedType}
-                  onValueChange={(val) =>
-                    setValue("type", val as ContentType)
-                  }
+                  onValueChange={(val) => setValue('type', val as ContentType)}
                 >
                   <SelectTrigger id="bookmark-type">
                     <SelectValue />
@@ -434,10 +427,10 @@ export function AddBookmarkDialog({
               </div>
 
               <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-muted-foreground" />
+                <Sparkles className="text-muted-foreground h-4 w-4" />
                 <Label
                   htmlFor="auto-icon"
-                  className="text-sm text-muted-foreground whitespace-nowrap"
+                  className="text-muted-foreground text-sm whitespace-nowrap"
                 >
                   Auto Icon
                 </Label>
@@ -453,7 +446,7 @@ export function AddBookmarkDialog({
             <div className="flex items-center justify-between gap-2">
               <div className="grid gap-1">
                 <Label htmlFor="bookmark-important">Mark as Important</Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Bookmark will be highlighted with a star indicator
                 </p>
               </div>
@@ -461,7 +454,7 @@ export function AddBookmarkDialog({
                 id="bookmark-important"
                 checked={isImportant}
                 onCheckedChange={(checked: boolean) =>
-                  setValue("isImportant", checked)
+                  setValue('isImportant', checked)
                 }
               />
             </div>
@@ -475,12 +468,12 @@ export function AddBookmarkDialog({
                   size="sm"
                   className="w-full justify-between"
                 >
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     Add notes (optional)
                   </span>
                   <ChevronDown
-                    className={`h-4 w-4 text-muted-foreground transition-transform ${
-                      isNotesOpen ? "rotate-180" : ""
+                    className={`text-muted-foreground h-4 w-4 transition-transform ${
+                      isNotesOpen ? 'rotate-180' : ''
                     }`}
                   />
                 </Button>
@@ -490,7 +483,7 @@ export function AddBookmarkDialog({
                   placeholder="Personal notes about this bookmark..."
                   className="mt-2 resize-none"
                   rows={3}
-                  {...register("notes")}
+                  {...register('notes')}
                 />
               </CollapsibleContent>
             </Collapsible>
@@ -511,7 +504,7 @@ export function AddBookmarkDialog({
                   Parsing...
                 </>
               ) : (
-                "Save Bookmark"
+                'Save Bookmark'
               )}
             </Button>
           </DialogFooter>

@@ -4,8 +4,9 @@ import {
   useEffect,
   useState,
   type ReactNode,
-} from "react"
-import type { AuthState, RaindropUser } from "@/lib/types"
+} from 'react'
+
+import type { AuthState, RaindropUser } from '@/lib/types'
 
 interface AuthContextValue extends AuthState {
   isLoading: boolean
@@ -85,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext)
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 }

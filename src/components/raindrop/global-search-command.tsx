@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   Search,
   Globe,
@@ -10,8 +9,11 @@ import {
   Clock,
   X,
   ArrowRight,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+} from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+
+import { FaviconIcon } from '@/components/raindrop/favicon-icon'
+import { Badge } from '@/components/ui/badge'
 import {
   Command,
   CommandEmpty,
@@ -20,17 +22,22 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command"
+} from '@/components/ui/command'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { FaviconIcon } from "@/components/raindrop/favicon-icon"
-import type { Raindrop, Collection, Group, SearchScope, ContentType } from "@/lib/types"
+} from '@/components/ui/dialog'
+import type {
+  Raindrop,
+  Collection,
+  Group,
+  SearchScope,
+  ContentType,
+} from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * Map content type to its corresponding Lucide icon.
@@ -73,10 +80,10 @@ interface GlobalSearchCommandProps {
 }
 
 const SEARCH_SCOPE_LABELS: Record<SearchScope, string> = {
-  all: "All Fields",
-  url: "URL Only",
-  title: "Title Only",
-  description: "Description Only",
+  all: 'All Fields',
+  url: 'URL Only',
+  title: 'Title Only',
+  description: 'Description Only',
 }
 
 /**
@@ -111,11 +118,11 @@ export function GlobalSearchCommand({
   collections,
   currentCollectionId,
 }: GlobalSearchCommandProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchScope, setSearchScope] = useState<SearchScope>("all")
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
-      const stored = localStorage.getItem("lain-recent-searches")
+      const stored = localStorage.getItem('lain-recent-searches')
       return stored ? JSON.parse(stored) : []
     } catch {
       return []
@@ -125,23 +132,26 @@ export function GlobalSearchCommand({
   // Register global Cmd+K shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         onOpenChange(!open)
       }
     }
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, onOpenChange])
 
   const addRecentSearch = useCallback(
     (query: string) => {
       const trimmed = query.trim()
       if (!trimmed) return
-      const updated = [trimmed, ...recentSearches.filter((s) => s !== trimmed)].slice(0, 5)
+      const updated = [
+        trimmed,
+        ...recentSearches.filter((s) => s !== trimmed),
+      ].slice(0, 5)
       setRecentSearches(updated)
       try {
-        localStorage.setItem("lain-recent-searches", JSON.stringify(updated))
+        localStorage.setItem('lain-recent-searches', JSON.stringify(updated))
       } catch {
         // Storage quota exceeded — silently ignore
       }
@@ -151,23 +161,23 @@ export function GlobalSearchCommand({
 
   const clearRecentSearches = () => {
     setRecentSearches([])
-    localStorage.removeItem("lain-recent-searches")
+    localStorage.removeItem('lain-recent-searches')
   }
 
   const matchesSearch = useCallback(
     (raindrop: Raindrop, query: string): boolean => {
       const lower = query.toLowerCase()
       switch (searchScope) {
-        case "url":
+        case 'url':
           return raindrop.url.toLowerCase().includes(lower)
-        case "title":
+        case 'title':
           return raindrop.title.toLowerCase().includes(lower)
-        case "description":
+        case 'description':
           return (
             (raindrop.description?.toLowerCase().includes(lower) ?? false) ||
             (raindrop.notes?.toLowerCase().includes(lower) ?? false)
           )
-        case "all":
+        case 'all':
         default:
           return (
             raindrop.title.toLowerCase().includes(lower) ||
@@ -205,7 +215,7 @@ export function GlobalSearchCommand({
     addRecentSearch(searchQuery)
     onSelectRaindrop?.(raindrop)
     onOpenChange(false)
-    setSearchQuery("")
+    setSearchQuery('')
   }
 
   const handleRecentSearchClick = (query: string) => {
@@ -214,24 +224,22 @@ export function GlobalSearchCommand({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-0 p-0 overflow-hidden">
+      <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Search bookmarks</DialogTitle>
           <DialogDescription>
-            Search across all your bookmarks by title, URL, description, or tags.
+            Search across all your bookmarks by title, URL, description, or
+            tags.
           </DialogDescription>
         </DialogHeader>
-        <Command
-          shouldFilter={false}
-          className="rounded-lg border-0"
-        >
+        <Command shouldFilter={false} className="rounded-lg border-0">
           <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+            <Search className="text-muted-foreground mr-2 h-4 w-4 shrink-0" />
             <CommandInput
               placeholder={
                 currentCollectionName
                   ? `Search in ${currentCollectionName}... (⌘K)`
-                  : "Search all bookmarks... (⌘K)"
+                  : 'Search all bookmarks... (⌘K)'
               }
               value={searchQuery}
               onValueChange={setSearchQuery}
@@ -240,39 +248,41 @@ export function GlobalSearchCommand({
             {searchQuery && (
               <button
                 type="button"
-                className="p-1 rounded-sm hover:bg-muted"
-                onClick={() => setSearchQuery("")}
+                className="hover:bg-muted rounded-sm p-1"
+                onClick={() => setSearchQuery('')}
               >
-                <X className="h-4 w-4 text-muted-foreground" />
+                <X className="text-muted-foreground h-4 w-4" />
               </button>
             )}
           </div>
 
           {/* Search scope selector */}
           <div className="flex items-center gap-1.5 border-b px-3 py-2">
-            <span className="text-xs text-muted-foreground mr-1">Scope:</span>
-            {(Object.keys(SEARCH_SCOPE_LABELS) as SearchScope[]).map((scope) => (
-              <button
-                key={scope}
-                type="button"
-                className={cn(
-                  "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-                  searchScope === scope
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80",
-                )}
-                onClick={() => setSearchScope(scope)}
-              >
-                {SEARCH_SCOPE_LABELS[scope]}
-              </button>
-            ))}
+            <span className="text-muted-foreground mr-1 text-xs">Scope:</span>
+            {(Object.keys(SEARCH_SCOPE_LABELS) as SearchScope[]).map(
+              (scope) => (
+                <button
+                  key={scope}
+                  type="button"
+                  className={cn(
+                    'rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors',
+                    searchScope === scope
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80',
+                  )}
+                  onClick={() => setSearchScope(scope)}
+                >
+                  {SEARCH_SCOPE_LABELS[scope]}
+                </button>
+              ),
+            )}
           </div>
 
           <CommandList className="max-h-[400px]">
             <CommandEmpty>
               {searchQuery
-                ? "No bookmarks found."
-                : "Start typing to search..."}
+                ? 'No bookmarks found.'
+                : 'Start typing to search...'}
             </CommandEmpty>
 
             {/* Recent searches — shown when query is empty */}
@@ -283,7 +293,7 @@ export function GlobalSearchCommand({
                     <span>Recent Searches</span>
                     <button
                       type="button"
-                      className="text-xs text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground text-xs"
                       onClick={clearRecentSearches}
                     >
                       Clear
@@ -298,7 +308,7 @@ export function GlobalSearchCommand({
                     onSelect={() => handleRecentSearchClick(query)}
                     className="gap-2"
                   >
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Clock className="text-muted-foreground h-4 w-4" />
                     <span>{query}</span>
                   </CommandItem>
                 ))}
@@ -325,43 +335,43 @@ export function GlobalSearchCommand({
                           size={20}
                           className="flex-shrink-0"
                         />
-                        <div className="flex flex-1 flex-col gap-0.5 min-w-0">
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                           <div className="flex items-center gap-2">
-                            <span className="truncate font-medium text-sm">
+                            <span className="truncate text-sm font-medium">
                               {raindrop.title}
                             </span>
                             {raindrop.isImportant && (
-                              <span className="text-amber-500 flex-shrink-0">
+                              <span className="flex-shrink-0 text-amber-500">
                                 ★
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="text-muted-foreground flex items-center gap-2 text-xs">
                             <TypeIcon className="h-3 w-3 flex-shrink-0" />
                             <span className="truncate">
                               {raindrop.domain || raindrop.url}
                             </span>
                           </div>
                           {raindrop.tags.length > 0 && (
-                            <div className="flex items-center gap-1 mt-0.5">
+                            <div className="mt-0.5 flex items-center gap-1">
                               {raindrop.tags.slice(0, 3).map((tag) => (
                                 <Badge
                                   key={tag}
                                   variant="secondary"
-                                  className="text-[10px] h-4 px-1.5"
+                                  className="h-4 px-1.5 text-[10px]"
                                 >
                                   {tag}
                                 </Badge>
                               ))}
                               {raindrop.tags.length > 3 && (
-                                <span className="text-[10px] text-muted-foreground">
+                                <span className="text-muted-foreground text-[10px]">
                                   +{raindrop.tags.length - 3}
                                 </span>
                               )}
                             </div>
                           )}
                         </div>
-                        <ArrowRight className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                        <ArrowRight className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                       </CommandItem>
                     )
                   })}
@@ -371,25 +381,31 @@ export function GlobalSearchCommand({
           </CommandList>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-between border-t px-3 py-2 text-xs">
             <div className="flex items-center gap-3">
               <span>
-                <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">↑↓</kbd>{" "}
+                <kbd className="bg-muted rounded border px-1 py-0.5 font-mono text-[10px]">
+                  ↑↓
+                </kbd>{' '}
                 Navigate
               </span>
               <span>
-                <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">↵</kbd>{" "}
+                <kbd className="bg-muted rounded border px-1 py-0.5 font-mono text-[10px]">
+                  ↵
+                </kbd>{' '}
                 Select
               </span>
               <span>
-                <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">Esc</kbd>{" "}
+                <kbd className="bg-muted rounded border px-1 py-0.5 font-mono text-[10px]">
+                  Esc
+                </kbd>{' '}
                 Close
               </span>
             </div>
             {currentCollectionName && (
               <span className="flex items-center gap-1">
-                Searching in:{" "}
-                <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                Searching in:{' '}
+                <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
                   {currentCollectionName}
                 </Badge>
               </span>

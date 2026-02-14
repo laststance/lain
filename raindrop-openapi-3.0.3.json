@@ -17,18 +17,13 @@
   ],
   "security": [
     {
-      "OAuth2": [
-        "read",
-        "write"
-      ]
+      "OAuth2": ["read", "write"]
     }
   ],
   "paths": {
     "/oauth/authorize": {
       "get": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Authorize",
         "parameters": [
           {
@@ -54,9 +49,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": [
-                "code"
-              ]
+              "enum": ["code"]
             }
           },
           {
@@ -83,9 +76,7 @@
     },
     "/oauth/access_token": {
       "post": {
-        "tags": [
-          "auth"
-        ],
+        "tags": ["auth"],
         "summary": "Token exchange / refresh",
         "requestBody": {
           "required": true,
@@ -120,9 +111,7 @@
     },
     "/user": {
       "get": {
-        "tags": [
-          "user"
-        ],
+        "tags": ["user"],
         "summary": "Get authenticated user",
         "responses": {
           "200": {
@@ -138,9 +127,7 @@
         }
       },
       "put": {
-        "tags": [
-          "user"
-        ],
+        "tags": ["user"],
         "summary": "Update user",
         "requestBody": {
           "required": true,
@@ -168,9 +155,7 @@
     },
     "/user/{name}": {
       "get": {
-        "tags": [
-          "user"
-        ],
+        "tags": ["user"],
         "summary": "Get public user",
         "security": [],
         "parameters": [
@@ -199,9 +184,7 @@
     },
     "/collections": {
       "get": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Get root collections",
         "responses": {
           "200": {
@@ -217,9 +200,7 @@
         }
       },
       "put": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Reorder or expand/collapse all",
         "requestBody": {
           "required": true,
@@ -252,9 +233,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Remove multiple collections",
         "requestBody": {
           "required": true,
@@ -282,9 +261,7 @@
     },
     "/collections/childrens": {
       "get": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Get child collections",
         "responses": {
           "200": {
@@ -302,9 +279,7 @@
     },
     "/collections/merge": {
       "put": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Merge collections",
         "requestBody": {
           "required": true,
@@ -332,9 +307,7 @@
     },
     "/collections/clean": {
       "put": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Remove all empty collections",
         "responses": {
           "200": {
@@ -352,9 +325,7 @@
     },
     "/collection": {
       "post": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Create collection",
         "requestBody": {
           "required": true,
@@ -382,9 +353,7 @@
     },
     "/collection/{id}": {
       "get": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Get collection",
         "parameters": [
           {
@@ -410,9 +379,7 @@
         }
       },
       "put": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Update collection",
         "parameters": [
           {
@@ -448,9 +415,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Remove collection",
         "parameters": [
           {
@@ -478,9 +443,7 @@
     },
     "/collection/{id}/cover": {
       "put": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Upload collection cover",
         "parameters": [
           {
@@ -504,9 +467,7 @@
                     "format": "binary"
                   }
                 },
-                "required": [
-                  "cover"
-                ]
+                "required": ["cover"]
               }
             }
           }
@@ -527,9 +488,7 @@
     },
     "/collection/-99": {
       "delete": {
-        "tags": [
-          "collections"
-        ],
+        "tags": ["collections"],
         "summary": "Empty Trash",
         "responses": {
           "200": {
@@ -547,9 +506,7 @@
     },
     "/raindrop": {
       "post": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Create raindrop",
         "requestBody": {
           "required": true,
@@ -577,9 +534,7 @@
     },
     "/raindrop/{id}": {
       "get": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Get raindrop",
         "parameters": [
           {
@@ -605,9 +560,7 @@
         }
       },
       "put": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Update raindrop",
         "parameters": [
           {
@@ -643,9 +596,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Delete raindrop",
         "parameters": [
           {
@@ -673,9 +624,7 @@
     },
     "/raindrop/{id}/cover": {
       "put": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Upload raindrop cover",
         "parameters": [
           {
@@ -699,9 +648,7 @@
                     "format": "binary"
                   }
                 },
-                "required": [
-                  "cover"
-                ]
+                "required": ["cover"]
               }
             }
           }
@@ -722,9 +669,7 @@
     },
     "/raindrop/file": {
       "put": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Upload file as raindrop",
         "requestBody": {
           "required": true,
@@ -741,9 +686,7 @@
                     "type": "integer"
                   }
                 },
-                "required": [
-                  "file"
-                ]
+                "required": ["file"]
               }
             }
           }
@@ -764,9 +707,7 @@
     },
     "/raindrop/{id}/cache": {
       "get": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Get permanent copy (redirect)",
         "parameters": [
           {
@@ -787,9 +728,7 @@
     },
     "/raindrop/suggest": {
       "post": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Suggest for new bookmark",
         "requestBody": {
           "required": true,
@@ -803,9 +742,7 @@
                     "format": "uri"
                   }
                 },
-                "required": [
-                  "link"
-                ]
+                "required": ["link"]
               }
             }
           }
@@ -826,9 +763,7 @@
     },
     "/raindrop/{id}/suggest": {
       "get": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Suggest for existing bookmark",
         "parameters": [
           {
@@ -856,9 +791,7 @@
     },
     "/raindrops": {
       "post": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Batch create raindrops (≤100)",
         "requestBody": {
           "required": true,
@@ -875,9 +808,7 @@
                     "maxItems": 100
                   }
                 },
-                "required": [
-                  "items"
-                ]
+                "required": ["items"]
               }
             }
           }
@@ -898,9 +829,7 @@
     },
     "/raindrops/{collectionId}": {
       "get": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "List raindrops by collection (0/-1/-99 ok)",
         "parameters": [
           {
@@ -974,9 +903,7 @@
         }
       },
       "put": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Batch update raindrops",
         "parameters": [
           {
@@ -1019,9 +946,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "raindrops"
-        ],
+        "tags": ["raindrops"],
         "summary": "Batch delete (to Trash; -99 = purge)",
         "parameters": [
           {
@@ -1081,9 +1006,7 @@
     },
     "/tags": {
       "get": {
-        "tags": [
-          "tags"
-        ],
+        "tags": ["tags"],
         "summary": "List tags (all collections)",
         "responses": {
           "200": {
@@ -1101,9 +1024,7 @@
     },
     "/tags/{collectionId}": {
       "get": {
-        "tags": [
-          "tags"
-        ],
+        "tags": ["tags"],
         "summary": "List tags by collection",
         "parameters": [
           {
@@ -1129,9 +1050,7 @@
         }
       },
       "put": {
-        "tags": [
-          "tags"
-        ],
+        "tags": ["tags"],
         "summary": "Rename / merge tags",
         "parameters": [
           {
@@ -1167,9 +1086,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "tags"
-        ],
+        "tags": ["tags"],
         "summary": "Remove tag(s)",
         "parameters": [
           {
@@ -1207,9 +1124,7 @@
     },
     "/filters/{collectionId}": {
       "get": {
-        "tags": [
-          "filters"
-        ],
+        "tags": ["filters"],
         "summary": "Get filters for collection or all (0)",
         "parameters": [
           {
@@ -1225,10 +1140,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "-count",
-                "_id"
-              ]
+              "enum": ["-count", "_id"]
             }
           },
           {
@@ -1255,9 +1167,7 @@
     },
     "/import/url/parse": {
       "get": {
-        "tags": [
-          "import"
-        ],
+        "tags": ["import"],
         "summary": "Parse metadata from URL",
         "parameters": [
           {
@@ -1287,9 +1197,7 @@
     },
     "/raindrops/{collectionId}/export.{format}": {
       "get": {
-        "tags": [
-          "export"
-        ],
+        "tags": ["export"],
         "summary": "Export raindrops",
         "parameters": [
           {
@@ -1306,11 +1214,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": [
-                "csv",
-                "html",
-                "zip"
-              ]
+              "enum": ["csv", "html", "zip"]
             }
           },
           {
@@ -1347,9 +1251,7 @@
     },
     "/backups": {
       "get": {
-        "tags": [
-          "backups"
-        ],
+        "tags": ["backups"],
         "summary": "List backups",
         "responses": {
           "200": {
@@ -1367,9 +1269,7 @@
     },
     "/backup": {
       "get": {
-        "tags": [
-          "backups"
-        ],
+        "tags": ["backups"],
         "summary": "Generate new backup",
         "responses": {
           "200": {
@@ -1410,18 +1310,14 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "result"
-        ]
+        "required": ["result"]
       },
       "TokenExchangeRequest": {
         "type": "object",
         "properties": {
           "grant_type": {
             "type": "string",
-            "enum": [
-              "authorization_code"
-            ]
+            "enum": ["authorization_code"]
           },
           "code": {
             "type": "string"
@@ -1450,9 +1346,7 @@
         "properties": {
           "grant_type": {
             "type": "string",
-            "enum": [
-              "refresh_token"
-            ]
+            "enum": ["refresh_token"]
           },
           "refresh_token": {
             "type": "string"
@@ -1488,10 +1382,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "access_token",
-          "token_type"
-        ]
+        "required": ["access_token", "token_type"]
       },
       "User": {
         "type": "object",
@@ -1748,9 +1639,7 @@
             }
           }
         },
-        "required": [
-          "title"
-        ]
+        "required": ["title"]
       },
       "CollectionUpdate": {
         "type": "object",
@@ -1799,26 +1688,17 @@
             }
           }
         },
-        "required": [
-          "to",
-          "ids"
-        ]
+        "required": ["to", "ids"]
       },
       "CollectionsReorderRequest": {
         "type": "object",
         "properties": {
           "sort": {
             "type": "string",
-            "enum": [
-              "title",
-              "-title",
-              "-count"
-            ]
+            "enum": ["title", "-title", "-count"]
           }
         },
-        "required": [
-          "sort"
-        ]
+        "required": ["sort"]
       },
       "CollectionsExpandCollapseRequest": {
         "type": "object",
@@ -1827,9 +1707,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "expanded"
-        ]
+        "required": ["expanded"]
       },
       "CollectionsRemoveRequest": {
         "type": "object",
@@ -1841,9 +1719,7 @@
             }
           }
         },
-        "required": [
-          "ids"
-        ]
+        "required": ["ids"]
       },
       "CollectionsCleanResponse": {
         "type": "object",
@@ -1902,14 +1778,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "link",
-              "article",
-              "image",
-              "video",
-              "document",
-              "audio"
-            ]
+            "enum": ["link", "article", "image", "video", "document", "audio"]
           },
           "highlights": {
             "type": "array",
@@ -2037,14 +1906,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "link",
-              "article",
-              "image",
-              "video",
-              "document",
-              "audio"
-            ]
+            "enum": ["link", "article", "image", "video", "document", "audio"]
           },
           "highlights": {
             "type": "array",
@@ -2056,9 +1918,7 @@
             "type": "object"
           }
         },
-        "required": [
-          "link"
-        ]
+        "required": ["link"]
       },
       "RaindropUpdate": {
         "type": "object",
@@ -2103,14 +1963,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "link",
-              "article",
-              "image",
-              "video",
-              "document",
-              "audio"
-            ]
+            "enum": ["link", "article", "image", "video", "document", "audio"]
           },
           "excerpt": {
             "type": "string"
@@ -2262,10 +2115,7 @@
             }
           }
         },
-        "required": [
-          "replace",
-          "tags"
-        ]
+        "required": ["replace", "tags"]
       },
       "TagsRemoveRequest": {
         "type": "object",
@@ -2277,9 +2127,7 @@
             }
           }
         },
-        "required": [
-          "tags"
-        ]
+        "required": ["tags"]
       },
       "FiltersResponse": {
         "type": "object",

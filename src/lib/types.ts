@@ -46,7 +46,7 @@ export interface RaindropTokens {
   refresh_token: string
   /** Token lifetime in seconds (~2 weeks) */
   expires_in: number
-  token_type: "Bearer"
+  token_type: 'Bearer'
 }
 
 /**
@@ -68,9 +68,9 @@ export interface AuthAPI {
   logout: () => Promise<void>
   getUser: () => Promise<RaindropUser | null>
   getState: () => Promise<AuthState>
-  onAuthStateChanged: (
-    callback: (state: AuthState) => void,
-  ) => () => void
+  /** Get a valid access token, auto-refreshing if expired. */
+  getToken: () => Promise<string>
+  onAuthStateChanged: (callback: (state: AuthState) => void) => () => void
 }
 
 /**
@@ -82,13 +82,25 @@ export interface ShellAPI {
 
 // --- Figma Make UI Types ---
 
-export type ContentType = "link" | "article" | "image" | "video" | "document" | "audio"
+export type ContentType =
+  | 'link'
+  | 'article'
+  | 'image'
+  | 'video'
+  | 'document'
+  | 'audio'
 
-export type ViewMode = "grid" | "list" | "table" | "directory"
+export type ViewMode = 'grid' | 'list' | 'table' | 'directory'
 
-export type SortOption = "newest" | "oldest" | "title-asc" | "title-desc" | "domain" | "relevance"
+export type SortOption =
+  | 'newest'
+  | 'oldest'
+  | 'title-asc'
+  | 'title-desc'
+  | 'domain'
+  | 'relevance'
 
-export type SearchScope = "all" | "url" | "title" | "description"
+export type SearchScope = 'all' | 'url' | 'title' | 'description'
 
 /**
  * Raindrop bookmark entity from the UI prototype.

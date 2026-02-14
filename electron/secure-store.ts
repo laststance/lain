@@ -1,8 +1,8 @@
-import { safeStorage } from "electron"
-import Store from "electron-store"
+import { safeStorage } from 'electron'
+import Store from 'electron-store'
 
 const store = new Store<Record<string, string>>({
-  name: "lain-auth",
+  name: 'lain-auth',
 })
 
 /**
@@ -24,10 +24,10 @@ export const secureStore = {
    */
   set(key: string, value: string): void {
     if (!safeStorage.isEncryptionAvailable()) {
-      throw new Error("Encryption not available on this platform")
+      throw new Error('Encryption not available on this platform')
     }
     const encrypted = safeStorage.encryptString(value)
-    store.set(key, encrypted.toString("latin1"))
+    store.set(key, encrypted.toString('latin1'))
   },
 
   /**
@@ -40,7 +40,7 @@ export const secureStore = {
     if (!encrypted) return null
 
     try {
-      return safeStorage.decryptString(Buffer.from(encrypted, "latin1"))
+      return safeStorage.decryptString(Buffer.from(encrypted, 'latin1'))
     } catch {
       store.delete(key)
       return null

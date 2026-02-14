@@ -1,7 +1,9 @@
-import { useEffect } from "react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,15 +11,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import type { Group } from "@/lib/types"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import type { Group } from '@/lib/types'
 
 const groupSchema = z.object({
-  name: z.string().min(1, "Group name is required"),
+  name: z.string().min(1, 'Group name is required'),
   collapsed: z.boolean(),
 })
 
@@ -72,12 +73,12 @@ export function GroupDialog({
   } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
     defaultValues: {
-      name: "",
+      name: '',
       collapsed: false,
     },
   })
 
-  const collapsed = watch("collapsed")
+  const collapsed = watch('collapsed')
 
   useEffect(() => {
     if (open) {
@@ -88,7 +89,7 @@ export function GroupDialog({
         })
       } else {
         reset({
-          name: "",
+          name: '',
           collapsed: false,
         })
       }
@@ -109,12 +110,12 @@ export function GroupDialog({
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit Group" : "Create Group"}
+              {isEditing ? 'Edit Group' : 'Create Group'}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Update the group name and settings."
-                : "Create a new group to organize your collections."}
+                ? 'Update the group name and settings.'
+                : 'Create a new group to organize your collections.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -124,11 +125,11 @@ export function GroupDialog({
               <Input
                 id="group-name"
                 placeholder="e.g., Work, Personal, Research..."
-                {...register("name")}
+                {...register('name')}
                 autoFocus
               />
               {errors.name && (
-                <p className="text-sm text-destructive">
+                <p className="text-destructive text-sm">
                   {errors.name.message}
                 </p>
               )}
@@ -137,7 +138,7 @@ export function GroupDialog({
             <div className="flex items-center justify-between gap-2">
               <div className="grid gap-1">
                 <Label htmlFor="group-collapsed">Collapsed by default</Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Group will start collapsed in the sidebar
                 </p>
               </div>
@@ -145,7 +146,7 @@ export function GroupDialog({
                 id="group-collapsed"
                 checked={collapsed}
                 onCheckedChange={(checked: boolean) =>
-                  setValue("collapsed", checked)
+                  setValue('collapsed', checked)
                 }
               />
             </div>
@@ -160,7 +161,7 @@ export function GroupDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isEditing ? "Save Changes" : "Create Group"}
+              {isEditing ? 'Save Changes' : 'Create Group'}
             </Button>
           </DialogFooter>
         </form>

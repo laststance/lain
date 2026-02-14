@@ -1,32 +1,33 @@
-import { useState } from "react"
-import { Check } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Check } from 'lucide-react'
+import { useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 /**
  * Preset color palette for collection colors.
  * 12 curated colors that work well in both light and dark themes.
  */
 const PRESET_COLORS = [
-  "#ef4444", // red
-  "#f97316", // orange
-  "#f59e0b", // amber
-  "#eab308", // yellow
-  "#84cc16", // lime
-  "#22c55e", // green
-  "#10b981", // emerald
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#6366f1", // indigo
-  "#8b5cf6", // violet
-  "#ec4899", // pink
+  '#ef4444', // red
+  '#f97316', // orange
+  '#f59e0b', // amber
+  '#eab308', // yellow
+  '#84cc16', // lime
+  '#22c55e', // green
+  '#10b981', // emerald
+  '#06b6d4', // cyan
+  '#3b82f6', // blue
+  '#6366f1', // indigo
+  '#8b5cf6', // violet
+  '#ec4899', // pink
 ] as const
 
 /**
@@ -58,7 +59,7 @@ interface ColorPickerProps {
  */
 export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
   const [open, setOpen] = useState(false)
-  const [customColor, setCustomColor] = useState(value || "")
+  const [customColor, setCustomColor] = useState(value || '')
 
   const handleCustomColorChange = (hex: string) => {
     setCustomColor(hex)
@@ -69,9 +70,7 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
 
   return (
     <div className="space-y-2">
-      {label && (
-        <Label className="text-sm font-medium">{label}</Label>
-      )}
+      {label && <Label className="text-sm font-medium">{label}</Label>}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -79,12 +78,10 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
             className="w-full justify-start gap-2 font-normal"
           >
             <div
-              className="h-4 w-4 rounded-sm border border-border flex-shrink-0"
-              style={{ backgroundColor: value || "#8b5cf6" }}
+              className="border-border h-4 w-4 flex-shrink-0 rounded-sm border"
+              style={{ backgroundColor: value || '#8b5cf6' }}
             />
-            <span className="text-sm">
-              {value || "Select color..."}
-            </span>
+            <span className="text-sm">{value || 'Select color...'}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[232px] p-3" align="start">
@@ -95,10 +92,10 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
                   key={color}
                   type="button"
                   className={cn(
-                    "h-7 w-7 rounded-md border-2 transition-all hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    'focus-visible:ring-ring h-7 w-7 rounded-md border-2 transition-all hover:scale-110 focus-visible:ring-2 focus-visible:outline-none',
                     value === color
-                      ? "border-foreground shadow-sm"
-                      : "border-transparent",
+                      ? 'border-foreground shadow-sm'
+                      : 'border-transparent',
                   )}
                   style={{ backgroundColor: color }}
                   onClick={() => {
@@ -108,19 +105,18 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
                   aria-label={`Select color ${color}`}
                 >
                   {value === color && (
-                    <Check className="h-3.5 w-3.5 mx-auto text-white drop-shadow-sm" />
+                    <Check className="mx-auto h-3.5 w-3.5 text-white drop-shadow-sm" />
                   )}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2">
               <div
-                className="h-8 w-8 rounded-md border border-border flex-shrink-0"
+                className="border-border h-8 w-8 flex-shrink-0 rounded-md border"
                 style={{
-                  backgroundColor:
-                    /^#[0-9a-fA-F]{6}$/.test(customColor)
-                      ? customColor
-                      : "#cccccc",
+                  backgroundColor: /^#[0-9a-fA-F]{6}$/.test(customColor)
+                    ? customColor
+                    : '#cccccc',
                 }}
               />
               <Input

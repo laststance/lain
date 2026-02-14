@@ -1,7 +1,10 @@
-import { useEffect, useState, useMemo } from "react"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect, useState, useMemo } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+
+import { CollectionSelector } from '@/components/raindrop/collection-selector'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,77 +12,75 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { CollectionSelector } from "@/components/raindrop/collection-selector"
-import type { Group, Collection } from "@/lib/types"
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import type { Group, Collection } from '@/lib/types'
 
 const PRESET_COLORS = [
-  "#8b5cf6",
-  "#6366f1",
-  "#3b82f6",
-  "#06b6d4",
-  "#10b981",
-  "#22c55e",
-  "#eab308",
-  "#f59e0b",
-  "#f97316",
-  "#ef4444",
-  "#ec4899",
-  "#a855f7",
+  '#8b5cf6',
+  '#6366f1',
+  '#3b82f6',
+  '#06b6d4',
+  '#10b981',
+  '#22c55e',
+  '#eab308',
+  '#f59e0b',
+  '#f97316',
+  '#ef4444',
+  '#ec4899',
+  '#a855f7',
 ]
 
 const ICON_OPTIONS = [
-  "Folder",
-  "FolderOpen",
-  "Star",
-  "Heart",
-  "Bookmark",
-  "Code2",
-  "Palette",
-  "Brain",
-  "BookOpen",
-  "CookingPot",
-  "Plane",
-  "Music",
-  "Camera",
-  "GamepadIcon",
-  "Briefcase",
-  "GraduationCap",
-  "Wrench",
-  "Shield",
-  "Globe",
-  "Zap",
-  "Sparkles",
-  "Component",
-  "Layout",
-  "FileText",
-  "Image",
-  "Video",
-  "Home",
-  "ShoppingBag",
-  "Coffee",
-  "Dumbbell",
+  'Folder',
+  'FolderOpen',
+  'Star',
+  'Heart',
+  'Bookmark',
+  'Code2',
+  'Palette',
+  'Brain',
+  'BookOpen',
+  'CookingPot',
+  'Plane',
+  'Music',
+  'Camera',
+  'GamepadIcon',
+  'Briefcase',
+  'GraduationCap',
+  'Wrench',
+  'Shield',
+  'Globe',
+  'Zap',
+  'Sparkles',
+  'Component',
+  'Layout',
+  'FileText',
+  'Image',
+  'Video',
+  'Home',
+  'ShoppingBag',
+  'Coffee',
+  'Dumbbell',
 ]
 
 const collectionSchema = z.object({
-  name: z.string().min(1, "Collection name is required"),
+  name: z.string().min(1, 'Collection name is required'),
   icon: z.string(),
   color: z.string(),
-  groupId: z.string().min(1, "Group is required"),
+  groupId: z.string().min(1, 'Group is required'),
   parentId: z.string().optional(),
-  viewMode: z.enum(["list", "grid", "table", "directory"]),
+  viewMode: z.enum(['list', 'grid', 'table', 'directory']),
   isPublic: z.boolean(),
 })
 
@@ -129,7 +130,7 @@ export function CollectionDialog({
   onSave,
 }: CollectionDialogProps) {
   const isEditing = !!collection
-  const [iconSearch, setIconSearch] = useState("")
+  const [iconSearch, setIconSearch] = useState('')
 
   const {
     register,
@@ -141,45 +142,45 @@ export function CollectionDialog({
   } = useForm<CollectionFormValues>({
     resolver: zodResolver(collectionSchema),
     defaultValues: {
-      name: "",
-      icon: "Folder",
-      color: "#8b5cf6",
-      groupId: groups[0]?.id || "",
+      name: '',
+      icon: 'Folder',
+      color: '#8b5cf6',
+      groupId: groups[0]?.id || '',
       parentId: undefined,
-      viewMode: "list",
+      viewMode: 'list',
       isPublic: false,
     },
   })
 
-  const selectedColor = watch("color")
-  const selectedIcon = watch("icon")
-  const selectedGroupId = watch("groupId")
-  const isPublic = watch("isPublic")
+  const selectedColor = watch('color')
+  const selectedIcon = watch('icon')
+  const selectedGroupId = watch('groupId')
+  const isPublic = watch('isPublic')
 
   useEffect(() => {
     if (open) {
       if (collection) {
         reset({
           name: collection.name,
-          icon: collection.icon || "Folder",
-          color: collection.color || "#8b5cf6",
+          icon: collection.icon || 'Folder',
+          color: collection.color || '#8b5cf6',
           groupId: collection.groupId,
           parentId: collection.parentId || undefined,
-          viewMode: "list",
+          viewMode: 'list',
           isPublic: false,
         })
       } else {
         reset({
-          name: "",
-          icon: "Folder",
-          color: "#8b5cf6",
-          groupId: groups[0]?.id || "",
+          name: '',
+          icon: 'Folder',
+          color: '#8b5cf6',
+          groupId: groups[0]?.id || '',
           parentId: undefined,
-          viewMode: "list",
+          viewMode: 'list',
           isPublic: false,
         })
       }
-      setIconSearch("")
+      setIconSearch('')
     }
   }, [open, collection, groups, reset])
 
@@ -203,12 +204,12 @@ export function CollectionDialog({
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit Collection" : "Create Collection"}
+              {isEditing ? 'Edit Collection' : 'Create Collection'}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Update collection settings and appearance."
-                : "Create a new collection to organize your bookmarks."}
+                ? 'Update collection settings and appearance.'
+                : 'Create a new collection to organize your bookmarks.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -219,11 +220,11 @@ export function CollectionDialog({
               <Input
                 id="collection-name"
                 placeholder="e.g., Frontend Resources, Reading List..."
-                {...register("name")}
+                {...register('name')}
                 autoFocus
               />
               {errors.name && (
-                <p className="text-sm text-destructive">
+                <p className="text-destructive text-sm">
                   {errors.name.message}
                 </p>
               )}
@@ -234,7 +235,7 @@ export function CollectionDialog({
               <Label htmlFor="collection-group">Group</Label>
               <Select
                 value={selectedGroupId}
-                onValueChange={(val) => setValue("groupId", val)}
+                onValueChange={(val) => setValue('groupId', val)}
               >
                 <SelectTrigger id="collection-group">
                   <SelectValue placeholder="Select a group" />
@@ -248,7 +249,7 @@ export function CollectionDialog({
                 </SelectContent>
               </Select>
               {errors.groupId && (
-                <p className="text-sm text-destructive">
+                <p className="text-destructive text-sm">
                   {errors.groupId.message}
                 </p>
               )}
@@ -259,8 +260,8 @@ export function CollectionDialog({
               <Label>Parent Collection</Label>
               <CollectionSelector
                 groups={groups}
-                value={watch("parentId")}
-                onChange={(id) => setValue("parentId", id || undefined)}
+                value={watch('parentId')}
+                onChange={(id) => setValue('parentId', id || undefined)}
                 placeholder="None (root level)"
                 allowNone
               />
@@ -279,10 +280,10 @@ export function CollectionDialog({
                       backgroundColor: color,
                       borderColor:
                         selectedColor === color
-                          ? "var(--color-foreground)"
-                          : "transparent",
+                          ? 'var(--color-foreground)'
+                          : 'transparent',
                     }}
-                    onClick={() => setValue("color", color)}
+                    onClick={() => setValue('color', color)}
                     aria-label={`Select color ${color}`}
                   />
                 ))}
@@ -304,17 +305,15 @@ export function CollectionDialog({
                     <button
                       key={icon}
                       type="button"
-                      className={`flex h-10 w-full items-center justify-center rounded-md text-xs transition-colors hover:bg-accent ${
+                      className={`hover:bg-accent flex h-10 w-full items-center justify-center rounded-md text-xs transition-colors ${
                         selectedIcon === icon
-                          ? "bg-accent ring-2 ring-primary"
-                          : ""
+                          ? 'bg-accent ring-primary ring-2'
+                          : ''
                       }`}
-                      onClick={() => setValue("icon", icon)}
+                      onClick={() => setValue('icon', icon)}
                       title={icon}
                     >
-                      <span className="truncate px-1 text-[10px]">
-                        {icon}
-                      </span>
+                      <span className="truncate px-1 text-[10px]">{icon}</span>
                     </button>
                   ))}
                 </div>
@@ -325,11 +324,11 @@ export function CollectionDialog({
             <div className="grid gap-2">
               <Label htmlFor="collection-view">Default View</Label>
               <Select
-                value={watch("viewMode")}
+                value={watch('viewMode')}
                 onValueChange={(val) =>
                   setValue(
-                    "viewMode",
-                    val as "list" | "grid" | "table" | "directory",
+                    'viewMode',
+                    val as 'list' | 'grid' | 'table' | 'directory',
                   )
                 }
               >
@@ -349,7 +348,7 @@ export function CollectionDialog({
             <div className="flex items-center justify-between gap-2">
               <div className="grid gap-1">
                 <Label htmlFor="collection-public">Public</Label>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Allow others to view this collection
                 </p>
               </div>
@@ -357,7 +356,7 @@ export function CollectionDialog({
                 id="collection-public"
                 checked={isPublic}
                 onCheckedChange={(checked: boolean) =>
-                  setValue("isPublic", checked)
+                  setValue('isPublic', checked)
                 }
               />
             </div>
@@ -372,7 +371,7 @@ export function CollectionDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isEditing ? "Save Changes" : "Create Collection"}
+              {isEditing ? 'Save Changes' : 'Create Collection'}
             </Button>
           </DialogFooter>
         </form>

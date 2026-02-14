@@ -1,4 +1,3 @@
-import { useState, useMemo } from "react"
 import {
   Star,
   MoreHorizontal,
@@ -15,20 +14,22 @@ import {
   File,
   Music,
   // TODO: @dnd-kit migration — GripVertical for drag handle
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+} from 'lucide-react'
+import { useState, useMemo } from 'react'
+
+import { FaviconIcon } from '@/components/raindrop/favicon-icon'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { FaviconIcon } from "@/components/raindrop/favicon-icon"
-import type { Raindrop, ContentType } from "@/lib/types"
+} from '@/components/ui/dropdown-menu'
+import type { Raindrop, ContentType } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * Static map of content type to lucide icon component.
@@ -56,14 +57,14 @@ function formatRelativeDate(dateStr: string): string {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffHours < 1) return "Just now"
+  if (diffHours < 1) return 'Just now'
   if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return "Yesterday"
+  if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7) return `${diffDays}d ago`
 
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
   })
 }
 
@@ -107,7 +108,10 @@ export function RaindropListItem({
   onDoubleClick,
 }: RaindropListItemProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const TypeIcon = useMemo(() => TYPE_ICON_MAP[raindrop.type] || Globe, [raindrop.type])
+  const TypeIcon = useMemo(
+    () => TYPE_ICON_MAP[raindrop.type] || Globe,
+    [raindrop.type],
+  )
 
   const visibleTags = raindrop.tags.slice(0, 3)
   const remainingTagCount = raindrop.tags.length - 3
@@ -118,9 +122,9 @@ export function RaindropListItem({
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 px-4 h-16 cursor-pointer transition-colors duration-150",
-        "hover:bg-accent/50",
-        isSelected && "bg-accent"
+        'group flex h-16 cursor-pointer items-center gap-3 px-4 transition-colors duration-150',
+        'hover:bg-accent/50',
+        isSelected && 'bg-accent',
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -134,7 +138,7 @@ export function RaindropListItem({
       */}
 
       {/* Checkbox / Type Icon */}
-      <div className="flex-shrink-0 w-5 flex items-center justify-center">
+      <div className="flex w-5 flex-shrink-0 items-center justify-center">
         {isHovered || isSelected ? (
           <Checkbox
             checked={isSelected}
@@ -142,7 +146,7 @@ export function RaindropListItem({
             className="h-4 w-4"
           />
         ) : (
-          <TypeIcon className="h-4 w-4 text-muted-foreground" />
+          <TypeIcon className="text-muted-foreground h-4 w-4" />
         )}
       </div>
 
@@ -155,23 +159,21 @@ export function RaindropListItem({
       />
 
       {/* Title + Domain + Description */}
-      <div className="flex-1 min-w-0 space-y-0.5">
+      <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium truncate">
-            {raindrop.title}
-          </h3>
+          <h3 className="truncate text-sm font-medium">{raindrop.title}</h3>
           {raindrop.isImportant && (
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+            <Star className="h-3 w-3 flex-shrink-0 fill-yellow-400 text-yellow-400" />
           )}
         </div>
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs text-muted-foreground truncate">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-muted-foreground truncate text-xs">
             {raindrop.domain || new URL(raindrop.url).hostname}
           </span>
           {raindrop.description && (
             <>
               <span className="text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground truncate flex-1">
+              <span className="text-muted-foreground flex-1 truncate text-xs">
                 {raindrop.description}
               </span>
             </>
@@ -180,33 +182,33 @@ export function RaindropListItem({
       </div>
 
       {/* Tags */}
-      <div className="flex items-center gap-1 flex-shrink-0 max-w-[200px]">
+      <div className="flex max-w-[200px] flex-shrink-0 items-center gap-1">
         {visibleTags.map((tag) => (
           <Badge
             key={tag}
             variant="outline"
-            className="text-[10px] px-1.5 py-0 h-4 truncate max-w-[70px]"
+            className="h-4 max-w-[70px] truncate px-1.5 py-0 text-[10px]"
           >
             {tag}
           </Badge>
         ))}
         {remainingTagCount > 0 && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-muted-foreground text-[10px]">
             +{remainingTagCount}
           </span>
         )}
       </div>
 
       {/* Date */}
-      <span className="text-xs text-muted-foreground flex-shrink-0 tabular-nums w-16 text-right">
+      <span className="text-muted-foreground w-16 flex-shrink-0 text-right text-xs tabular-nums">
         {formatRelativeDate(raindrop.createdAt)}
       </span>
 
       {/* More Menu */}
       <div
         className={cn(
-          "flex-shrink-0 transition-opacity",
-          isHovered ? "opacity-100" : "opacity-0"
+          'flex-shrink-0 transition-opacity',
+          isHovered ? 'opacity-100' : 'opacity-0',
         )}
       >
         <DropdownMenu>
@@ -253,7 +255,7 @@ export function RaindropListItem({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
               <Star className="mr-2 h-4 w-4" />
-              {raindrop.isImportant ? "Remove Important" : "Mark as Important"}
+              {raindrop.isImportant ? 'Remove Important' : 'Mark as Important'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

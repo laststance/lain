@@ -1,13 +1,14 @@
-import { useState } from "react"
-import { Globe, FileText, Image, Video, File, Music } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Globe, FileText, Image, Video, File, Music } from 'lucide-react'
+import { useState } from 'react'
+
+import type { ContentType } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import {
   extractDomain,
   getFaviconUrl,
   getDomainColor,
   getDomainInitial,
-} from "@/utils/favicon"
-import type { ContentType } from "@/lib/types"
+} from '@/utils/favicon'
 
 /**
  * Props for the FaviconIcon component.
@@ -57,7 +58,7 @@ function getTypeIconComponent(type: ContentType) {
  */
 export function FaviconIcon({
   url,
-  type = "link",
+  type = 'link',
   size = 32,
   className,
 }: FaviconIconProps) {
@@ -73,7 +74,7 @@ export function FaviconIcon({
       return (
         <div
           className={cn(
-            "flex items-center justify-center rounded-sm flex-shrink-0",
+            'flex flex-shrink-0 items-center justify-center rounded-sm',
             className,
           )}
           style={{
@@ -95,7 +96,7 @@ export function FaviconIcon({
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-sm flex-shrink-0 bg-muted",
+          'bg-muted flex flex-shrink-0 items-center justify-center rounded-sm',
           className,
         )}
         style={{ width: size, height: size }}
@@ -114,7 +115,7 @@ export function FaviconIcon({
       alt={`${domain} favicon`}
       width={size}
       height={size}
-      className={cn("rounded-sm flex-shrink-0 object-cover", className)}
+      className={cn('flex-shrink-0 rounded-sm object-cover', className)}
       onError={() => setImgError(true)}
       loading="lazy"
     />

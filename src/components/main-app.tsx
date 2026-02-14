@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
-import { Toaster } from "@/components/ui/sonner"
-import { LeftSidebar } from "@/components/raindrop/left-sidebar"
-import { MainContent } from "@/components/raindrop/main-content"
-import { RightDetailPanel } from "@/components/raindrop/right-detail-panel"
-import { GlobalSearchCommand } from "@/components/raindrop/global-search-command"
-import { AddBookmarkDialog } from "@/components/raindrop/add-bookmark-dialog"
-import { CollectionDialog } from "@/components/raindrop/collection-dialog"
-import { GroupDialog } from "@/components/raindrop/group-dialog"
-import { TagManagement } from "@/components/raindrop/tag-management"
-import { systemCollections, groups, mockRaindrops } from "@/data/mock-data"
-import type { Raindrop, Group, Collection } from "@/lib/types"
+import { useState, useEffect } from 'react'
+
+import { AddBookmarkDialog } from '@/components/raindrop/add-bookmark-dialog'
+import { CollectionDialog } from '@/components/raindrop/collection-dialog'
+import { GlobalSearchCommand } from '@/components/raindrop/global-search-command'
+import { GroupDialog } from '@/components/raindrop/group-dialog'
+import { LeftSidebar } from '@/components/raindrop/left-sidebar'
+import { MainContent } from '@/components/raindrop/main-content'
+import { RightDetailPanel } from '@/components/raindrop/right-detail-panel'
+import { TagManagement } from '@/components/raindrop/tag-management'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import { Toaster } from '@/components/ui/sonner'
+import { systemCollections, groups, mockRaindrops } from '@/data/mock-data'
+import type { Raindrop, Group, Collection } from '@/lib/types'
 
 /**
  * Main authenticated app view — 3-panel layout with sidebar, content, and detail.
@@ -21,44 +22,55 @@ import type { Raindrop, Group, Collection } from "@/lib/types"
  *   if (isAuthenticated) return <MainApp />
  */
 export function MainApp() {
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string>("all")
-  const [selectedRaindrop, setSelectedRaindrop] = useState<Raindrop | undefined>()
+  const [selectedCollectionId, setSelectedCollectionId] =
+    useState<string>('all')
+  const [selectedRaindrop, setSelectedRaindrop] = useState<
+    Raindrop | undefined
+  >()
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [selectedRaindropIds, setSelectedRaindropIds] = useState<Set<string>>(new Set())
+  const [selectedRaindropIds, setSelectedRaindropIds] = useState<Set<string>>(
+    new Set(),
+  )
 
   // Dialog states
   const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false)
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
   const [isTagManagementOpen, setIsTagManagementOpen] = useState(false)
-  const [editingCollection, setEditingCollection] = useState<Collection | undefined>()
+  const [editingCollection, setEditingCollection] = useState<
+    Collection | undefined
+  >()
   const [editingGroup, setEditingGroup] = useState<Group | undefined>()
 
   const currentRaindrops = mockRaindrops
 
   const allTags = Array.from(
-    new Set(mockRaindrops.flatMap((r) => r.tags || []))
+    new Set(mockRaindrops.flatMap((r) => r.tags || [])),
   ).map((tag) => ({
     name: tag,
     count: mockRaindrops.filter((r) => r.tags?.includes(tag)).length,
   }))
 
   const getBreadcrumbs = (): string[] => {
-    if (selectedCollectionId === "all") return ["All Bookmarks"]
-    if (selectedCollectionId === "unsorted") return ["Unsorted"]
-    if (selectedCollectionId === "trash") return ["Trash"]
+    if (selectedCollectionId === 'all') return ['All Bookmarks']
+    if (selectedCollectionId === 'unsorted') return ['Unsorted']
+    if (selectedCollectionId === 'trash') return ['Trash']
 
     const findCollectionPath = (
       collections: Collection[],
       targetId: string,
-      path: string[] = []
+      path: string[] = [],
     ): string[] | null => {
       for (const collection of collections) {
         const currentPath = [...path, collection.name]
         if (collection.id === targetId) return currentPath
         if (collection.children) {
-          const childPath = findCollectionPath(collection.children, targetId, currentPath)
+          const childPath = findCollectionPath(
+            collection.children,
+            targetId,
+            currentPath,
+          )
           if (childPath) return childPath
         }
       }
@@ -66,11 +78,14 @@ export function MainApp() {
     }
 
     for (const group of groups) {
-      const collectionPath = findCollectionPath(group.collections, selectedCollectionId)
+      const collectionPath = findCollectionPath(
+        group.collections,
+        selectedCollectionId,
+      )
       if (collectionPath) return [group.name, ...collectionPath]
     }
 
-    return ["Unknown"]
+    return ['Unknown']
   }
 
   const handleSelectRaindrop = (raindrop: Raindrop) => {
@@ -80,49 +95,49 @@ export function MainApp() {
 
   // CRUD handlers (mock — will connect to Raindrop.io API later)
   const handleSaveBookmark = (bookmark: unknown) => {
-    console.log("Save bookmark:", bookmark)
+    console.log('Save bookmark:', bookmark)
   }
 
   const handleSaveRaindrop = (raindrop: Raindrop) => {
-    console.log("Update raindrop:", raindrop)
+    console.log('Update raindrop:', raindrop)
   }
 
   const handleDeleteRaindrop = (raindropId: string) => {
-    console.log("Delete raindrop:", raindropId)
+    console.log('Delete raindrop:', raindropId)
   }
 
   const handleSaveCollection = (collection: unknown) => {
-    console.log("Save collection:", collection)
+    console.log('Save collection:', collection)
     setEditingCollection(undefined)
   }
 
   const handleSaveGroup = (group: unknown) => {
-    console.log("Save group:", group)
+    console.log('Save group:', group)
     setEditingGroup(undefined)
   }
 
   const handleRenameTag = (oldName: string, newName: string) => {
-    console.log("Rename tag:", oldName, "to", newName)
+    console.log('Rename tag:', oldName, 'to', newName)
   }
 
   const handleDeleteTag = (tagName: string) => {
-    console.log("Delete tag:", tagName)
+    console.log('Delete tag:', tagName)
   }
 
   const handleMergeTags = (sourceTags: string[], targetTag: string) => {
-    console.log("Merge tags:", sourceTags, "into", targetTag)
+    console.log('Merge tags:', sourceTags, 'into', targetTag)
   }
 
   // Global search shortcut (⌘K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setIsSearchOpen(true)
       }
     }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   return (
@@ -185,7 +200,9 @@ export function MainApp() {
           onOpenChange={setIsAddBookmarkOpen}
           groups={groups}
           existingTags={allTags.map((t) => t.name)}
-          defaultCollectionId={selectedCollectionId !== "all" ? selectedCollectionId : undefined}
+          defaultCollectionId={
+            selectedCollectionId !== 'all' ? selectedCollectionId : undefined
+          }
           onSave={handleSaveBookmark}
         />
 

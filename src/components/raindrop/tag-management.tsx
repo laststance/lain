@@ -1,4 +1,3 @@
-import { useState, useMemo } from "react"
 import {
   Tag,
   Search,
@@ -8,28 +7,9 @@ import {
   Trash2,
   Check,
   X,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from 'lucide-react'
+import { useState, useMemo } from 'react'
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +19,28 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
 /**
  * A tag entry with its name and usage count across all raindrops.
@@ -67,7 +68,7 @@ interface TagManagementProps {
   onDelete?: (tagName: string) => void
 }
 
-type SortMode = "name" | "count"
+type SortMode = 'name' | 'count'
 
 /**
  * Tag management panel for viewing, renaming, merging, and deleting tags.
@@ -98,14 +99,14 @@ export function TagManagement({
   onMerge,
   onDelete,
 }: TagManagementProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [sortMode, setSortMode] = useState<SortMode>("count")
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortMode, setSortMode] = useState<SortMode>('count')
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const [editingTag, setEditingTag] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState("")
+  const [editValue, setEditValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
-  const [mergeTargetName, setMergeTargetName] = useState("")
+  const [mergeTargetName, setMergeTargetName] = useState('')
 
   const filteredAndSortedTags = useMemo(() => {
     let filtered = tags
@@ -114,7 +115,7 @@ export function TagManagement({
       filtered = tags.filter((t) => t.name.toLowerCase().includes(lower))
     }
     return [...filtered].sort((a, b) => {
-      if (sortMode === "name") return a.name.localeCompare(b.name)
+      if (sortMode === 'name') return a.name.localeCompare(b.name)
       return b.count - a.count
     })
   }, [tags, searchQuery, sortMode])
@@ -149,12 +150,12 @@ export function TagManagement({
       onRename?.(editingTag, editValue.trim())
     }
     setEditingTag(null)
-    setEditValue("")
+    setEditValue('')
   }
 
   const cancelRename = () => {
     setEditingTag(null)
-    setEditValue("")
+    setEditValue('')
   }
 
   const handleMerge = () => {
@@ -162,7 +163,7 @@ export function TagManagement({
       onMerge?.(Array.from(selectedTags), mergeTargetName.trim())
       setSelectedTags(new Set())
       setMergeDialogOpen(false)
-      setMergeTargetName("")
+      setMergeTargetName('')
     }
   }
 
@@ -193,7 +194,7 @@ export function TagManagement({
             {/* Search and sort controls */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
                 <Input
                   placeholder="Search tags..."
                   value={searchQuery}
@@ -205,14 +206,14 @@ export function TagManagement({
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="h-8 gap-1">
                     <ArrowUpDown className="h-3.5 w-3.5" />
-                    {sortMode === "name" ? "Name" : "Count"}
+                    {sortMode === 'name' ? 'Name' : 'Count'}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setSortMode("name")}>
+                  <DropdownMenuItem onClick={() => setSortMode('name')}>
                     Sort by name
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortMode("count")}>
+                  <DropdownMenuItem onClick={() => setSortMode('count')}>
                     Sort by count
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -221,8 +222,8 @@ export function TagManagement({
 
             {/* Bulk actions */}
             {selectedTags.size > 0 && (
-              <div className="flex items-center gap-2 rounded-md bg-muted px-3 py-2">
-                <span className="text-xs text-muted-foreground">
+              <div className="bg-muted flex items-center gap-2 rounded-md px-3 py-2">
+                <span className="text-muted-foreground text-xs">
                   {selectedTags.size} selected
                 </span>
                 <Separator orientation="vertical" className="h-4" />
@@ -232,7 +233,7 @@ export function TagManagement({
                     size="sm"
                     className="h-7 gap-1 text-xs"
                     onClick={() => {
-                      setMergeTargetName("")
+                      setMergeTargetName('')
                       setMergeDialogOpen(true)
                     }}
                   >
@@ -243,7 +244,7 @@ export function TagManagement({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 text-xs text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive h-7 gap-1 text-xs"
                   onClick={() => {
                     for (const name of selectedTags) {
                       onDelete?.(name)
@@ -270,7 +271,7 @@ export function TagManagement({
                     onCheckedChange={toggleAll}
                     aria-label="Select all tags"
                   />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                     {filteredAndSortedTags.length} tags
                   </span>
                 </div>
@@ -280,8 +281,8 @@ export function TagManagement({
                   <div
                     key={tag.name}
                     className={cn(
-                      "group flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent",
-                      selectedTags.has(tag.name) && "bg-accent/50",
+                      'group hover:bg-accent flex items-center gap-3 rounded-md px-2 py-1.5',
+                      selectedTags.has(tag.name) && 'bg-accent/50',
                     )}
                   >
                     <Checkbox
@@ -296,8 +297,8 @@ export function TagManagement({
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") confirmRename()
-                            if (e.key === "Escape") cancelRename()
+                            if (e.key === 'Enter') confirmRename()
+                            if (e.key === 'Escape') cancelRename()
                           }}
                           className="h-7 text-sm"
                           autoFocus
@@ -324,10 +325,10 @@ export function TagManagement({
                         <Badge variant="secondary" className="text-xs">
                           {tag.name}
                         </Badge>
-                        <span className="ml-auto text-xs text-muted-foreground">
+                        <span className="text-muted-foreground ml-auto text-xs">
                           {tag.count}
                         </span>
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -340,7 +341,7 @@ export function TagManagement({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive h-7 w-7"
                             onClick={() => setDeleteTarget(tag.name)}
                             title="Delete tag"
                           >
@@ -353,8 +354,8 @@ export function TagManagement({
                 ))}
 
                 {filteredAndSortedTags.length === 0 && (
-                  <div className="py-8 text-center text-sm text-muted-foreground">
-                    {searchQuery ? "No tags match your search" : "No tags yet"}
+                  <div className="text-muted-foreground py-8 text-center text-sm">
+                    {searchQuery ? 'No tags match your search' : 'No tags yet'}
                   </div>
                 )}
               </div>
@@ -375,8 +376,8 @@ export function TagManagement({
           <DialogHeader>
             <DialogTitle>Merge Tags</DialogTitle>
             <DialogDescription>
-              Merge {selectedTags.size} selected tags into one.
-              All bookmarks will be updated.
+              Merge {selectedTags.size} selected tags into one. All bookmarks
+              will be updated.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -392,21 +393,15 @@ export function TagManagement({
               value={mergeTargetName}
               onChange={(e) => setMergeTargetName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleMerge()
+                if (e.key === 'Enter') handleMerge()
               }}
             />
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setMergeDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleMerge}
-              disabled={!mergeTargetName.trim()}
-            >
+            <Button onClick={handleMerge} disabled={!mergeTargetName.trim()}>
               Merge Tags
             </Button>
           </DialogFooter>
@@ -422,10 +417,12 @@ export function TagManagement({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete tag &ldquo;{deleteTarget}&rdquo;?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete tag &ldquo;{deleteTarget}&rdquo;?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This tag will be removed from all bookmarks that use it.
-              This action cannot be undone.
+              This tag will be removed from all bookmarks that use it. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

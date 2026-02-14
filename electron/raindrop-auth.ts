@@ -1,11 +1,13 @@
-import { BrowserWindow } from "electron"
-import { secureStore } from "./secure-store.ts"
-import type { RaindropTokens, RaindropUser } from "../src/lib/types.ts"
+import { BrowserWindow } from 'electron'
 
-const RAINDROP_AUTH_URL = "https://raindrop.io/oauth/authorize"
-const RAINDROP_TOKEN_URL = "https://raindrop.io/oauth/access_token"
-const RAINDROP_API_BASE = "https://api.raindrop.io/rest/v1"
-const REDIRECT_URI = "http://localhost/callback"
+import type { RaindropTokens, RaindropUser } from '../src/lib/types.ts'
+
+import { secureStore } from './secure-store.ts'
+
+const RAINDROP_AUTH_URL = 'https://raindrop.io/oauth/authorize'
+const RAINDROP_TOKEN_URL = 'https://raindrop.io/oauth/access_token'
+const RAINDROP_API_BASE = 'https://api.raindrop.io/rest/v1'
+const REDIRECT_URI = 'http://localhost/callback'
 
 /** 5-minute buffer before token expiry to trigger refresh */
 const REFRESH_BUFFER_MS = 5 * 60 * 1000
@@ -54,18 +56,18 @@ export class RaindropAuth {
    * @returns New token set
    */
   async refreshTokens(): Promise<RaindropTokens> {
-    const refreshToken = secureStore.get("refresh_token")
+    const refreshToken = secureStore.get('refresh_token')
     if (!refreshToken) {
-      throw new Error("No refresh token available")
+      throw new Error('No refresh token available')
     }
 
     const response = await fetch(RAINDROP_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: this.#clientId,
         client_secret: this.#clientSecret,
-        grant_type: "refresh_token",
+        grant_type: 'refresh_token',
         refresh_token: refreshToken,
       }),
     })
@@ -73,7 +75,7 @@ export class RaindropAuth {
     if (!response.ok) {
       secureStore.clear()
       this.#expiresAt = 0
-      throw new Error("Token refresh failed — re-authentication required")
+      throw new Error('Token refresh failed — re-authentication required')
     }
 
     const tokens = (await response.json()) as RaindropTokens
@@ -87,14 +89,14 @@ export class RaindropAuth {
    * @throws If not authenticated or refresh fails
    */
   async getValidToken(): Promise<string> {
-    const token = secureStore.get("access_token")
+    const token = secureStore.get('access_token')
     if (!token) {
-      throw new Error("Not authenticated")
+      throw new Error('Not authenticated')
     }
 
     if (Date.now() >= this.#expiresAt - REFRESH_BUFFER_MS) {
       await this.refreshTokens()
-      return secureStore.get("access_token")!
+      return secureStore.get('access_token')!
     }
 
     return token
@@ -134,7 +136,7 @@ export class RaindropAuth {
    * @returns true if access_token is stored
    */
   isAuthenticated(): boolean {
-    return secureStore.get("access_token") !== null
+    return secureStore.get('access_token') !== null
   }
 
   /**
@@ -144,14 +146,14 @@ export class RaindropAuth {
    */
   async #exchangeCode(code: string): Promise<RaindropTokens> {
     const response = await fetch(RAINDROP_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code,
         client_id: this.#clientId,
         client_secret: this.#clientSecret,
         redirect_uri: REDIRECT_URI,
-        grant_type: "authorization_code",
+        grant_type: 'authorization_code',
       }),
     })
 
@@ -170,17 +172,17 @@ export class RaindropAuth {
    * Uses webRequest.onBeforeRequest to intercept the redirect before it navigates,
    * so the redirect URI doesn't need to resolve to a real server.
    */
-  #getAuthorizationCode(): Promise<string> {
+  async #getAuthorizationCode(): Promise<string> {
     return new Promise((resolve, reject) => {
       const authUrl = new URL(RAINDROP_AUTH_URL)
-      authUrl.searchParams.set("client_id", this.#clientId)
-      authUrl.searchParams.set("redirect_uri", REDIRECT_URI)
-      authUrl.searchParams.set("response_type", "code")
+      authUrl.searchParams.set('client_id', this.#clientId)
+      authUrl.searchParams.set('redirect_uri', REDIRECT_URI)
+      authUrl.searchParams.set('response_type', 'code')
 
       const authWindow = new BrowserWindow({
         width: 800,
         height: 600,
-        title: "Login to Raindrop.io",
+        title: 'Login to Raindrop.io',
         webPreferences: {
           nodeIntegration: false,
           contextIsolation: true,
@@ -193,8 +195,8 @@ export class RaindropAuth {
         filter,
         (details, callback) => {
           const url = new URL(details.url)
-          const code = url.searchParams.get("code")
-          const error = url.searchParams.get("error")
+          const code = url.searchParams.get('code')
+          const error = url.searchParams.get('error')
 
           // Cancel the request — we don't need it to actually navigate
           callback({ cancel: true })
@@ -206,13 +208,13 @@ export class RaindropAuth {
           } else if (code) {
             resolve(code)
           } else {
-            reject(new Error("No authorization code received"))
+            reject(new Error('No authorization code received'))
           }
         },
       )
 
-      authWindow.on("closed", () => {
-        reject(new Error("Authentication window was closed"))
+      authWindow.on('closed', () => {
+        reject(new Error('Authentication window was closed'))
       })
 
       authWindow.loadURL(authUrl.toString())
@@ -225,14 +227,14 @@ export class RaindropAuth {
    */
   #storeTokens(tokens: RaindropTokens): void {
     this.#expiresAt = Date.now() + tokens.expires_in * 1000
-    secureStore.set("access_token", tokens.access_token)
-    secureStore.set("refresh_token", tokens.refresh_token)
-    secureStore.set("expires_at", String(this.#expiresAt))
+    secureStore.set('access_token', tokens.access_token)
+    secureStore.set('refresh_token', tokens.refresh_token)
+    secureStore.set('expires_at', String(this.#expiresAt))
   }
 
   /** Load expiration timestamp from storage on startup. */
   #loadExpiresAt(): void {
-    const expiresAt = secureStore.get("expires_at")
+    const expiresAt = secureStore.get('expires_at')
     if (expiresAt) {
       this.#expiresAt = Number(expiresAt)
     }

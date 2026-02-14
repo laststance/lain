@@ -1,12 +1,12 @@
-import { useAuth } from "@/contexts/AuthContext"
-import { Button } from "@/components/ui/button"
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@/components/ui/card'
+import { useAuth } from '@/contexts/AuthContext'
 
 /**
  * Login screen displayed when the user is not authenticated.
@@ -20,7 +20,7 @@ export function LoginScreen() {
   const { login, isLoading } = useAuth()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Lain</CardTitle>
@@ -35,7 +35,7 @@ export function LoginScreen() {
             onClick={login}
             disabled={isLoading}
           >
-            {isLoading ? "Connecting..." : "Login with Raindrop.io"}
+            {isLoading ? 'Connecting...' : 'Login with Raindrop.io'}
           </Button>
         </CardContent>
       </Card>

@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, type KeyboardEvent } from "react"
-import { X } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { X } from 'lucide-react'
+import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
+
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 /**
  * Props for the TagInput component.
@@ -50,12 +51,12 @@ export function TagInput({
   value,
   onChange,
   suggestions = [],
-  placeholder = "Add tag...",
+  placeholder = 'Add tag...',
   label,
   maxTags,
   disabled = false,
 }: TagInputProps) {
-  const [inputValue, setInputValue] = useState("")
+  const [inputValue, setInputValue] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -74,7 +75,7 @@ export function TagInput({
       if (value.includes(trimmed)) return
       if (maxTags && value.length >= maxTags) return
       onChange([...value, trimmed])
-      setInputValue("")
+      setInputValue('')
       setShowSuggestions(false)
       setSelectedSuggestionIndex(-1)
     },
@@ -89,7 +90,7 @@ export function TagInput({
   )
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
       if (
         selectedSuggestionIndex >= 0 &&
@@ -99,17 +100,17 @@ export function TagInput({
       } else {
         addTag(inputValue)
       }
-    } else if (e.key === "Backspace" && inputValue === "" && value.length > 0) {
+    } else if (e.key === 'Backspace' && inputValue === '' && value.length > 0) {
       removeTag(value[value.length - 1])
-    } else if (e.key === "ArrowDown") {
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       setSelectedSuggestionIndex((prev) =>
         Math.min(prev + 1, filteredSuggestions.length - 1),
       )
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedSuggestionIndex((prev) => Math.max(prev - 1, -1))
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setShowSuggestions(false)
       setSelectedSuggestionIndex(-1)
     }
@@ -117,14 +118,12 @@ export function TagInput({
 
   return (
     <div className="space-y-2">
-      {label && (
-        <Label className="text-sm font-medium">{label}</Label>
-      )}
+      {label && <Label className="text-sm font-medium">{label}</Label>}
       <div
         className={cn(
-          "flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm ring-offset-background",
-          "focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-          disabled && "cursor-not-allowed opacity-50",
+          'border-input bg-background ring-offset-background flex min-h-[38px] flex-wrap items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm',
+          'focus-within:ring-ring focus-within:ring-2 focus-within:ring-offset-2',
+          disabled && 'cursor-not-allowed opacity-50',
         )}
         onClick={() => inputRef.current?.focus()}
       >
@@ -138,7 +137,7 @@ export function TagInput({
             {!disabled && (
               <button
                 type="button"
-                className="ml-0.5 rounded-sm hover:bg-muted-foreground/20"
+                className="hover:bg-muted-foreground/20 ml-0.5 rounded-sm"
                 onClick={(e) => {
                   e.stopPropagation()
                   removeTag(tag)
@@ -163,21 +162,23 @@ export function TagInput({
             setTimeout(() => setShowSuggestions(false), 200)
           }}
           onKeyDown={handleKeyDown}
-          placeholder={value.length === 0 ? placeholder : ""}
-          disabled={disabled || (maxTags !== undefined && value.length >= maxTags)}
+          placeholder={value.length === 0 ? placeholder : ''}
+          disabled={
+            disabled || (maxTags !== undefined && value.length >= maxTags)
+          }
           className="h-auto min-w-[80px] flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
       {showSuggestions && filteredSuggestions.length > 0 && (
         <div className="relative">
-          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover p-1 shadow-md">
+          <div className="bg-popover absolute z-50 mt-1 w-full rounded-md border p-1 shadow-md">
             {filteredSuggestions.slice(0, 8).map((suggestion, index) => (
               <button
                 key={suggestion}
                 type="button"
                 className={cn(
-                  "flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent",
-                  index === selectedSuggestionIndex && "bg-accent",
+                  'hover:bg-accent flex w-full items-center rounded-sm px-2 py-1.5 text-sm',
+                  index === selectedSuggestionIndex && 'bg-accent',
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault()
@@ -191,7 +192,7 @@ export function TagInput({
         </div>
       )}
       {maxTags && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           {value.length}/{maxTags} tags
         </p>
       )}

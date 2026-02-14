@@ -1,4 +1,3 @@
-import { useState } from "react"
 import {
   Star,
   MoreHorizontal,
@@ -8,22 +7,24 @@ import {
   Tag,
   Copy,
   Trash2,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+} from 'lucide-react'
+import { useState } from 'react'
+
+import { FaviconIcon } from '@/components/raindrop/favicon-icon'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { FaviconIcon } from "@/components/raindrop/favicon-icon"
-import { getDomainColor } from "@/utils/favicon"
-import type { Raindrop, ContentType } from "@/lib/types"
+} from '@/components/ui/dropdown-menu'
+import type { Raindrop, ContentType } from '@/lib/types'
+import { cn } from '@/lib/utils'
+import { getDomainColor } from '@/utils/favicon'
 
 /**
  * Map content type to a display label.
@@ -33,14 +34,14 @@ import type { Raindrop, ContentType } from "@/lib/types"
  */
 function getTypeLabel(type: ContentType): string {
   const map: Record<ContentType, string> = {
-    link: "Link",
-    article: "Article",
-    image: "Image",
-    video: "Video",
-    document: "Document",
-    audio: "Audio",
+    link: 'Link',
+    article: 'Article',
+    image: 'Image',
+    video: 'Video',
+    document: 'Document',
+    audio: 'Audio',
   }
-  return map[type] || "Link"
+  return map[type] || 'Link'
 }
 
 /**
@@ -56,14 +57,14 @@ function formatRelativeDate(dateStr: string): string {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-  if (diffHours < 1) return "Just now"
+  if (diffHours < 1) return 'Just now'
   if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays === 1) return "Yesterday"
+  if (diffDays === 1) return 'Yesterday'
   if (diffDays < 7) return `${diffDays}d ago`
 
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
   })
 }
 
@@ -109,16 +110,16 @@ export function RaindropCard({
   const [isHovered, setIsHovered] = useState(false)
   const [isChecked, setIsChecked] = useState(false)
 
-  const domainColor = getDomainColor(raindrop.domain || "")
+  const domainColor = getDomainColor(raindrop.domain || '')
   const visibleTags = raindrop.tags.slice(0, 2)
   const remainingTagCount = raindrop.tags.length - 2
 
   return (
     <Card
       className={cn(
-        "group relative cursor-pointer overflow-hidden transition-all duration-150",
-        "hover:shadow-md hover:scale-[1.01]",
-        isSelected && "ring-2 ring-primary shadow-md"
+        'group relative cursor-pointer overflow-hidden transition-all duration-150',
+        'hover:scale-[1.01] hover:shadow-md',
+        isSelected && 'ring-primary shadow-md ring-2',
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -126,7 +127,7 @@ export function RaindropCard({
       onDoubleClick={onDoubleClick}
     >
       {/* Cover Image / Placeholder */}
-      <div className="relative aspect-video overflow-hidden bg-muted">
+      <div className="bg-muted relative aspect-video overflow-hidden">
         {raindrop.coverImage ? (
           <img
             src={raindrop.coverImage}
@@ -156,7 +157,7 @@ export function RaindropCard({
         {/* Type badge */}
         <Badge
           variant="secondary"
-          className="absolute top-2 right-2 text-[10px] px-1.5 py-0 h-5 bg-background/80 backdrop-blur-sm"
+          className="bg-background/80 absolute top-2 right-2 h-5 px-1.5 py-0 text-[10px] backdrop-blur-sm"
         >
           {getTypeLabel(raindrop.type)}
         </Badge>
@@ -172,7 +173,7 @@ export function RaindropCard({
         {(isHovered || isSelected) && (
           <div
             className="absolute top-2 left-2"
-            style={{ display: raindrop.isImportant ? "none" : undefined }}
+            style={{ display: raindrop.isImportant ? 'none' : undefined }}
           >
             <Checkbox
               checked={isSelected || isChecked}
@@ -191,7 +192,7 @@ export function RaindropCard({
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-6 w-6 bg-background/80 backdrop-blur-sm"
+                  className="bg-background/80 h-6 w-6 backdrop-blur-sm"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreHorizontal className="h-3 w-3" />
@@ -230,7 +231,9 @@ export function RaindropCard({
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
                   <Star className="mr-2 h-4 w-4" />
-                  {raindrop.isImportant ? "Remove Important" : "Mark as Important"}
+                  {raindrop.isImportant
+                    ? 'Remove Important'
+                    : 'Mark as Important'}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -247,37 +250,37 @@ export function RaindropCard({
       </div>
 
       {/* Card Content */}
-      <CardContent className="p-3 space-y-1.5">
+      <CardContent className="space-y-1.5 p-3">
         {/* Title */}
-        <h3 className="text-sm font-medium leading-snug line-clamp-2">
+        <h3 className="line-clamp-2 text-sm leading-snug font-medium">
           {raindrop.title}
         </h3>
 
         {/* Domain */}
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-muted-foreground truncate text-xs">
           {raindrop.domain || new URL(raindrop.url).hostname}
         </p>
 
         {/* Tags + Date row */}
         <div className="flex items-center justify-between gap-2 pt-0.5">
-          <div className="flex items-center gap-1 min-w-0 flex-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1">
             {visibleTags.map((tag) => (
               <Badge
                 key={tag}
                 variant="outline"
-                className="text-[10px] px-1.5 py-0 h-4 truncate max-w-[80px]"
+                className="h-4 max-w-[80px] truncate px-1.5 py-0 text-[10px]"
               >
                 {tag}
               </Badge>
             ))}
             {remainingTagCount > 0 && (
-              <span className="text-[10px] text-muted-foreground flex-shrink-0">
+              <span className="text-muted-foreground flex-shrink-0 text-[10px]">
                 +{remainingTagCount}
               </span>
             )}
           </div>
 
-          <span className="text-[10px] text-muted-foreground flex-shrink-0 tabular-nums">
+          <span className="text-muted-foreground flex-shrink-0 text-[10px] tabular-nums">
             {formatRelativeDate(raindrop.createdAt)}
           </span>
         </div>

@@ -1,5 +1,6 @@
-import { contextBridge, ipcRenderer } from "electron"
-import type { AuthState } from "../src/lib/types.ts"
+import { contextBridge, ipcRenderer } from 'electron'
+
+import type { AuthState } from '../src/lib/types.ts'
 
 /**
  * Preload script that bridges main process auth operations to the renderer.
@@ -14,24 +15,27 @@ import type { AuthState } from "../src/lib/types.ts"
  *   })
  *   // Later: cleanup() to remove listener
  */
-contextBridge.exposeInMainWorld("shell", {
+contextBridge.exposeInMainWorld('shell', {
   /** Open a URL in the user's default browser. */
-  openExternal: (url: string): Promise<void> =>
-    ipcRenderer.invoke("shell:open-external", url),
+  openExternal: async (url: string): Promise<void> =>
+    ipcRenderer.invoke('shell:open-external', url),
 })
 
-contextBridge.exposeInMainWorld("auth", {
+contextBridge.exposeInMainWorld('auth', {
   /** Initiate OAuth login flow (opens Raindrop.io auth window). */
-  login: (): Promise<void> => ipcRenderer.invoke("auth:login"),
+  login: async (): Promise<void> => ipcRenderer.invoke('auth:login'),
 
   /** Clear stored tokens and sign out. */
-  logout: (): Promise<void> => ipcRenderer.invoke("auth:logout"),
+  logout: async (): Promise<void> => ipcRenderer.invoke('auth:logout'),
 
   /** Fetch the authenticated user's Raindrop.io profile. */
-  getUser: () => ipcRenderer.invoke("auth:get-user"),
+  getUser: async () => ipcRenderer.invoke('auth:get-user'),
 
   /** Get current authentication state (isAuthenticated + user). */
-  getState: () => ipcRenderer.invoke("auth:get-state"),
+  getState: async () => ipcRenderer.invoke('auth:get-state'),
+
+  /** Get a valid access token, auto-refreshing if expired. */
+  getToken: async (): Promise<string> => ipcRenderer.invoke('auth:get-token'),
 
   /**
    * Subscribe to auth state changes pushed from the main process.
@@ -41,9 +45,9 @@ contextBridge.exposeInMainWorld("auth", {
   onAuthStateChanged: (callback: (state: AuthState) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, state: AuthState) =>
       callback(state)
-    ipcRenderer.on("auth:state-changed", handler)
+    ipcRenderer.on('auth:state-changed', handler)
     return () => {
-      ipcRenderer.removeListener("auth:state-changed", handler)
+      ipcRenderer.removeListener('auth:state-changed', handler)
     }
   },
 })

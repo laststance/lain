@@ -1,4 +1,3 @@
-import { useState, useCallback } from "react"
 import {
   Folder,
   FolderOpen,
@@ -12,16 +11,18 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Star,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from 'lucide-react'
+import { useState, useCallback } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import type { Raindrop, Collection, ContentType } from "@/lib/types"
+} from '@/components/ui/tooltip'
+import type { Raindrop, Collection, ContentType } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * Map content type to its corresponding Lucide icon component and label.
@@ -31,12 +32,12 @@ import type { Raindrop, Collection, ContentType } from "@/lib/types"
  */
 function getTypeInfo(type: ContentType) {
   const map: Record<ContentType, { icon: typeof Globe; label: string }> = {
-    link: { icon: Globe, label: "link" },
-    article: { icon: FileText, label: "article" },
-    image: { icon: Image, label: "image" },
-    video: { icon: Video, label: "video" },
-    document: { icon: File, label: "document" },
-    audio: { icon: Music, label: "audio" },
+    link: { icon: Globe, label: 'link' },
+    article: { icon: FileText, label: 'article' },
+    image: { icon: Image, label: 'image' },
+    video: { icon: Video, label: 'video' },
+    document: { icon: File, label: 'document' },
+    audio: { icon: Music, label: 'audio' },
   }
   return map[type] || map.link
 }
@@ -94,9 +95,9 @@ function CollectionTreeNode({
     onSelectCollection?.(collection)
   }
 
-  const prefix = parentPrefixes.join("")
-  const connector = isLast ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 "
-  const childPrefix = isLast ? "    " : "\u2502   "
+  const prefix = parentPrefixes.join('')
+  const connector = isLast ? '\u2514\u2500\u2500 ' : '\u251C\u2500\u2500 '
+  const childPrefix = isLast ? '    ' : '\u2502   '
 
   return (
     <div className="select-none">
@@ -104,18 +105,18 @@ function CollectionTreeNode({
       <button
         type="button"
         className={cn(
-          "flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-sm hover:bg-accent transition-colors text-left",
+          'hover:bg-accent flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-left text-sm transition-colors',
         )}
         onClick={toggleExpand}
       >
-        <span className="font-mono text-muted-foreground text-xs whitespace-pre flex-shrink-0">
-          {depth > 0 ? prefix + connector : ""}
+        <span className="text-muted-foreground flex-shrink-0 font-mono text-xs whitespace-pre">
+          {depth > 0 ? prefix + connector : ''}
         </span>
         {hasContent ? (
           isExpanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <ChevronDown className="text-muted-foreground h-3.5 w-3.5 flex-shrink-0" />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <ChevronRight className="text-muted-foreground h-3.5 w-3.5 flex-shrink-0" />
           )
         ) : (
           <span className="w-3.5 flex-shrink-0" />
@@ -123,16 +124,16 @@ function CollectionTreeNode({
         {isExpanded ? (
           <FolderOpen
             className="h-4 w-4 flex-shrink-0"
-            style={{ color: collection.color || "#8b5cf6" }}
+            style={{ color: collection.color || '#8b5cf6' }}
           />
         ) : (
           <Folder
             className="h-4 w-4 flex-shrink-0"
-            style={{ color: collection.color || "#8b5cf6" }}
+            style={{ color: collection.color || '#8b5cf6' }}
           />
         )}
         <span className="truncate font-medium">{collection.name}/</span>
-        <span className="text-xs text-muted-foreground flex-shrink-0">
+        <span className="text-muted-foreground flex-shrink-0 text-xs">
           ({collection.count})
         </span>
       </button>
@@ -151,9 +152,7 @@ function CollectionTreeNode({
               onOpenUrl={onOpenUrl}
               onSelectCollection={onSelectCollection}
               depth={depth + 1}
-              isLast={
-                index === children.length - 1 && raindrops.length === 0
-              }
+              isLast={index === children.length - 1 && raindrops.length === 0}
               parentPrefixes={[...parentPrefixes, childPrefix]}
             />
           ))}
@@ -162,12 +161,11 @@ function CollectionTreeNode({
           {raindrops.map((raindrop, index) => {
             const typeInfo = getTypeInfo(raindrop.type)
             const TypeIcon = typeInfo.icon
-            const isLastItem =
-              index === raindrops.length - 1
+            const isLastItem = index === raindrops.length - 1
             const itemConnector = isLastItem
-              ? "\u2514\u2500\u2500 "
-              : "\u251C\u2500\u2500 "
-            const itemPrefix = [...parentPrefixes, childPrefix].join("")
+              ? '\u2514\u2500\u2500 '
+              : '\u251C\u2500\u2500 '
+            const itemPrefix = [...parentPrefixes, childPrefix].join('')
 
             return (
               <Tooltip key={raindrop.id}>
@@ -175,35 +173,33 @@ function CollectionTreeNode({
                   <button
                     type="button"
                     className={cn(
-                      "flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-sm hover:bg-accent transition-colors text-left",
-                      selectedRaindropId === raindrop.id && "bg-accent",
+                      'hover:bg-accent flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-left text-sm transition-colors',
+                      selectedRaindropId === raindrop.id && 'bg-accent',
                     )}
                     onClick={() => onSelectRaindrop?.(raindrop)}
-                    onDoubleClick={() =>
-                      onOpenUrl?.(raindrop.url)
-                    }
+                    onDoubleClick={() => onOpenUrl?.(raindrop.url)}
                   >
-                    <span className="font-mono text-muted-foreground text-xs whitespace-pre flex-shrink-0">
+                    <span className="text-muted-foreground flex-shrink-0 font-mono text-xs whitespace-pre">
                       {itemPrefix + itemConnector}
                     </span>
-                    <TypeIcon
-                      className="h-4 w-4 flex-shrink-0 text-muted-foreground"
-                    />
+                    <TypeIcon className="text-muted-foreground h-4 w-4 flex-shrink-0" />
                     <span className="truncate">{raindrop.title}</span>
-                    {raindrop.type !== "link" && (
-                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                    {raindrop.type !== 'link' && (
+                      <span className="text-muted-foreground flex-shrink-0 text-xs">
                         ({typeInfo.label})
                       </span>
                     )}
                     {raindrop.isImportant && (
-                      <Star className="h-3 w-3 text-amber-500 fill-amber-500 flex-shrink-0" />
+                      <Star className="h-3 w-3 flex-shrink-0 fill-amber-500 text-amber-500" />
                     )}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="max-w-xs">
                   <div className="space-y-1">
-                    <p className="font-medium text-sm">{raindrop.title}</p>
-                    <p className="text-xs text-muted-foreground">{raindrop.url}</p>
+                    <p className="text-sm font-medium">{raindrop.title}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {raindrop.url}
+                    </p>
                     {raindrop.description && (
                       <p className="text-xs">{raindrop.description}</p>
                     )}
@@ -255,17 +251,17 @@ export function DirectoryView({
   }, [allExpanded])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Toolbar */}
-      <div className="flex items-center justify-end px-4 py-1.5 border-b">
+      <div className="flex items-center justify-end border-b px-4 py-1.5">
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 text-xs gap-1"
+          className="h-7 gap-1 text-xs"
           onClick={handleExpandCollapseAll}
         >
           <ChevronsUpDown className="h-3.5 w-3.5" />
-          {allExpanded ? "Collapse All" : "Expand All"}
+          {allExpanded ? 'Collapse All' : 'Expand All'}
         </Button>
       </div>
 
@@ -273,9 +269,9 @@ export function DirectoryView({
       <ScrollArea className="flex-1">
         <div className="p-4 font-mono text-sm" key={String(allExpanded)}>
           {collections.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <Folder className="h-10 w-10 mb-3 opacity-40" />
-              <p className="text-sm font-sans">No collections to display</p>
+            <div className="text-muted-foreground flex flex-col items-center justify-center py-16">
+              <Folder className="mb-3 h-10 w-10 opacity-40" />
+              <p className="font-sans text-sm">No collections to display</p>
             </div>
           ) : (
             collections.map((collection, index) => (

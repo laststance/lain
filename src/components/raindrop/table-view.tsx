@@ -1,4 +1,3 @@
-import { useState, useMemo, useCallback } from "react"
 import {
   Globe,
   FileText,
@@ -19,19 +18,20 @@ import {
   Trash2,
   Eye,
   EyeOff,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
+} from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+
+import { FaviconIcon } from '@/components/raindrop/favicon-icon'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,16 +39,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import { FaviconIcon } from "@/components/raindrop/favicon-icon"
-import type { Raindrop, ContentType } from "@/lib/types"
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import type { Raindrop, ContentType } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * Map content type to its corresponding Lucide icon component.
@@ -78,19 +79,19 @@ function formatDate(dateStr: string): string {
   const diffHours = diffMs / (1000 * 60 * 60)
   const diffDays = diffMs / (1000 * 60 * 60 * 24)
 
-  if (diffHours < 1) return "Just now"
+  if (diffHours < 1) return 'Just now'
   if (diffHours < 24) return `${Math.floor(diffHours)}h ago`
-  if (diffDays < 2) return "Yesterday"
+  if (diffDays < 2) return 'Yesterday'
   if (diffDays < 7) return `${Math.floor(diffDays)}d ago`
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   })
 }
 
-type SortKey = "title" | "domain" | "type" | "createdAt" | "updatedAt"
-type SortDir = "asc" | "desc"
+type SortKey = 'title' | 'domain' | 'type' | 'createdAt' | 'updatedAt'
+type SortDir = 'asc' | 'desc'
 
 /**
  * Column visibility configuration.
@@ -164,8 +165,8 @@ export function TableView({
   onDelete,
   onToggleImportant,
 }: TableViewProps) {
-  const [sortKey, setSortKey] = useState<SortKey>("createdAt")
-  const [sortDir, setSortDir] = useState<SortDir>("desc")
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [page, setPage] = useState(0)
   const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({
     type: true,
@@ -181,10 +182,10 @@ export function TableView({
   const toggleSort = useCallback(
     (key: SortKey) => {
       if (sortKey === key) {
-        setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+        setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
       } else {
         setSortKey(key)
-        setSortDir("asc")
+        setSortDir('asc')
       }
       setPage(0)
     },
@@ -195,23 +196,25 @@ export function TableView({
     const sorted = [...raindrops].sort((a, b) => {
       let cmp = 0
       switch (sortKey) {
-        case "title":
+        case 'title':
           cmp = a.title.localeCompare(b.title)
           break
-        case "domain":
-          cmp = (a.domain || "").localeCompare(b.domain || "")
+        case 'domain':
+          cmp = (a.domain || '').localeCompare(b.domain || '')
           break
-        case "type":
+        case 'type':
           cmp = a.type.localeCompare(b.type)
           break
-        case "createdAt":
-          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case 'createdAt':
+          cmp =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
           break
-        case "updatedAt":
-          cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+        case 'updatedAt':
+          cmp =
+            new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
           break
       }
-      return sortDir === "asc" ? cmp : -cmp
+      return sortDir === 'asc' ? cmp : -cmp
     })
     return sorted
   }, [raindrops, sortKey, sortDir])
@@ -252,15 +255,15 @@ export function TableView({
   }) => {
     const isActive = sortKey === sortKeyName
     return (
-      <TableHead className={cn("cursor-pointer select-none", className)}>
+      <TableHead className={cn('cursor-pointer select-none', className)}>
         <button
           type="button"
-          className="flex items-center gap-1 hover:text-foreground"
+          className="hover:text-foreground flex items-center gap-1"
           onClick={() => toggleSort(sortKeyName)}
         >
           {label}
           {isActive ? (
-            sortDir === "asc" ? (
+            sortDir === 'asc' ? (
               <ArrowUp className="h-3.5 w-3.5" />
             ) : (
               <ArrowDown className="h-3.5 w-3.5" />
@@ -274,17 +277,17 @@ export function TableView({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Bulk actions bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-2 border-b bg-muted/50 px-4 py-2">
-          <span className="text-sm text-muted-foreground">
+        <div className="bg-muted/50 flex items-center gap-2 border-b px-4 py-2">
+          <span className="text-muted-foreground text-sm">
             {selectedIds.size} selected
           </span>
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs gap-1"
+            className="h-7 gap-1 text-xs"
             onClick={() => onMoveToCollection?.(Array.from(selectedIds))}
           >
             <FolderInput className="h-3.5 w-3.5" />
@@ -293,7 +296,7 @@ export function TableView({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs gap-1"
+            className="h-7 gap-1 text-xs"
             onClick={() => onAddTags?.(Array.from(selectedIds))}
           >
             <Tag className="h-3.5 w-3.5" />
@@ -302,7 +305,7 @@ export function TableView({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs gap-1"
+            className="h-7 gap-1 text-xs"
             onClick={() => {
               for (const id of selectedIds) {
                 onToggleImportant?.(id)
@@ -315,7 +318,7 @@ export function TableView({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
+            className="text-destructive hover:text-destructive h-7 gap-1 text-xs"
             onClick={() => onDelete?.(Array.from(selectedIds))}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -324,47 +327,23 @@ export function TableView({
           <div className="ml-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-                  {columnVisibility.type ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                >
+                  {columnVisibility.type ? (
+                    <Eye className="h-3.5 w-3.5" />
+                  ) : (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  )}
                   Columns
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {(Object.keys(columnVisibility) as (keyof ColumnVisibility)[]).map(
-                  (col) => (
-                    <DropdownMenuCheckboxItem
-                      key={col}
-                      checked={columnVisibility[col]}
-                      onCheckedChange={(checked) =>
-                        setColumnVisibility((prev) => ({
-                          ...prev,
-                          [col]: checked,
-                        }))
-                      }
-                    >
-                      {col.charAt(0).toUpperCase() + col.slice(1)}
-                    </DropdownMenuCheckboxItem>
-                  ),
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      )}
-
-      {/* Column visibility toggle (when no selection) */}
-      {selectedIds.size === 0 && (
-        <div className="flex items-center justify-end px-4 py-1 border-b">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                <Eye className="h-3.5 w-3.5" />
-                Columns
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {(Object.keys(columnVisibility) as (keyof ColumnVisibility)[]).map(
-                (col) => (
+                {(
+                  Object.keys(columnVisibility) as (keyof ColumnVisibility)[]
+                ).map((col) => (
                   <DropdownMenuCheckboxItem
                     key={col}
                     checked={columnVisibility[col]}
@@ -377,8 +356,40 @@ export function TableView({
                   >
                     {col.charAt(0).toUpperCase() + col.slice(1)}
                   </DropdownMenuCheckboxItem>
-                ),
-              )}
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      )}
+
+      {/* Column visibility toggle (when no selection) */}
+      {selectedIds.size === 0 && (
+        <div className="flex items-center justify-end border-b px-4 py-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                <Eye className="h-3.5 w-3.5" />
+                Columns
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {(
+                Object.keys(columnVisibility) as (keyof ColumnVisibility)[]
+              ).map((col) => (
+                <DropdownMenuCheckboxItem
+                  key={col}
+                  checked={columnVisibility[col]}
+                  onCheckedChange={(checked) =>
+                    setColumnVisibility((prev) => ({
+                      ...prev,
+                      [col]: checked,
+                    }))
+                  }
+                >
+                  {col.charAt(0).toUpperCase() + col.slice(1)}
+                </DropdownMenuCheckboxItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -387,7 +398,7 @@ export function TableView({
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <Table>
-          <TableHeader className="sticky top-0 bg-background z-10">
+          <TableHeader className="bg-background sticky top-0 z-10">
             <TableRow className="h-10">
               <TableHead className="w-10">
                 <Checkbox
@@ -405,14 +416,16 @@ export function TableView({
                 </TableHead>
               )}
               {columnVisibility.title && (
-                <SortHeader label="Title" sortKeyName="title" className="min-w-[200px]" />
+                <SortHeader
+                  label="Title"
+                  sortKeyName="title"
+                  className="min-w-[200px]"
+                />
               )}
               {columnVisibility.domain && (
                 <SortHeader label="Domain" sortKeyName="domain" />
               )}
-              {columnVisibility.tags && (
-                <TableHead>Tags</TableHead>
-              )}
+              {columnVisibility.tags && <TableHead>Tags</TableHead>}
               {columnVisibility.created && (
                 <SortHeader label="Created" sortKeyName="createdAt" />
               )}
@@ -437,14 +450,12 @@ export function TableView({
                   <ContextMenuTrigger asChild>
                     <TableRow
                       className={cn(
-                        "h-10 cursor-pointer transition-colors",
-                        isSelected && "bg-accent",
-                        index % 2 === 1 && !isSelected && "bg-muted/30",
+                        'h-10 cursor-pointer transition-colors',
+                        isSelected && 'bg-accent',
+                        index % 2 === 1 && !isSelected && 'bg-muted/30',
                       )}
                       onClick={() => onSelect?.(raindrop)}
-                      onDoubleClick={() =>
-                        onOpenUrl?.(raindrop.url)
-                      }
+                      onDoubleClick={() => onOpenUrl?.(raindrop.url)}
                     >
                       <TableCell className="w-10">
                         <Checkbox
@@ -464,18 +475,20 @@ export function TableView({
                         </TableCell>
                       )}
                       {columnVisibility.title && (
-                        <TableCell className="font-medium min-w-[200px]">
+                        <TableCell className="min-w-[200px] font-medium">
                           <div className="flex items-center gap-1.5">
                             <span className="truncate">{raindrop.title}</span>
                             {raindrop.isImportant && (
-                              <span className="text-amber-500 flex-shrink-0">★</span>
+                              <span className="flex-shrink-0 text-amber-500">
+                                ★
+                              </span>
                             )}
                           </div>
                         </TableCell>
                       )}
                       {columnVisibility.domain && (
                         <TableCell className="text-muted-foreground text-xs">
-                          {raindrop.domain || ""}
+                          {raindrop.domain || ''}
                         </TableCell>
                       )}
                       {columnVisibility.tags && (
@@ -485,13 +498,13 @@ export function TableView({
                               <Badge
                                 key={tag}
                                 variant="secondary"
-                                className="text-[10px] h-4 px-1.5"
+                                className="h-4 px-1.5 text-[10px]"
                               >
                                 {tag}
                               </Badge>
                             ))}
                             {raindrop.tags.length > 2 && (
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="text-muted-foreground text-[10px]">
                                 +{raindrop.tags.length - 2}
                               </span>
                             )}
@@ -499,17 +512,17 @@ export function TableView({
                         </TableCell>
                       )}
                       {columnVisibility.created && (
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {formatDate(raindrop.createdAt)}
                         </TableCell>
                       )}
                       {columnVisibility.updated && (
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                           {formatDate(raindrop.updatedAt)}
                         </TableCell>
                       )}
                       {columnVisibility.contentType && (
-                        <TableCell className="text-xs text-muted-foreground capitalize">
+                        <TableCell className="text-muted-foreground text-xs capitalize">
                           <div className="flex items-center gap-1">
                             <TypeIcon className="h-3 w-3" />
                             {raindrop.type}
@@ -531,9 +544,7 @@ export function TableView({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() =>
-                                onOpenUrl?.(raindrop.url)
-                              }
+                              onClick={() => onOpenUrl?.(raindrop.url)}
                             >
                               <ExternalLink className="mr-2 h-4 w-4" />
                               Open URL
@@ -560,7 +571,7 @@ export function TableView({
                               Add Tags...
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() =>
+                              onClick={async () =>
                                 navigator.clipboard.writeText(raindrop.url)
                               }
                             >
@@ -572,8 +583,8 @@ export function TableView({
                             >
                               <Star className="mr-2 h-4 w-4" />
                               {raindrop.isImportant
-                                ? "Remove Important"
-                                : "Mark as Important"}
+                                ? 'Remove Important'
+                                : 'Mark as Important'}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -589,11 +600,7 @@ export function TableView({
                     </TableRow>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <ContextMenuItem
-                      onClick={() =>
-                        onOpenUrl?.(raindrop.url)
-                      }
-                    >
+                    <ContextMenuItem onClick={() => onOpenUrl?.(raindrop.url)}>
                       <ExternalLink className="mr-2 h-4 w-4" />
                       Open URL
                     </ContextMenuItem>
@@ -609,7 +616,7 @@ export function TableView({
                       Move to Collection...
                     </ContextMenuItem>
                     <ContextMenuItem
-                      onClick={() =>
+                      onClick={async () =>
                         navigator.clipboard.writeText(raindrop.url)
                       }
                     >
@@ -621,8 +628,8 @@ export function TableView({
                     >
                       <Star className="mr-2 h-4 w-4" />
                       {raindrop.isImportant
-                        ? "Remove Important"
-                        : "Mark as Important"}
+                        ? 'Remove Important'
+                        : 'Mark as Important'}
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem
@@ -640,8 +647,8 @@ export function TableView({
         </Table>
 
         {paginatedRaindrops.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <Globe className="h-10 w-10 mb-3 opacity-40" />
+          <div className="text-muted-foreground flex flex-col items-center justify-center py-16">
+            <Globe className="mb-3 h-10 w-10 opacity-40" />
             <p className="text-sm">No bookmarks to display</p>
           </div>
         )}
@@ -650,9 +657,9 @@ export function TableView({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t px-4 py-2">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             Showing {page * pageSize + 1}-
-            {Math.min((page + 1) * pageSize, sortedRaindrops.length)} of{" "}
+            {Math.min((page + 1) * pageSize, sortedRaindrops.length)} of{' '}
             {sortedRaindrops.length}
           </span>
           <div className="flex items-center gap-1">
@@ -673,7 +680,7 @@ export function TableView({
               return (
                 <Button
                   key={pageNum}
-                  variant={page === pageNum ? "default" : "outline"}
+                  variant={page === pageNum ? 'default' : 'outline'}
                   size="sm"
                   className="h-7 w-7 p-0 text-xs"
                   onClick={() => setPage(pageNum)}

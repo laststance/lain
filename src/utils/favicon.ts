@@ -1,4 +1,4 @@
-import type { ContentType } from "@/lib/types"
+import type { ContentType } from '@/lib/types'
 
 /**
  * Extract domain from URL, stripping www prefix.
@@ -8,9 +8,9 @@ import type { ContentType } from "@/lib/types"
  */
 export function extractDomain(url: string): string {
   try {
-    return new URL(url).hostname.replace("www.", "")
+    return new URL(url).hostname.replace('www.', '')
   } catch {
-    return ""
+    return ''
   }
 }
 
@@ -19,7 +19,7 @@ export function extractDomain(url: string): string {
  * @example getFaviconUrl("react.dev", 32) // => "https://www.google.com/s2/favicons?domain=react.dev&sz=32"
  */
 export function getFaviconUrl(domain: string, size = 32): string {
-  if (!domain) return ""
+  if (!domain) return ''
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`
 }
 
@@ -28,7 +28,7 @@ export function getFaviconUrl(domain: string, size = 32): string {
  * @example getDomainColor("react.dev") // => "oklch(0.65 0.15 142)"
  */
 export function getDomainColor(domain: string): string {
-  if (!domain) return "oklch(0.7 0.15 250)"
+  if (!domain) return 'oklch(0.7 0.15 250)'
   let hash = 0
   for (let i = 0; i < domain.length; i++) {
     hash = domain.charCodeAt(i) + ((hash << 5) - hash)
@@ -41,8 +41,11 @@ export function getDomainColor(domain: string): string {
  * @example getDomainInitial("react.dev") // => "R"
  */
 export function getDomainInitial(domain: string): string {
-  if (!domain) return "?"
-  return domain.replace(/^(www\.|m\.)/i, "").charAt(0).toUpperCase()
+  if (!domain) return '?'
+  return domain
+    .replace(/^(www\.|m\.)/i, '')
+    .charAt(0)
+    .toUpperCase()
 }
 
 /**
@@ -51,14 +54,14 @@ export function getDomainInitial(domain: string): string {
  */
 export function getTypeIcon(type: ContentType): string {
   const map: Record<ContentType, string> = {
-    link: "Globe",
-    article: "FileText",
-    image: "Image",
-    video: "Video",
-    document: "FileIcon",
-    audio: "Music",
+    link: 'Globe',
+    article: 'FileText',
+    image: 'Image',
+    video: 'Video',
+    document: 'FileIcon',
+    audio: 'Music',
   }
-  return map[type] || "Globe"
+  return map[type] || 'Globe'
 }
 
 /**

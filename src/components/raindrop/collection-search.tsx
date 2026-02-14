@@ -1,9 +1,10 @@
-import { useState, useMemo, useRef, useEffect } from "react"
-import { Search, X, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import type { Group, Collection } from "@/lib/types"
+import { Search, X, ChevronRight } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import type { Group, Collection } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 /**
  * Flattened collection entry with its full parent path and group info.
@@ -37,7 +38,7 @@ function flattenCollections(groups: Group[]): FlatCollection[] {
   const walk = (
     collections: Collection[],
     groupName: string,
-    parentPath: string[]
+    parentPath: string[],
   ) => {
     for (const col of collections) {
       const currentPath = [...parentPath, col.name]
@@ -127,7 +128,7 @@ export function CollectionSearch({
   onSelect,
   onClose,
 }: CollectionSearchProps) {
-  const [query, setQuery] = useState("")
+  const [query, setQuery] = useState('')
   const [focusedIndex, setFocusedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -140,7 +141,7 @@ export function CollectionSearch({
     if (!query.trim()) return []
     const lower = query.toLowerCase()
     return allCollections.filter((col) =>
-      col.name.toLowerCase().includes(lower)
+      col.name.toLowerCase().includes(lower),
     )
   }, [allCollections, query])
 
@@ -155,23 +156,23 @@ export function CollectionSearch({
    */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     switch (e.key) {
-      case "ArrowDown":
+      case 'ArrowDown':
         e.preventDefault()
         setFocusedIndex((prev) =>
-          Math.min(prev + 1, filteredCollections.length - 1)
+          Math.min(prev + 1, filteredCollections.length - 1),
         )
         break
-      case "ArrowUp":
+      case 'ArrowUp':
         e.preventDefault()
         setFocusedIndex((prev) => Math.max(prev - 1, 0))
         break
-      case "Enter":
+      case 'Enter':
         e.preventDefault()
         if (filteredCollections[focusedIndex]) {
           onSelect(filteredCollections[focusedIndex].id)
         }
         break
-      case "Escape":
+      case 'Escape':
         e.preventDefault()
         onClose()
         break
@@ -182,7 +183,7 @@ export function CollectionSearch({
     <div className="space-y-1" onKeyDown={handleKeyDown}>
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+        <Search className="text-muted-foreground absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
         <Input
           ref={inputRef}
           placeholder="Find collection..."
@@ -191,23 +192,23 @@ export function CollectionSearch({
             setQuery(e.target.value)
             setFocusedIndex(0)
           }}
-          className="h-7 pl-7 pr-7 text-xs"
+          className="h-7 pr-7 pl-7 text-xs"
         />
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-accent"
+          className="hover:bg-accent absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5"
         >
-          <X className="h-3 w-3 text-muted-foreground" />
+          <X className="text-muted-foreground h-3 w-3" />
         </button>
       </div>
 
       {/* Results */}
       {query.trim() && (
-        <div className="rounded-md border bg-popover shadow-md">
+        <div className="bg-popover rounded-md border shadow-md">
           {filteredCollections.length === 0 ? (
             <div className="px-3 py-4 text-center">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 No collections matching "{query}"
               </p>
             </div>
@@ -219,41 +220,41 @@ export function CollectionSearch({
                     key={col.id}
                     type="button"
                     className={cn(
-                      "flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors",
+                      'flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
                       index === focusedIndex
-                        ? "bg-accent"
-                        : "hover:bg-accent/50"
+                        ? 'bg-accent'
+                        : 'hover:bg-accent/50',
                     )}
                     onClick={() => onSelect(col.id)}
                     onMouseEnter={() => setFocusedIndex(index)}
                   >
                     {/* Color dot */}
                     <div
-                      className="h-3 w-3 rounded-sm flex-shrink-0 mt-0.5"
-                      style={{ backgroundColor: col.color || "#8b5cf6" }}
+                      className="mt-0.5 h-3 w-3 flex-shrink-0 rounded-sm"
+                      style={{ backgroundColor: col.color || '#8b5cf6' }}
                     />
 
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       {/* Collection name with highlight */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium truncate">
+                        <span className="truncate text-xs font-medium">
                           {highlightMatch(col.name, query)}
                         </span>
-                        <span className="text-[10px] text-muted-foreground tabular-nums flex-shrink-0">
+                        <span className="text-muted-foreground flex-shrink-0 text-[10px] tabular-nums">
                           {col.count}
                         </span>
                       </div>
 
                       {/* Path breadcrumb */}
-                      <div className="flex items-center gap-0.5 mt-0.5">
-                        <span className="text-[10px] text-muted-foreground">
+                      <div className="mt-0.5 flex items-center gap-0.5">
+                        <span className="text-muted-foreground text-[10px]">
                           {col.groupName}
                         </span>
                         {col.path.length > 1 && (
                           <>
-                            <ChevronRight className="h-2 w-2 text-muted-foreground" />
-                            <span className="text-[10px] text-muted-foreground truncate">
-                              {col.path.slice(0, -1).join(" / ")}
+                            <ChevronRight className="text-muted-foreground h-2 w-2" />
+                            <span className="text-muted-foreground truncate text-[10px]">
+                              {col.path.slice(0, -1).join(' / ')}
                             </span>
                           </>
                         )}

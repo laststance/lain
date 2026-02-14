@@ -1,7 +1,7 @@
 export const DND_TYPES = {
-  RAINDROP: "raindrop",
-  COLLECTION: "collection",
-  GROUP: "group",
+  RAINDROP: 'raindrop',
+  COLLECTION: 'collection',
+  GROUP: 'group',
 } as const
 
 export const DND_DELAYS = {
@@ -18,5 +18,5 @@ export interface DragItem {
 export interface DropResult {
   targetId: string
   targetType: string
-  dropPosition?: "before" | "after" | "inside"
+  dropPosition?: 'before' | 'after' | 'inside'
 }

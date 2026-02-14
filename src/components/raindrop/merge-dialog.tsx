@@ -1,3 +1,6 @@
+import { AlertTriangle, ArrowRight, FolderInput } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -5,10 +8,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { AlertTriangle, ArrowRight, FolderInput } from "lucide-react"
-import type { Collection } from "@/lib/types"
+} from '@/components/ui/dialog'
+import type { Collection } from '@/lib/types'
 
 /**
  * Props for MergeDialog component.
@@ -65,7 +66,7 @@ export function MergeDialog({
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FolderInput className="h-5 w-5 text-primary" />
+            <FolderInput className="text-primary h-5 w-5" />
             Merge Collections
           </DialogTitle>
           <DialogDescription>
@@ -73,41 +74,41 @@ export function MergeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="space-y-4 py-4">
           {/* Visual merge representation */}
-          <div className="flex items-center gap-3 rounded-lg border p-4 bg-muted/30">
+          <div className="bg-muted/30 flex items-center gap-3 rounded-lg border p-4">
             <div className="flex-1 text-center">
               <div
-                className="mx-auto mb-2 h-8 w-8 rounded-md flex items-center justify-center text-white text-xs font-medium"
+                className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium text-white"
                 style={{
-                  backgroundColor: sourceCollection.color || "#8b5cf6",
+                  backgroundColor: sourceCollection.color || '#8b5cf6',
                 }}
               >
                 {sourceCollection.name.charAt(0).toUpperCase()}
               </div>
-              <p className="text-sm font-medium truncate">
+              <p className="truncate text-sm font-medium">
                 {sourceCollection.name}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {sourceCollection.count} bookmarks
               </p>
             </div>
 
-            <ArrowRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+            <ArrowRight className="text-muted-foreground h-5 w-5 flex-shrink-0" />
 
             <div className="flex-1 text-center">
               <div
-                className="mx-auto mb-2 h-8 w-8 rounded-md flex items-center justify-center text-white text-xs font-medium"
+                className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium text-white"
                 style={{
-                  backgroundColor: targetCollection.color || "#8b5cf6",
+                  backgroundColor: targetCollection.color || '#8b5cf6',
                 }}
               >
                 {targetCollection.name.charAt(0).toUpperCase()}
               </div>
-              <p className="text-sm font-medium truncate">
+              <p className="truncate text-sm font-medium">
                 {targetCollection.name}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {targetCollection.count} bookmarks
               </p>
             </div>
@@ -115,21 +116,21 @@ export function MergeDialog({
 
           {/* Warning notice */}
           <div className="flex gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600 dark:text-yellow-400" />
             <div className="space-y-1">
               <p className="text-sm font-medium">What will happen:</p>
-              <ul className="text-sm text-muted-foreground space-y-1">
+              <ul className="text-muted-foreground space-y-1 text-sm">
                 <li>
-                  &bull; {sourceCollection.count} bookmarks will be moved to{" "}
-                  <span className="font-medium text-foreground">
+                  &bull; {sourceCollection.count} bookmarks will be moved to{' '}
+                  <span className="text-foreground font-medium">
                     {targetCollection.name}
                   </span>
                 </li>
                 <li>
-                  &bull;{" "}
-                  <span className="font-medium text-foreground">
+                  &bull;{' '}
+                  <span className="text-foreground font-medium">
                     {sourceCollection.name}
-                  </span>{" "}
+                  </span>{' '}
                   collection will be deleted
                 </li>
                 <li>&bull; Duplicate bookmarks will be kept as-is</li>

@@ -1,11 +1,17 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
 
-type Theme = "light" | "dark" | "system"
+type Theme = 'light' | 'dark' | 'system'
 
 interface ThemeContextValue {
   theme: Theme
   setTheme: (theme: Theme) => void
-  resolvedTheme: "light" | "dark"
+  resolvedTheme: 'light' | 'dark'
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
@@ -22,41 +28,37 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
  */
 export function ThemeProvider({
   children,
-  defaultTheme = "system",
+  defaultTheme = 'system',
 }: {
   children: ReactNode
   defaultTheme?: Theme
 }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    const stored = localStorage.getItem("lain-theme")
+    const stored = localStorage.getItem('lain-theme')
     return (stored as Theme) || defaultTheme
   })
 
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light")
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
     const resolve = () => {
       const resolved =
-        theme === "system"
-          ? mediaQuery.matches
-            ? "dark"
-            : "light"
-          : theme
+        theme === 'system' ? (mediaQuery.matches ? 'dark' : 'light') : theme
       setResolvedTheme(resolved)
-      document.documentElement.classList.remove("light", "dark")
+      document.documentElement.classList.remove('light', 'dark')
       document.documentElement.classList.add(resolved)
     }
 
     resolve()
-    mediaQuery.addEventListener("change", resolve)
-    return () => mediaQuery.removeEventListener("change", resolve)
+    mediaQuery.addEventListener('change', resolve)
+    return () => mediaQuery.removeEventListener('change', resolve)
   }, [theme])
 
   const setTheme = (next: Theme) => {
     setThemeState(next)
-    localStorage.setItem("lain-theme", next)
+    localStorage.setItem('lain-theme', next)
   }
 
   return (
@@ -76,6 +78,6 @@ export function ThemeProvider({
  */
 export function useTheme(): ThemeContextValue {
   const ctx = useContext(ThemeContext)
-  if (!ctx) throw new Error("useTheme must be used within <ThemeProvider>")
+  if (!ctx) throw new Error('useTheme must be used within <ThemeProvider>')
   return ctx
 }

@@ -11,7 +11,7 @@
  */
 export function DropIndicator(_props: {
   /** Position relative to the sibling element */
-  position?: "before" | "after" | "inside"
+  position?: 'before' | 'after' | 'inside'
   /** Whether the indicator is currently active (item hovering over) */
   isActive?: boolean
 }) {

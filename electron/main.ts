@@ -6,7 +6,6 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import type { AuthState } from '../src/lib/types.ts'
 
 import { RaindropAuth } from './raindrop-auth.ts'
-import { registerTestAuthIPC } from './test-auth.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -45,40 +44,42 @@ function createWindow(): void {
 /**
  * Register IPC handlers for auth operations.
  * All handlers validate the sender before processing.
+ *
+ * @param auth - Initialized RaindropAuth instance
  */
-function registerAuthIPC(): void {
+function registerAuthIPC(auth: RaindropAuth): void {
   ipcMain.handle('auth:login', async (event) => {
     validateSender(event)
-    await auth!.login()
-    const user = await auth!.getUser()
+    await auth.login()
+    const user = await auth.getUser()
     const state: AuthState = { isAuthenticated: true, user }
     mainWindow?.webContents.send('auth:state-changed', state)
   })
 
   ipcMain.handle('auth:logout', async (event) => {
     validateSender(event)
-    await auth!.logout()
+    await auth.logout()
     const state: AuthState = { isAuthenticated: false, user: null }
     mainWindow?.webContents.send('auth:state-changed', state)
   })
 
   ipcMain.handle('auth:get-user', async (event) => {
     validateSender(event)
-    return auth!.getUser()
+    return auth.getUser()
   })
 
   ipcMain.handle('auth:get-state', async (event) => {
     validateSender(event)
-    if (!auth!.isAuthenticated()) {
+    if (!auth.isAuthenticated()) {
       return { isAuthenticated: false, user: null } satisfies AuthState
     }
-    const user = await auth!.getUser()
+    const user = await auth.getUser()
     return { isAuthenticated: !!user, user } satisfies AuthState
   })
 
   ipcMain.handle('auth:get-token', async (event) => {
     validateSender(event)
-    return auth!.getValidToken()
+    return auth.getValidToken()
   })
 }
 
@@ -112,13 +113,15 @@ function registerShellIPC(): void {
 // Enable remote debugging for Electron MCP integration
 app.commandLine.appendSwitch('remote-debugging-port', '9222')
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   registerShellIPC()
 
   if (isTestMode) {
+    const { registerTestAuthIPC } = await import('./test-auth.ts')
     registerTestAuthIPC(() => mainWindow)
   } else {
-    registerAuthIPC()
+    if (!auth) throw new Error('auth must be initialized in non-test mode')
+    registerAuthIPC(auth)
   }
 
   createWindow()

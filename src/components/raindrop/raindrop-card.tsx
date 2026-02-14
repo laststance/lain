@@ -8,7 +8,7 @@ import {
   Copy,
   Trash2,
 } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 
 import { FaviconIcon } from '@/components/raindrop/favicon-icon'
 import { Badge } from '@/components/ui/badge'
@@ -101,7 +101,7 @@ interface RaindropCardProps {
  *     onDoubleClick={() => openExternal(bookmark.url)}
  *   />
  */
-export function RaindropCard({
+const RaindropCard = React.memo(function RaindropCard({
   raindrop,
   isSelected,
   onClick,
@@ -109,6 +109,44 @@ export function RaindropCard({
 }: RaindropCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isChecked, setIsChecked] = useState(false)
+
+  const handleMouseEnter = useCallback(() => setIsHovered(true), [])
+  const handleMouseLeave = useCallback(() => setIsHovered(false), [])
+
+  const handleCheckedChange = useCallback(
+    (checked: boolean | 'indeterminate') => setIsChecked(!!checked),
+    [],
+  )
+  const handleCheckboxClick = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+  const handleMoreClick = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+  const handleOpenUrl = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      window.shell.openExternal(raindrop.url)
+    },
+    [raindrop.url],
+  )
+  const handleStopPropagation = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+  const handleCopyUrl = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      navigator.clipboard.writeText(raindrop.url)
+    },
+    [raindrop.url],
+  )
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
 
   const domainColor = getDomainColor(raindrop.domain || '')
   const visibleTags = raindrop.tags.slice(0, 2)
@@ -121,8 +159,8 @@ export function RaindropCard({
         'hover:scale-[1.01] hover:shadow-md',
         isSelected && 'ring-primary shadow-md ring-2',
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
     >
@@ -177,8 +215,8 @@ export function RaindropCard({
           >
             <Checkbox
               checked={isSelected || isChecked}
-              onCheckedChange={(checked) => setIsChecked(!!checked)}
-              onClick={(e) => e.stopPropagation()}
+              onCheckedChange={handleCheckedChange}
+              onClick={handleCheckboxClick}
               className="bg-background/80 backdrop-blur-sm"
             />
           </div>
@@ -193,43 +231,33 @@ export function RaindropCard({
                   variant="secondary"
                   size="icon"
                   className="bg-background/80 h-6 w-6 backdrop-blur-sm"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleMoreClick}
                 >
                   <MoreHorizontal className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    window.shell.openExternal(raindrop.url)
-                  }}
-                >
+                <DropdownMenuItem onClick={handleOpenUrl}>
                   <ExternalLink className="mr-2 h-4 w-4" />
                   Open URL
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={handleStopPropagation}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={handleStopPropagation}>
                   <FolderInput className="mr-2 h-4 w-4" />
                   Move to Collection...
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={handleStopPropagation}>
                   <Tag className="mr-2 h-4 w-4" />
                   Add Tags...
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    navigator.clipboard.writeText(raindrop.url)
-                  }}
-                >
+                <DropdownMenuItem onClick={handleCopyUrl}>
                   <Copy className="mr-2 h-4 w-4" />
                   Copy URL
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={handleStopPropagation}>
                   <Star className="mr-2 h-4 w-4" />
                   {raindrop.isImportant
                     ? 'Remove Important'
@@ -238,7 +266,7 @@ export function RaindropCard({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={handleDeleteClick}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Move to Trash
@@ -287,4 +315,6 @@ export function RaindropCard({
       </CardContent>
     </Card>
   )
-}
+})
+export { RaindropCard }
+export default RaindropCard

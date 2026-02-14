@@ -20,7 +20,7 @@ export default defineConfig([
     files: ['**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     plugins: {
-      '@laststance/react-next-eslint-plugin': laststanceReact,
+      '@laststance/react-next': laststanceReact,
     },
     rules: {
       '@laststance/react-next/no-jsx-without-return': 'error',

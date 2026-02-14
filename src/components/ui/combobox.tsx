@@ -2,7 +2,7 @@
 
 import { Combobox as ComboboxPrimitive } from '@base-ui/react'
 import { Check, ChevronDown, X } from 'lucide-react'
-import * as React from 'react'
+import React from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -15,11 +15,13 @@ import { cn } from '@/lib/utils'
 
 const Combobox = ComboboxPrimitive.Root
 
-function ComboboxValue({ ...props }: ComboboxPrimitive.Value.Props) {
+const ComboboxValue = React.memo(function ComboboxValue({
+  ...props
+}: ComboboxPrimitive.Value.Props) {
   return <ComboboxPrimitive.Value data-slot="combobox-value" {...props} />
-}
+})
 
-function ComboboxTrigger({
+const ComboboxTrigger = React.memo(function ComboboxTrigger({
   className,
   children,
   ...props
@@ -34,9 +36,12 @@ function ComboboxTrigger({
       <ChevronDown className="text-muted-foreground pointer-events-none size-4" />
     </ComboboxPrimitive.Trigger>
   )
-}
+})
 
-function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
+const ComboboxClear = React.memo(function ComboboxClear({
+  className,
+  ...props
+}: ComboboxPrimitive.Clear.Props) {
   return (
     <ComboboxPrimitive.Clear
       data-slot="combobox-clear"
@@ -47,9 +52,9 @@ function ComboboxClear({ className, ...props }: ComboboxPrimitive.Clear.Props) {
       <X className="pointer-events-none" />
     </ComboboxPrimitive.Clear>
   )
-}
+})
 
-function ComboboxInput({
+const ComboboxInput = React.memo(function ComboboxInput({
   className,
   children,
   disabled = false,
@@ -84,9 +89,9 @@ function ComboboxInput({
       {children}
     </InputGroup>
   )
-}
+})
 
-function ComboboxContent({
+const ComboboxContent = React.memo(function ComboboxContent({
   className,
   side = 'bottom',
   sideOffset = 6,
@@ -121,9 +126,12 @@ function ComboboxContent({
       </ComboboxPrimitive.Positioner>
     </ComboboxPrimitive.Portal>
   )
-}
+})
 
-function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
+const ComboboxList = React.memo(function ComboboxList({
+  className,
+  ...props
+}: ComboboxPrimitive.List.Props) {
   return (
     <ComboboxPrimitive.List
       data-slot="combobox-list"
@@ -134,9 +142,9 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
       {...props}
     />
   )
-}
+})
 
-function ComboboxItem({
+const ComboboxItem = React.memo(function ComboboxItem({
   className,
   children,
   ...props
@@ -160,9 +168,12 @@ function ComboboxItem({
       </ComboboxPrimitive.ItemIndicator>
     </ComboboxPrimitive.Item>
   )
-}
+})
 
-function ComboboxGroup({ className, ...props }: ComboboxPrimitive.Group.Props) {
+const ComboboxGroup = React.memo(function ComboboxGroup({
+  className,
+  ...props
+}: ComboboxPrimitive.Group.Props) {
   return (
     <ComboboxPrimitive.Group
       data-slot="combobox-group"
@@ -170,9 +181,9 @@ function ComboboxGroup({ className, ...props }: ComboboxPrimitive.Group.Props) {
       {...props}
     />
   )
-}
+})
 
-function ComboboxLabel({
+const ComboboxLabel = React.memo(function ComboboxLabel({
   className,
   ...props
 }: ComboboxPrimitive.GroupLabel.Props) {
@@ -183,15 +194,20 @@ function ComboboxLabel({
       {...props}
     />
   )
-}
+})
 
-function ComboboxCollection({ ...props }: ComboboxPrimitive.Collection.Props) {
+const ComboboxCollection = React.memo(function ComboboxCollection({
+  ...props
+}: ComboboxPrimitive.Collection.Props) {
   return (
     <ComboboxPrimitive.Collection data-slot="combobox-collection" {...props} />
   )
-}
+})
 
-function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
+const ComboboxEmpty = React.memo(function ComboboxEmpty({
+  className,
+  ...props
+}: ComboboxPrimitive.Empty.Props) {
   return (
     <ComboboxPrimitive.Empty
       data-slot="combobox-empty"
@@ -202,9 +218,9 @@ function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
       {...props}
     />
   )
-}
+})
 
-function ComboboxSeparator({
+const ComboboxSeparator = React.memo(function ComboboxSeparator({
   className,
   ...props
 }: ComboboxPrimitive.Separator.Props) {
@@ -215,9 +231,9 @@ function ComboboxSeparator({
       {...props}
     />
   )
-}
+})
 
-function ComboboxChips({
+const ComboboxChips = React.memo(function ComboboxChips({
   className,
   ...props
 }: React.ComponentPropsWithRef<typeof ComboboxPrimitive.Chips> &
@@ -232,9 +248,9 @@ function ComboboxChips({
       {...props}
     />
   )
-}
+})
 
-function ComboboxChip({
+const ComboboxChip = React.memo(function ComboboxChip({
   className,
   children,
   showRemove = true,
@@ -263,9 +279,9 @@ function ComboboxChip({
       )}
     </ComboboxPrimitive.Chip>
   )
-}
+})
 
-function ComboboxChipsInput({
+const ComboboxChipsInput = React.memo(function ComboboxChipsInput({
   className,
   ...props
 }: ComboboxPrimitive.Input.Props) {
@@ -276,12 +292,13 @@ function ComboboxChipsInput({
       {...props}
     />
   )
-}
+})
 
 function useComboboxAnchor() {
   return React.useRef<HTMLDivElement | null>(null)
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export {
   Combobox,
   ComboboxInput,
@@ -300,3 +317,4 @@ export {
   ComboboxValue,
   useComboboxAnchor,
 }
+/* eslint-enable react-refresh/only-export-components */

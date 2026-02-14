@@ -11,7 +11,7 @@ import {
   FolderPlus,
   Layers,
 } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 
 import { CollectionSearch } from '@/components/raindrop/collection-search'
 import { ThemeToggle } from '@/components/raindrop/theme-toggle'
@@ -51,19 +51,258 @@ import {
 import type { SystemCollection, Group, Collection } from '@/lib/types'
 
 /**
- * Map system collection icon name to lucide component.
- * @param iconName - Icon identifier from SystemCollection.icon
- * @returns Corresponding lucide icon component
- * @example getSystemIcon("Inbox") // => Inbox component
+ * Static map of system collection icon names to lucide components.
+ * Defined at module level to avoid creating components during render.
  */
-function getSystemIcon(iconName: string) {
-  const map: Record<string, typeof Inbox> = {
-    Inbox,
-    FileQuestion,
-    Trash2,
-  }
-  return map[iconName] || Inbox
+const SYSTEM_ICON_MAP: Record<string, typeof Inbox> = {
+  Inbox,
+  FileQuestion,
+  Trash2,
 }
+
+/**
+ * Render the appropriate system collection icon.
+ * @param iconName - Icon identifier from SystemCollection.icon
+ * @param className - CSS class for the icon
+ * @returns JSX element for the icon
+ * @example <SystemIcon iconName="Inbox" className="h-4 w-4" />
+ */
+const SystemIcon = React.memo(function SystemIcon({
+  iconName,
+  className,
+}: {
+  iconName: string
+  className?: string
+}) {
+  const Icon = SYSTEM_ICON_MAP[iconName] || Inbox
+  return <Icon className={className} />
+})
+
+/**
+ * A single collection row in the sidebar.
+ * Extracted to allow useCallback for click handlers inside recursive rendering.
+ */
+const CollectionItem = React.memo(function CollectionItem({
+  collection,
+  depth,
+  selectedCollectionId,
+  expandedCollections,
+  onSelectCollection,
+  onToggleCollection,
+  sidebarMenuButtonStyles,
+}: {
+  collection: Collection
+  depth: number
+  selectedCollectionId: string
+  expandedCollections: Set<string>
+  onSelectCollection: (id: string) => void
+  onToggleCollection: (id: string) => void
+  sidebarMenuButtonStyles: Record<number, React.CSSProperties>
+}) {
+  const isSelected = selectedCollectionId === collection.id
+  const hasChildren = collection.children && collection.children.length > 0
+  const isExpanded = expandedCollections.has(collection.id)
+
+  const handleClick = useCallback(
+    () => onSelectCollection(collection.id),
+    [onSelectCollection, collection.id],
+  )
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggleCollection(collection.id)
+  }
+
+  return (
+    <div>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={isSelected}
+          onClick={handleClick}
+          className="group/collection h-8 w-full"
+          style={
+            sidebarMenuButtonStyles[depth] || {
+              paddingLeft: `${12 + depth * 16}px`,
+            }
+          }
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={handleToggle}
+                className="hover:bg-accent/50 flex-shrink-0 rounded p-0.5"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="text-muted-foreground h-3 w-3" />
+                ) : (
+                  <ChevronRight className="text-muted-foreground h-3 w-3" />
+                )}
+              </button>
+            ) : (
+              <span className="w-4" />
+            )}
+
+            <div
+              className="h-3 w-3 flex-shrink-0 rounded-sm"
+              style={{ backgroundColor: collection.color || '#8b5cf6' }}
+            />
+
+            <span className="truncate text-sm">{collection.name}</span>
+          </div>
+
+          <span className="text-muted-foreground flex-shrink-0 text-xs tabular-nums opacity-0 transition-opacity group-hover/collection:opacity-100">
+            {collection.count}
+          </span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      {hasChildren && isExpanded && (
+        <div>
+          {collection.children!.map((child) => (
+            <CollectionItem
+              key={child.id}
+              collection={child}
+              depth={depth + 1}
+              selectedCollectionId={selectedCollectionId}
+              expandedCollections={expandedCollections}
+              onSelectCollection={onSelectCollection}
+              onToggleCollection={onToggleCollection}
+              sidebarMenuButtonStyles={sidebarMenuButtonStyles}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+})
+
+/**
+ * A single group section in the sidebar with its collections.
+ * Extracted to allow useCallback for the Collapsible onOpenChange.
+ */
+const GroupSection = React.memo(function GroupSection({
+  group,
+  isExpanded,
+  selectedCollectionId,
+  expandedCollections,
+  onToggleGroup,
+  onSelectCollection,
+  onToggleCollection,
+  onAddCollection,
+  sidebarMenuButtonStyles,
+}: {
+  group: Group
+  isExpanded: boolean
+  selectedCollectionId: string
+  expandedCollections: Set<string>
+  onToggleGroup: (id: string) => void
+  onSelectCollection: (id: string) => void
+  onToggleCollection: (id: string) => void
+  onAddCollection: () => void
+  sidebarMenuButtonStyles: Record<number, React.CSSProperties>
+}) {
+  const handleOpenChange = useCallback(
+    () => onToggleGroup(group.id),
+    [onToggleGroup, group.id],
+  )
+
+  return (
+    <Collapsible open={isExpanded} onOpenChange={handleOpenChange}>
+      <SidebarGroup>
+        <div className="group/groupheader flex items-center">
+          <CollapsibleTrigger asChild>
+            <SidebarGroupLabel className="text-muted-foreground hover:text-foreground flex-1 cursor-pointer px-3 text-xs font-medium tracking-wider uppercase transition-colors">
+              <span className="flex items-center gap-1">
+                {isExpanded ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+                {group.name}
+              </span>
+            </SidebarGroupLabel>
+          </CollapsibleTrigger>
+
+          <div className="flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/groupheader:opacity-100 group-data-[collapsible=icon]:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-5 w-5">
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={onAddCollection}>
+                  <FolderPlus className="mr-2 h-4 w-4" />
+                  Add Collection
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Group
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {group.collections.map((collection) => (
+                <CollectionItem
+                  key={collection.id}
+                  collection={collection}
+                  depth={0}
+                  selectedCollectionId={selectedCollectionId}
+                  expandedCollections={expandedCollections}
+                  onSelectCollection={onSelectCollection}
+                  onToggleCollection={onToggleCollection}
+                  sidebarMenuButtonStyles={sidebarMenuButtonStyles}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  )
+})
+
+/**
+ * A system collection row in the sidebar.
+ * Extracted to allow useCallback for click handler.
+ */
+const SystemCollectionItem = React.memo(function SystemCollectionItem({
+  sc,
+  isSelected,
+  onSelectCollection,
+}: {
+  sc: SystemCollection
+  isSelected: boolean
+  onSelectCollection: (id: string) => void
+}) {
+  const handleClick = useCallback(
+    () => onSelectCollection(sc.id),
+    [onSelectCollection, sc.id],
+  )
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={isSelected}
+        onClick={handleClick}
+        className="h-8"
+        tooltip={sc.name}
+      >
+        <SystemIcon iconName={sc.icon} className="h-4 w-4" />
+        <span className="flex-1 truncate">{sc.name}</span>
+        <span className="text-muted-foreground text-xs tabular-nums">
+          {sc.count}
+        </span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+})
 
 /**
  * Props for the LeftSidebar component.
@@ -113,7 +352,7 @@ interface LeftSidebarProps {
  *     onManageTags={() => setIsTagManagementOpen(true)}
  *   />
  */
-export function LeftSidebar({
+const LeftSidebar = React.memo(function LeftSidebar({
   systemCollections,
   groups,
   selectedCollectionId,
@@ -131,11 +370,21 @@ export function LeftSidebar({
   )
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
+  const handleOpenSearch = useCallback(() => setIsSearchOpen(true), [])
+  const handleCloseSearch = useCallback(() => setIsSearchOpen(false), [])
+  const handleSearchSelect = useCallback(
+    (collectionId: string) => {
+      onSelectCollection(collectionId)
+      setIsSearchOpen(false)
+    },
+    [onSelectCollection],
+  )
+
   /**
    * Toggle a group's expanded/collapsed state.
    * @param groupId - The group ID to toggle
    */
-  const toggleGroup = (groupId: string) => {
+  const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) => {
       const next = new Set(prev)
       if (next.has(groupId)) {
@@ -145,13 +394,13 @@ export function LeftSidebar({
       }
       return next
     })
-  }
+  }, [])
 
   /**
    * Toggle a collection's expanded/collapsed state (for nested children).
    * @param collectionId - The collection ID to toggle
    */
-  const toggleCollection = (collectionId: string) => {
+  const toggleCollection = useCallback((collectionId: string) => {
     setExpandedCollections((prev) => {
       const next = new Set(prev)
       if (next.has(collectionId)) {
@@ -161,72 +410,18 @@ export function LeftSidebar({
       }
       return next
     })
-  }
+  }, [])
 
   /**
-   * Render a single collection item with optional nested children.
-   * @param collection - The collection to render
-   * @param depth - Current nesting depth for indentation
-   * @returns JSX element for the collection item
+   * Pre-computed indentation styles for collection tree depths.
    */
-  const renderCollection = (collection: Collection, depth: number = 0) => {
-    const isSelected = selectedCollectionId === collection.id
-    const hasChildren = collection.children && collection.children.length > 0
-    const isExpanded = expandedCollections.has(collection.id)
-
-    return (
-      <div key={collection.id}>
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            isActive={isSelected}
-            onClick={() => onSelectCollection(collection.id)}
-            className="group/collection h-8 w-full"
-            style={{ paddingLeft: `${12 + depth * 16}px` }}
-          >
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              {hasChildren ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    toggleCollection(collection.id)
-                  }}
-                  className="hover:bg-accent/50 flex-shrink-0 rounded p-0.5"
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="text-muted-foreground h-3 w-3" />
-                  ) : (
-                    <ChevronRight className="text-muted-foreground h-3 w-3" />
-                  )}
-                </button>
-              ) : (
-                <span className="w-4" />
-              )}
-
-              <div
-                className="h-3 w-3 flex-shrink-0 rounded-sm"
-                style={{ backgroundColor: collection.color || '#8b5cf6' }}
-              />
-
-              <span className="truncate text-sm">{collection.name}</span>
-            </div>
-
-            <span className="text-muted-foreground flex-shrink-0 text-xs tabular-nums opacity-0 transition-opacity group-hover/collection:opacity-100">
-              {collection.count}
-            </span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        {hasChildren && isExpanded && (
-          <div>
-            {collection.children!.map((child) =>
-              renderCollection(child, depth + 1),
-            )}
-          </div>
-        )}
-      </div>
-    )
-  }
+  const sidebarMenuButtonStyles = useMemo(() => {
+    const styles: Record<number, React.CSSProperties> = {}
+    for (let d = 0; d <= 5; d++) {
+      styles[d] = { paddingLeft: `${12 + d * 16}px` }
+    }
+    return styles
+  }, [])
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -267,7 +462,7 @@ export function LeftSidebar({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 flex-shrink-0"
-                  onClick={() => setIsSearchOpen(true)}
+                  onClick={handleOpenSearch}
                 >
                   <Search className="h-3.5 w-3.5" />
                 </Button>
@@ -282,13 +477,8 @@ export function LeftSidebar({
           <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
             <CollectionSearch
               groups={groups}
-              onSelect={(collectionId) => {
-                onSelectCollection(collectionId)
-                setIsSearchOpen(false)
-              }}
-              onClose={() => {
-                setIsSearchOpen(false)
-              }}
+              onSelect={handleSearchSelect}
+              onClose={handleCloseSearch}
             />
           </div>
         )}
@@ -301,27 +491,14 @@ export function LeftSidebar({
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {systemCollections.map((sc) => {
-                  const Icon = getSystemIcon(sc.icon)
-                  const isSelected = selectedCollectionId === sc.id
-
-                  return (
-                    <SidebarMenuItem key={sc.id}>
-                      <SidebarMenuButton
-                        isActive={isSelected}
-                        onClick={() => onSelectCollection(sc.id)}
-                        className="h-8"
-                        tooltip={sc.name}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span className="flex-1 truncate">{sc.name}</span>
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          {sc.count}
-                        </span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
+                {systemCollections.map((sc) => (
+                  <SystemCollectionItem
+                    key={sc.id}
+                    sc={sc}
+                    isSelected={selectedCollectionId === sc.id}
+                    onSelectCollection={onSelectCollection}
+                  />
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -329,69 +506,20 @@ export function LeftSidebar({
           <Separator className="mx-3 my-1" />
 
           {/* Groups with Collections */}
-          {groups.map((group) => {
-            const isExpanded = expandedGroups.has(group.id)
-
-            return (
-              <Collapsible
-                key={group.id}
-                open={isExpanded}
-                onOpenChange={() => toggleGroup(group.id)}
-              >
-                <SidebarGroup>
-                  <div className="group/groupheader flex items-center">
-                    <CollapsibleTrigger asChild>
-                      <SidebarGroupLabel className="text-muted-foreground hover:text-foreground flex-1 cursor-pointer px-3 text-xs font-medium tracking-wider uppercase transition-colors">
-                        <span className="flex items-center gap-1">
-                          {isExpanded ? (
-                            <ChevronDown className="h-3 w-3" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3" />
-                          )}
-                          {group.name}
-                        </span>
-                      </SidebarGroupLabel>
-                    </CollapsibleTrigger>
-
-                    <div className="flex items-center gap-0.5 pr-2 opacity-0 transition-opacity group-hover/groupheader:opacity-100 group-data-[collapsible=icon]:hidden">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                          >
-                            <MoreHorizontal className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={onAddCollection}>
-                            <FolderPlus className="mr-2 h-4 w-4" />
-                            Add Collection
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Group
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {group.collections.map((collection) =>
-                          renderCollection(collection),
-                        )}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </SidebarGroup>
-              </Collapsible>
-            )
-          })}
+          {groups.map((group) => (
+            <GroupSection
+              key={group.id}
+              group={group}
+              isExpanded={expandedGroups.has(group.id)}
+              selectedCollectionId={selectedCollectionId}
+              expandedCollections={expandedCollections}
+              onToggleGroup={toggleGroup}
+              onSelectCollection={onSelectCollection}
+              onToggleCollection={toggleCollection}
+              onAddCollection={onAddCollection}
+              sidebarMenuButtonStyles={sidebarMenuButtonStyles}
+            />
+          ))}
         </ScrollArea>
       </SidebarContent>
 
@@ -432,4 +560,6 @@ export function LeftSidebar({
       </SidebarFooter>
     </Sidebar>
   )
-}
+})
+export { LeftSidebar }
+export default LeftSidebar

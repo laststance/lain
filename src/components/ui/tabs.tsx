@@ -1,10 +1,10 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import { Tabs as TabsPrimitive } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Tabs({
+const Tabs = React.memo(function Tabs({
   className,
   orientation = 'horizontal',
   ...props
@@ -20,7 +20,7 @@ function Tabs({
       {...props}
     />
   )
-}
+})
 
 const tabsListVariants = cva(
   'rounded-lg p-[3px] group-data-horizontal/tabs:h-8 data-[variant=line]:rounded-none group/tabs-list text-muted-foreground inline-flex w-fit items-center justify-center group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col',
@@ -37,7 +37,7 @@ const tabsListVariants = cva(
   },
 )
 
-function TabsList({
+const TabsList = React.memo(function TabsList({
   className,
   variant = 'default',
   ...props
@@ -51,9 +51,9 @@ function TabsList({
       {...props}
     />
   )
-}
+})
 
-function TabsTrigger({
+const TabsTrigger = React.memo(function TabsTrigger({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
@@ -70,9 +70,9 @@ function TabsTrigger({
       {...props}
     />
   )
-}
+})
 
-function TabsContent({
+const TabsContent = React.memo(function TabsContent({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
@@ -83,6 +83,7 @@ function TabsContent({
       {...props}
     />
   )
-}
+})
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Tabs, TabsList, TabsTrigger, TabsContent, tabsListVariants }

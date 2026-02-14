@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 
 import { AddBookmarkDialog } from '@/components/raindrop/add-bookmark-dialog'
 import { CollectionDialog } from '@/components/raindrop/collection-dialog'
@@ -14,6 +14,24 @@ import { systemCollections, groups, mockRaindrops } from '@/data/mock-data'
 import type { Raindrop, Group, Collection } from '@/lib/types'
 
 /**
+ * Custom hook for the global search shortcut (Cmd+K / Ctrl+K).
+ *
+ * @param onOpen - Callback fired when the shortcut is triggered
+ */
+function useGlobalSearchShortcut(onOpen: () => void) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        onOpen()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onOpen])
+}
+
+/**
  * Main authenticated app view — 3-panel layout with sidebar, content, and detail.
  * Replaces the old UserProfile component after successful OAuth login.
  *
@@ -21,7 +39,7 @@ import type { Raindrop, Group, Collection } from '@/lib/types'
  *   // Used in App.tsx after auth check
  *   if (isAuthenticated) return <MainApp />
  */
-export function MainApp() {
+export const MainApp = React.memo(function MainApp() {
   const [selectedCollectionId, setSelectedCollectionId] =
     useState<string>('all')
   const [selectedRaindrop, setSelectedRaindrop] = useState<
@@ -88,57 +106,78 @@ export function MainApp() {
     return ['Unknown']
   }
 
-  const handleSelectRaindrop = (raindrop: Raindrop) => {
+  const handleSelectRaindrop = useCallback((raindrop: Raindrop) => {
     setSelectedRaindrop(raindrop)
     setIsDetailPanelOpen(true)
-  }
+  }, [])
 
   // CRUD handlers (mock — will connect to Raindrop.io API later)
-  const handleSaveBookmark = (bookmark: unknown) => {
+  const handleSaveBookmark = useCallback((bookmark: unknown) => {
     console.log('Save bookmark:', bookmark)
-  }
+  }, [])
 
-  const handleSaveRaindrop = (raindrop: Raindrop) => {
+  const handleSaveRaindrop = useCallback((raindrop: Raindrop) => {
     console.log('Update raindrop:', raindrop)
-  }
+  }, [])
 
-  const handleDeleteRaindrop = (raindropId: string) => {
+  const handleDeleteRaindrop = useCallback((raindropId: string) => {
     console.log('Delete raindrop:', raindropId)
-  }
+  }, [])
 
-  const handleSaveCollection = (collection: unknown) => {
+  const handleSaveCollection = useCallback((collection: unknown) => {
     console.log('Save collection:', collection)
     setEditingCollection(undefined)
-  }
+  }, [])
 
-  const handleSaveGroup = (group: unknown) => {
+  const handleSaveGroup = useCallback((group: unknown) => {
     console.log('Save group:', group)
     setEditingGroup(undefined)
-  }
-
-  const handleRenameTag = (oldName: string, newName: string) => {
-    console.log('Rename tag:', oldName, 'to', newName)
-  }
-
-  const handleDeleteTag = (tagName: string) => {
-    console.log('Delete tag:', tagName)
-  }
-
-  const handleMergeTags = (sourceTags: string[], targetTag: string) => {
-    console.log('Merge tags:', sourceTags, 'into', targetTag)
-  }
-
-  // Global search shortcut (⌘K)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        setIsSearchOpen(true)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  const handleRenameTag = useCallback((oldName: string, newName: string) => {
+    console.log('Rename tag:', oldName, 'to', newName)
+  }, [])
+
+  const handleDeleteTag = useCallback((tagName: string) => {
+    console.log('Delete tag:', tagName)
+  }, [])
+
+  const handleMergeTags = useCallback(
+    (sourceTags: string[], targetTag: string) => {
+      console.log('Merge tags:', sourceTags, 'into', targetTag)
+    },
+    [],
+  )
+
+  // Inline callback extractions
+  const handleAddBookmark = useCallback(() => {
+    setIsAddBookmarkOpen(true)
+  }, [])
+
+  const handleAddCollection = useCallback(() => {
+    setEditingCollection(undefined)
+    setIsCollectionDialogOpen(true)
+  }, [])
+
+  const handleAddGroup = useCallback(() => {
+    setEditingGroup(undefined)
+    setIsGroupDialogOpen(true)
+  }, [])
+
+  const handleManageTags = useCallback(() => {
+    setIsTagManagementOpen(true)
+  }, [])
+
+  const handleCloseDetailPanel = useCallback(() => {
+    setIsDetailPanelOpen(false)
+  }, [])
+
+  const handleOpenSearch = useCallback(() => {
+    setIsSearchOpen(true)
+  }, [])
+
+  // Global search shortcut (Cmd+K)
+  useGlobalSearchShortcut(handleOpenSearch)
 
   return (
     <SidebarProvider defaultOpen>
@@ -148,16 +187,10 @@ export function MainApp() {
           groups={groups}
           selectedCollectionId={selectedCollectionId}
           onSelectCollection={setSelectedCollectionId}
-          onAddBookmark={() => setIsAddBookmarkOpen(true)}
-          onAddCollection={() => {
-            setEditingCollection(undefined)
-            setIsCollectionDialogOpen(true)
-          }}
-          onAddGroup={() => {
-            setEditingGroup(undefined)
-            setIsGroupDialogOpen(true)
-          }}
-          onManageTags={() => setIsTagManagementOpen(true)}
+          onAddBookmark={handleAddBookmark}
+          onAddCollection={handleAddCollection}
+          onAddGroup={handleAddGroup}
+          onManageTags={handleManageTags}
         />
 
         <SidebarInset className="flex-1">
@@ -170,14 +203,14 @@ export function MainApp() {
             onSelectedRaindropIdsChange={setSelectedRaindropIds}
             groups={groups}
             collections={groups.flatMap((g) => g.collections)}
-            onAddBookmark={() => setIsAddBookmarkOpen(true)}
+            onAddBookmark={handleAddBookmark}
           />
         </SidebarInset>
 
         <RightDetailPanel
           raindrop={selectedRaindrop}
           isOpen={isDetailPanelOpen}
-          onClose={() => setIsDetailPanelOpen(false)}
+          onClose={handleCloseDetailPanel}
           groups={groups}
           existingTags={allTags.map((t) => t.name)}
           onSave={handleSaveRaindrop}
@@ -233,4 +266,4 @@ export function MainApp() {
       <Toaster />
     </SidebarProvider>
   )
-}
+})

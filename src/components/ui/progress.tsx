@@ -1,11 +1,11 @@
 'use client'
 
 import { Progress as ProgressPrimitive } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Progress({
+const Progress = React.memo(function Progress({
   className,
   value,
   ...props
@@ -26,6 +26,6 @@ function Progress({
       />
     </ProgressPrimitive.Root>
   )
-}
+})
 
 export { Progress }

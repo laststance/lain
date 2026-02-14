@@ -13,7 +13,7 @@ import {
   Plus,
   Sparkles,
 } from 'lucide-react'
-import { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -90,6 +90,85 @@ interface AddBookmarkDialogProps {
 }
 
 /**
+ * Reset bookmark form and tag state when the dialog opens.
+ * @param open - Whether dialog is open
+ * @param defaultCollectionId - Default collection to pre-select
+ * @param reset - react-hook-form reset function
+ * @param callbacks - State reset callbacks
+ */
+function useBookmarkFormReset(
+  open: boolean,
+  defaultCollectionId: string | undefined,
+  reset: (values: BookmarkFormValues) => void,
+  callbacks: {
+    setTags: (tags: string[]) => void
+    setTagInput: (input: string) => void
+    setParsedFavicon: (favicon: string) => void
+    setIsNotesOpen: (open: boolean) => void
+    setAutoIcon: (auto: boolean) => void
+  },
+) {
+  useEffect(() => {
+    if (open) {
+      reset({
+        url: '',
+        title: '',
+        description: '',
+        collectionId: defaultCollectionId || '',
+        type: 'link',
+        notes: '',
+        isImportant: false,
+      })
+      callbacks.setTags([])
+      callbacks.setTagInput('')
+      callbacks.setParsedFavicon('')
+      callbacks.setIsNotesOpen(false)
+      callbacks.setAutoIcon(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultCollectionId, reset])
+}
+
+/**
+ * Debounced URL parsing effect.
+ * @param url - The URL value to parse
+ * @param parseUrl - URL parsing callback
+ */
+function useDebouncedUrlParsing(url: string, parseUrl: (url: string) => void) {
+  useEffect(() => {
+    if (!url) return
+    const debounce = setTimeout(() => parseUrl(url), 500)
+    return () => clearTimeout(debounce)
+  }, [url, parseUrl])
+}
+
+/**
+ * Tag autocomplete filtering effect.
+ * @param tagInput - Current tag input text
+ * @param existingTags - All available tags
+ * @param tags - Currently selected tags
+ * @param setTagSuggestions - Setter for filtered suggestions
+ */
+function useTagAutocomplete(
+  tagInput: string,
+  existingTags: string[],
+  tags: string[],
+  setTagSuggestions: (suggestions: string[]) => void,
+) {
+  useEffect(() => {
+    if (!tagInput) {
+      setTagSuggestions([])
+      return
+    }
+    const lower = tagInput.toLowerCase()
+    const filtered = existingTags.filter(
+      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
+    )
+    setTagSuggestions(filtered.slice(0, 5))
+  }, [tagInput, existingTags, tags, setTagSuggestions])
+}
+
+/**
  * Dialog for adding a new bookmark (raindrop).
  * Supports URL auto-parsing, tag input with autocomplete,
  * collection selection, type detection, and optional notes.
@@ -111,7 +190,7 @@ interface AddBookmarkDialogProps {
  *     onSave={(data) => console.log("Save:", data)}
  *   />
  */
-export function AddBookmarkDialog({
+const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
   open,
   onOpenChange,
   groups,
@@ -151,25 +230,13 @@ export function AddBookmarkDialog({
   const selectedType = watch('type')
   const isImportant = watch('isImportant')
 
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (open) {
-      reset({
-        url: '',
-        title: '',
-        description: '',
-        collectionId: defaultCollectionId || '',
-        type: 'link',
-        notes: '',
-        isImportant: false,
-      })
-      setTags([])
-      setTagInput('')
-      setParsedFavicon('')
-      setIsNotesOpen(false)
-      setAutoIcon(true)
-    }
-  }, [open, defaultCollectionId, reset])
+  useBookmarkFormReset(open, defaultCollectionId, reset, {
+    setTags,
+    setTagInput,
+    setParsedFavicon,
+    setIsNotesOpen,
+    setAutoIcon,
+  })
 
   // Auto-parse URL (simulated - in real app would call Raindrop API)
   const parseUrl = useCallback(
@@ -223,25 +290,22 @@ export function AddBookmarkDialog({
     [autoIcon, setValue, watch],
   )
 
-  // Debounced URL parsing
-  useEffect(() => {
-    if (!url) return
-    const debounce = setTimeout(() => parseUrl(url), 500)
-    return () => clearTimeout(debounce)
-  }, [url, parseUrl])
+  useDebouncedUrlParsing(url, parseUrl)
+  useTagAutocomplete(tagInput, existingTags, tags, setTagSuggestions)
 
-  // Tag autocomplete
-  useEffect(() => {
-    if (!tagInput) {
-      setTagSuggestions([])
-      return
-    }
-    const lower = tagInput.toLowerCase()
-    const filtered = existingTags.filter(
-      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
-    )
-    setTagSuggestions(filtered.slice(0, 5))
-  }, [tagInput, existingTags, tags])
+  const handleCollectionChange = useCallback(
+    (id: string) => setValue('collectionId', id),
+    [setValue],
+  )
+  const handleTypeChange = useCallback(
+    (val: string) => setValue('type', val as ContentType),
+    [setValue],
+  )
+  const handleImportantChange = useCallback(
+    (checked: boolean) => setValue('isImportant', checked),
+    [setValue],
+  )
+  const handleCancel = useCallback(() => onOpenChange(false), [onOpenChange])
 
   const addTag = (tag: string) => {
     const trimmed = tag.trim().toLowerCase()
@@ -351,7 +415,7 @@ export function AddBookmarkDialog({
               <CollectionSelector
                 groups={groups}
                 value={watch('collectionId')}
-                onChange={(id) => setValue('collectionId', id)}
+                onChange={handleCollectionChange}
                 placeholder="Select collection..."
               />
             </div>
@@ -401,10 +465,7 @@ export function AddBookmarkDialog({
             <div className="flex items-end gap-4">
               <div className="grid flex-1 gap-2">
                 <Label htmlFor="bookmark-type">Type</Label>
-                <Select
-                  value={selectedType}
-                  onValueChange={(val) => setValue('type', val as ContentType)}
-                >
+                <Select value={selectedType} onValueChange={handleTypeChange}>
                   <SelectTrigger id="bookmark-type">
                     <SelectValue />
                   </SelectTrigger>
@@ -453,9 +514,7 @@ export function AddBookmarkDialog({
               <Switch
                 id="bookmark-important"
                 checked={isImportant}
-                onCheckedChange={(checked: boolean) =>
-                  setValue('isImportant', checked)
-                }
+                onCheckedChange={handleImportantChange}
               />
             </div>
 
@@ -490,11 +549,7 @@ export function AddBookmarkDialog({
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting || isParsing}>
@@ -512,4 +567,6 @@ export function AddBookmarkDialog({
       </DialogContent>
     </Dialog>
   )
-}
+})
+export { AddBookmarkDialog }
+export default AddBookmarkDialog

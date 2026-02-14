@@ -10,7 +10,7 @@ import {
   X,
   ArrowRight,
 } from 'lucide-react'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 
 import { FaviconIcon } from '@/components/raindrop/favicon-icon'
 import { Badge } from '@/components/ui/badge'
@@ -40,24 +40,6 @@ import type {
 import { cn } from '@/lib/utils'
 
 /**
- * Map content type to its corresponding Lucide icon.
- * @param type - Content type string
- * @returns Lucide icon component
- * @example getTypeIcon("article") // => FileText
- */
-function getTypeIcon(type: ContentType) {
-  const map: Record<ContentType, typeof Globe> = {
-    link: Globe,
-    article: FileText,
-    image: Image,
-    video: Video,
-    document: File,
-    audio: Music,
-  }
-  return map[type] || Globe
-}
-
-/**
  * Props for the GlobalSearchCommand component.
  */
 interface GlobalSearchCommandProps {
@@ -79,11 +61,141 @@ interface GlobalSearchCommandProps {
   currentCollectionId?: string
 }
 
+/**
+ * Static map of content type to Lucide icon component.
+ */
+const TYPE_ICON_MAP: Record<ContentType, typeof Globe> = {
+  link: Globe,
+  article: FileText,
+  image: Image,
+  video: Video,
+  document: File,
+  audio: Music,
+}
+
+/**
+ * Render a content type icon.
+ */
+const TypeIconDisplay = React.memo(function TypeIconDisplay({
+  type,
+  className,
+}: {
+  type: ContentType
+  className?: string
+}) {
+  const Icon = TYPE_ICON_MAP[type] || Globe
+  return <Icon className={className} />
+})
+
+/**
+ * A single recent search item extracted for useCallback.
+ */
+const RecentSearchItem = React.memo(function RecentSearchItem({
+  query,
+  onSelect,
+}: {
+  query: string
+  onSelect: (query: string) => void
+}) {
+  const handleSelect = useCallback(() => onSelect(query), [onSelect, query])
+  return (
+    <CommandItem value={query} onSelect={handleSelect} className="gap-2">
+      <Clock className="text-muted-foreground h-4 w-4" />
+      <span>{query}</span>
+    </CommandItem>
+  )
+})
+
+/**
+ * A single search result item extracted for useCallback.
+ */
+const SearchResultItem = React.memo(function SearchResultItem({
+  raindrop,
+  onSelect,
+}: {
+  raindrop: Raindrop
+  onSelect: (raindrop: Raindrop) => void
+}) {
+  const handleSelect = useCallback(
+    () => onSelect(raindrop),
+    [onSelect, raindrop],
+  )
+  return (
+    <CommandItem
+      value={raindrop.id}
+      onSelect={handleSelect}
+      className="gap-3 py-2.5"
+    >
+      <FaviconIcon
+        url={raindrop.url}
+        type={raindrop.type}
+        size={20}
+        className="flex-shrink-0"
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium">{raindrop.title}</span>
+          {raindrop.isImportant && (
+            <span className="flex-shrink-0 text-amber-500">★</span>
+          )}
+        </div>
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <TypeIconDisplay
+            type={raindrop.type}
+            className="h-3 w-3 flex-shrink-0"
+          />
+          <span className="truncate">{raindrop.domain || raindrop.url}</span>
+        </div>
+        {raindrop.tags.length > 0 && (
+          <div className="mt-0.5 flex items-center gap-1">
+            {raindrop.tags.slice(0, 3).map((tag) => (
+              <Badge
+                key={tag}
+                variant="secondary"
+                className="h-4 px-1.5 text-[10px]"
+              >
+                {tag}
+              </Badge>
+            ))}
+            {raindrop.tags.length > 3 && (
+              <span className="text-muted-foreground text-[10px]">
+                +{raindrop.tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      <ArrowRight className="text-muted-foreground h-4 w-4 flex-shrink-0" />
+    </CommandItem>
+  )
+})
+
 const SEARCH_SCOPE_LABELS: Record<SearchScope, string> = {
   all: 'All Fields',
   url: 'URL Only',
   title: 'Title Only',
   description: 'Description Only',
+}
+
+/**
+ * Register a global Cmd+K keyboard shortcut to toggle the search palette.
+ * @param open - Whether the palette is currently open
+ * @param onOpenChange - Callback to toggle palette visibility
+ */
+function useGlobalSearchShortcut(
+  open: boolean,
+  onOpenChange: (open: boolean) => void,
+) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        onOpenChange(!open)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [open, onOpenChange])
 }
 
 /**
@@ -108,7 +220,7 @@ const SEARCH_SCOPE_LABELS: Record<SearchScope, string> = {
  *     currentCollectionId="dev-react"
  *   />
  */
-export function GlobalSearchCommand({
+const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
   raindrops,
   open,
   onOpenChange,
@@ -129,17 +241,7 @@ export function GlobalSearchCommand({
     }
   })
 
-  // Register global Cmd+K shortcut
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        onOpenChange(!open)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [open, onOpenChange])
+  useGlobalSearchShortcut(open, onOpenChange)
 
   const addRecentSearch = useCallback(
     (query: string) => {
@@ -211,16 +313,19 @@ export function GlobalSearchCommand({
     return findName(collections)
   }, [currentCollectionId, collections])
 
-  const handleSelect = (raindrop: Raindrop) => {
-    addRecentSearch(searchQuery)
-    onSelectRaindrop?.(raindrop)
-    onOpenChange(false)
-    setSearchQuery('')
-  }
+  const handleSelect = useCallback(
+    (raindrop: Raindrop) => {
+      addRecentSearch(searchQuery)
+      onSelectRaindrop?.(raindrop)
+      onOpenChange(false)
+      setSearchQuery('')
+    },
+    [addRecentSearch, searchQuery, onSelectRaindrop, onOpenChange],
+  )
 
-  const handleRecentSearchClick = (query: string) => {
+  const handleRecentSearchClick = useCallback((query: string) => {
     setSearchQuery(query)
-  }
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -302,15 +407,11 @@ export function GlobalSearchCommand({
                 }
               >
                 {recentSearches.map((query) => (
-                  <CommandItem
+                  <RecentSearchItem
                     key={query}
-                    value={query}
-                    onSelect={() => handleRecentSearchClick(query)}
-                    className="gap-2"
-                  >
-                    <Clock className="text-muted-foreground h-4 w-4" />
-                    <span>{query}</span>
-                  </CommandItem>
+                    query={query}
+                    onSelect={handleRecentSearchClick}
+                  />
                 ))}
               </CommandGroup>
             )}
@@ -320,61 +421,13 @@ export function GlobalSearchCommand({
               <>
                 <CommandSeparator />
                 <CommandGroup heading={`Results (${searchResults.length})`}>
-                  {searchResults.map((raindrop) => {
-                    const TypeIcon = getTypeIcon(raindrop.type)
-                    return (
-                      <CommandItem
-                        key={raindrop.id}
-                        value={raindrop.id}
-                        onSelect={() => handleSelect(raindrop)}
-                        className="gap-3 py-2.5"
-                      >
-                        <FaviconIcon
-                          url={raindrop.url}
-                          type={raindrop.type}
-                          size={20}
-                          className="flex-shrink-0"
-                        />
-                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium">
-                              {raindrop.title}
-                            </span>
-                            {raindrop.isImportant && (
-                              <span className="flex-shrink-0 text-amber-500">
-                                ★
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                            <TypeIcon className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">
-                              {raindrop.domain || raindrop.url}
-                            </span>
-                          </div>
-                          {raindrop.tags.length > 0 && (
-                            <div className="mt-0.5 flex items-center gap-1">
-                              {raindrop.tags.slice(0, 3).map((tag) => (
-                                <Badge
-                                  key={tag}
-                                  variant="secondary"
-                                  className="h-4 px-1.5 text-[10px]"
-                                >
-                                  {tag}
-                                </Badge>
-                              ))}
-                              {raindrop.tags.length > 3 && (
-                                <span className="text-muted-foreground text-[10px]">
-                                  +{raindrop.tags.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <ArrowRight className="text-muted-foreground h-4 w-4 flex-shrink-0" />
-                      </CommandItem>
-                    )
-                  })}
+                  {searchResults.map((raindrop) => (
+                    <SearchResultItem
+                      key={raindrop.id}
+                      raindrop={raindrop}
+                      onSelect={handleSelect}
+                    />
+                  ))}
                 </CommandGroup>
               </>
             )}
@@ -415,4 +468,6 @@ export function GlobalSearchCommand({
       </DialogContent>
     </Dialog>
   )
-}
+})
+export { GlobalSearchCommand }
+export default GlobalSearchCommand

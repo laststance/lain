@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import { Toggle as TogglePrimitive } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -25,7 +25,7 @@ const toggleVariants = cva(
   },
 )
 
-function Toggle({
+const Toggle = React.memo(function Toggle({
   className,
   variant = 'default',
   size = 'default',
@@ -39,6 +39,7 @@ function Toggle({
       {...props}
     />
   )
-}
+})
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Toggle, toggleVariants }

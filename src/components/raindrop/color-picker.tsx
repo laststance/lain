@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,16 +57,30 @@ interface ColorPickerProps {
  *     label="Collection color"
  *   />
  */
-export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
+const ColorPicker = React.memo(function ColorPicker({
+  value,
+  onChange,
+  label,
+}: ColorPickerProps) {
   const [open, setOpen] = useState(false)
   const [customColor, setCustomColor] = useState(value || '')
 
-  const handleCustomColorChange = (hex: string) => {
-    setCustomColor(hex)
-    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
-      onChange(hex)
-    }
-  }
+  const handleCustomColorChange = useCallback(
+    (hex: string) => {
+      setCustomColor(hex)
+      if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+        onChange(hex)
+      }
+    },
+    [onChange],
+  )
+
+  const handleCustomColorInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleCustomColorChange(e.target.value)
+    },
+    [handleCustomColorChange],
+  )
 
   return (
     <div className="space-y-2">
@@ -121,7 +135,7 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
               />
               <Input
                 value={customColor}
-                onChange={(e) => handleCustomColorChange(e.target.value)}
+                onChange={handleCustomColorInputChange}
                 placeholder="#000000"
                 className="h-8 font-mono text-xs"
                 maxLength={7}
@@ -132,4 +146,6 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
       </Popover>
     </div>
   )
-}
+})
+export { ColorPicker }
+export default ColorPicker

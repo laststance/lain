@@ -1,6 +1,6 @@
 import { Command as CommandPrimitive } from 'cmdk'
 import { SearchIcon, CheckIcon } from 'lucide-react'
-import * as React from 'react'
+import React from 'react'
 
 import {
   Dialog,
@@ -12,7 +12,7 @@ import {
 import { InputGroup, InputGroupAddon } from '@/components/ui/input-group'
 import { cn } from '@/lib/utils'
 
-function Command({
+const Command = React.memo(function Command({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive>) {
@@ -26,9 +26,9 @@ function Command({
       {...props}
     />
   )
-}
+})
 
-function CommandDialog({
+const CommandDialog = React.memo(function CommandDialog({
   title = 'Command Palette',
   description = 'Search for a command to run...',
   children,
@@ -58,9 +58,9 @@ function CommandDialog({
       </DialogContent>
     </Dialog>
   )
-}
+})
 
-function CommandInput({
+const CommandInput = React.memo(function CommandInput({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Input>) {
@@ -81,9 +81,9 @@ function CommandInput({
       </InputGroup>
     </div>
   )
-}
+})
 
-function CommandList({
+const CommandList = React.memo(function CommandList({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.List>) {
@@ -97,9 +97,9 @@ function CommandList({
       {...props}
     />
   )
-}
+})
 
-function CommandEmpty({
+const CommandEmpty = React.memo(function CommandEmpty({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
@@ -110,9 +110,9 @@ function CommandEmpty({
       {...props}
     />
   )
-}
+})
 
-function CommandGroup({
+const CommandGroup = React.memo(function CommandGroup({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Group>) {
@@ -126,9 +126,9 @@ function CommandGroup({
       {...props}
     />
   )
-}
+})
 
-function CommandSeparator({
+const CommandSeparator = React.memo(function CommandSeparator({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Separator>) {
@@ -139,9 +139,9 @@ function CommandSeparator({
       {...props}
     />
   )
-}
+})
 
-function CommandItem({
+const CommandItem = React.memo(function CommandItem({
   className,
   children,
   ...props
@@ -159,9 +159,9 @@ function CommandItem({
       <CheckIcon className="ml-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
     </CommandPrimitive.Item>
   )
-}
+})
 
-function CommandShortcut({
+const CommandShortcut = React.memo(function CommandShortcut({
   className,
   ...props
 }: React.ComponentProps<'span'>) {
@@ -175,7 +175,7 @@ function CommandShortcut({
       {...props}
     />
   )
-}
+})
 
 export {
   Command,

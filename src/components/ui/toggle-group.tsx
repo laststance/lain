@@ -2,7 +2,7 @@
 
 import { type VariantProps } from 'class-variance-authority'
 import { ToggleGroup as ToggleGroupPrimitive } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { toggleVariants } from '@/components/ui/toggle'
 import { cn } from '@/lib/utils'
@@ -19,7 +19,7 @@ const ToggleGroupContext = React.createContext<
   orientation: 'horizontal',
 })
 
-function ToggleGroup({
+const ToggleGroup = React.memo(function ToggleGroup({
   className,
   variant,
   size,
@@ -32,6 +32,11 @@ function ToggleGroup({
     spacing?: number
     orientation?: 'horizontal' | 'vertical'
   }) {
+  const ctxValue = React.useMemo(
+    () => ({ variant, size, spacing, orientation }),
+    [variant, size, spacing, orientation],
+  )
+
   return (
     <ToggleGroupPrimitive.Root
       data-slot="toggle-group"
@@ -46,14 +51,12 @@ function ToggleGroup({
       )}
       {...props}
     >
-      <ToggleGroupContext value={{ variant, size, spacing, orientation }}>
-        {children}
-      </ToggleGroupContext>
+      <ToggleGroupContext value={ctxValue}>{children}</ToggleGroupContext>
     </ToggleGroupPrimitive.Root>
   )
-}
+})
 
-function ToggleGroupItem({
+const ToggleGroupItem = React.memo(function ToggleGroupItem({
   className,
   children,
   variant = 'default',
@@ -82,6 +85,6 @@ function ToggleGroupItem({
       {children}
     </ToggleGroupPrimitive.Item>
   )
-}
+})
 
 export { ToggleGroup, ToggleGroupItem }

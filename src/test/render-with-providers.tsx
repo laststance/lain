@@ -49,6 +49,7 @@ export function renderWithProviders(
     preloadedState,
   })
 
+  // eslint-disable-next-line @laststance/react-next/all-memo
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <Provider store={store}>

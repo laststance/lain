@@ -19,7 +19,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react'
-import { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import { FaviconIcon } from '@/components/raindrop/favicon-icon'
 import { Badge } from '@/components/ui/badge'
@@ -52,19 +52,35 @@ import type { Raindrop, ContentType } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 /**
- * Map content type to its corresponding Lucide icon component.
+ * Static map of content type to Lucide icon component.
+ * Defined at module level to avoid creating components during render.
  */
-function getTypeIcon(type: ContentType) {
-  const map: Record<ContentType, typeof Globe> = {
-    link: Globe,
-    article: FileText,
-    image: Image,
-    video: Video,
-    document: File,
-    audio: Music,
-  }
-  return map[type] || Globe
+const TYPE_ICON_MAP: Record<ContentType, typeof Globe> = {
+  link: Globe,
+  article: FileText,
+  image: Image,
+  video: Video,
+  document: File,
+  audio: Music,
 }
+
+/**
+ * Render the appropriate content type icon.
+ * @param type - The content type
+ * @param className - CSS class for the icon
+ * @returns JSX element for the icon
+ * @example <TypeIconDisplay type="article" className="h-3 w-3" />
+ */
+const TypeIconDisplay = React.memo(function TypeIconDisplay({
+  type,
+  className,
+}: {
+  type: ContentType
+  className?: string
+}) {
+  const Icon = TYPE_ICON_MAP[type] || Globe
+  return <Icon className={className} />
+})
 
 /**
  * Format a date string to a human-readable relative format.
@@ -131,6 +147,342 @@ interface TableViewProps {
 }
 
 /**
+ * Sortable column header component.
+ */
+const SortHeader = React.memo(function SortHeader({
+  label,
+  sortKeyName,
+  className,
+  sortKey,
+  sortDir,
+  onToggleSort,
+}: {
+  label: string
+  sortKeyName: SortKey
+  className?: string
+  sortKey: SortKey
+  sortDir: SortDir
+  onToggleSort: (key: SortKey) => void
+}) {
+  const isActive = sortKey === sortKeyName
+  return (
+    <TableHead className={cn('cursor-pointer select-none', className)}>
+      <button
+        type="button"
+        className="hover:text-foreground flex items-center gap-1"
+        onClick={() => onToggleSort(sortKeyName)}
+      >
+        {label}
+        {isActive ? (
+          sortDir === 'asc' ? (
+            <ArrowUp className="h-3.5 w-3.5" />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  )
+})
+
+/**
+ * A single table row with context menu for a raindrop.
+ * Extracted from .map() to allow useCallback for event handlers.
+ */
+const TableRowItem = React.memo(function TableRowItem({
+  raindrop,
+  index,
+  isSelected,
+  columnVisibility,
+  onSelect,
+  onOpenUrl,
+  onMoveToCollection,
+  onAddTags,
+  onDelete,
+  onToggleImportant,
+  onToggleSelect,
+}: {
+  raindrop: Raindrop
+  index: number
+  isSelected: boolean
+  columnVisibility: ColumnVisibility
+  onSelect?: (raindrop: Raindrop) => void
+  onOpenUrl?: (url: string) => void
+  onMoveToCollection?: (ids: string[]) => void
+  onAddTags?: (ids: string[]) => void
+  onDelete?: (ids: string[]) => void
+  onToggleImportant?: (id: string) => void
+  onToggleSelect: (id: string) => void
+}) {
+  const handleRowClick = useCallback(
+    () => onSelect?.(raindrop),
+    [onSelect, raindrop],
+  )
+  const handleRowDoubleClick = useCallback(
+    () => onOpenUrl?.(raindrop.url),
+    [onOpenUrl, raindrop.url],
+  )
+  const handleCheckboxChange = useCallback(
+    () => onToggleSelect(raindrop.id),
+    [onToggleSelect, raindrop.id],
+  )
+  const handleStopPropagation = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+  const handleOpenUrl = useCallback(
+    () => onOpenUrl?.(raindrop.url),
+    [onOpenUrl, raindrop.url],
+  )
+  const handleEdit = useCallback(
+    () => onSelect?.(raindrop),
+    [onSelect, raindrop],
+  )
+  const handleMove = useCallback(
+    () => onMoveToCollection?.([raindrop.id]),
+    [onMoveToCollection, raindrop.id],
+  )
+  const handleAddTags = useCallback(
+    () => onAddTags?.([raindrop.id]),
+    [onAddTags, raindrop.id],
+  )
+  const handleCopyUrl = useCallback(
+    async () => navigator.clipboard.writeText(raindrop.url),
+    [raindrop.url],
+  )
+  const handleToggleImportant = useCallback(
+    () => onToggleImportant?.(raindrop.id),
+    [onToggleImportant, raindrop.id],
+  )
+  const handleDeleteItem = useCallback(
+    () => onDelete?.([raindrop.id]),
+    [onDelete, raindrop.id],
+  )
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <TableRow
+          className={cn(
+            'h-10 cursor-pointer transition-colors',
+            isSelected && 'bg-accent',
+            index % 2 === 1 && !isSelected && 'bg-muted/30',
+          )}
+          onClick={handleRowClick}
+          onDoubleClick={handleRowDoubleClick}
+        >
+          <TableCell className="w-10">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={handleCheckboxChange}
+              onClick={handleStopPropagation}
+              aria-label={`Select ${raindrop.title}`}
+            />
+          </TableCell>
+          {columnVisibility.type && (
+            <TableCell className="w-8">
+              <FaviconIcon url={raindrop.url} type={raindrop.type} size={16} />
+            </TableCell>
+          )}
+          {columnVisibility.title && (
+            <TableCell className="min-w-[200px] font-medium">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate">{raindrop.title}</span>
+                {raindrop.isImportant && (
+                  <span className="flex-shrink-0 text-amber-500">★</span>
+                )}
+              </div>
+            </TableCell>
+          )}
+          {columnVisibility.domain && (
+            <TableCell className="text-muted-foreground text-xs">
+              {raindrop.domain || ''}
+            </TableCell>
+          )}
+          {columnVisibility.tags && (
+            <TableCell>
+              <div className="flex items-center gap-1 truncate">
+                {raindrop.tags.slice(0, 2).map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="h-4 px-1.5 text-[10px]"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+                {raindrop.tags.length > 2 && (
+                  <span className="text-muted-foreground text-[10px]">
+                    +{raindrop.tags.length - 2}
+                  </span>
+                )}
+              </div>
+            </TableCell>
+          )}
+          {columnVisibility.created && (
+            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+              {formatDate(raindrop.createdAt)}
+            </TableCell>
+          )}
+          {columnVisibility.updated && (
+            <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+              {formatDate(raindrop.updatedAt)}
+            </TableCell>
+          )}
+          {columnVisibility.contentType && (
+            <TableCell className="text-muted-foreground text-xs capitalize">
+              <div className="flex items-center gap-1">
+                <TypeIconDisplay type={raindrop.type} className="h-3 w-3" />
+                {raindrop.type}
+              </div>
+            </TableCell>
+          )}
+          <TableCell className="w-10">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleStopPropagation}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">More actions</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleOpenUrl}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Open URL
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleEdit}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleMove}>
+                  <FolderInput className="mr-2 h-4 w-4" />
+                  Move to Collection...
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAddTags}>
+                  <Tag className="mr-2 h-4 w-4" />
+                  Add Tags...
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleCopyUrl}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy URL
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleToggleImportant}>
+                  <Star className="mr-2 h-4 w-4" />
+                  {raindrop.isImportant
+                    ? 'Remove Important'
+                    : 'Mark as Important'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={handleDeleteItem}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Move to Trash
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={handleOpenUrl}>
+          <ExternalLink className="mr-2 h-4 w-4" />
+          Open URL
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleEdit}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem onClick={handleMove}>
+          <FolderInput className="mr-2 h-4 w-4" />
+          Move to Collection...
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleCopyUrl}>
+          <Copy className="mr-2 h-4 w-4" />
+          Copy URL
+        </ContextMenuItem>
+        <ContextMenuItem onClick={handleToggleImportant}>
+          <Star className="mr-2 h-4 w-4" />
+          {raindrop.isImportant ? 'Remove Important' : 'Mark as Important'}
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          className="text-destructive focus:text-destructive"
+          onClick={handleDeleteItem}
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Move to Trash
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
+})
+
+/**
+ * Column visibility toggle item extracted for useCallback.
+ */
+const ColumnToggleItem = React.memo(function ColumnToggleItem({
+  col,
+  checked,
+  onToggle,
+}: {
+  col: keyof ColumnVisibility
+  checked: boolean
+  onToggle: (col: keyof ColumnVisibility, checked: boolean) => void
+}) {
+  const handleCheckedChange = useCallback(
+    (value: boolean) => onToggle(col, !!value),
+    [onToggle, col],
+  )
+  return (
+    <DropdownMenuCheckboxItem
+      checked={checked}
+      onCheckedChange={handleCheckedChange}
+    >
+      {col.charAt(0).toUpperCase() + col.slice(1)}
+    </DropdownMenuCheckboxItem>
+  )
+})
+
+/**
+ * Pagination page number button extracted for useCallback.
+ */
+const PageButton = React.memo(function PageButton({
+  pageNum,
+  isActive,
+  onSetPage,
+}: {
+  pageNum: number
+  isActive: boolean
+  onSetPage: (page: number) => void
+}) {
+  const handleClick = useCallback(
+    () => onSetPage(pageNum),
+    [onSetPage, pageNum],
+  )
+  return (
+    <Button
+      variant={isActive ? 'default' : 'outline'}
+      size="sm"
+      className="h-7 w-7 p-0 text-xs"
+      onClick={handleClick}
+    >
+      {pageNum + 1}
+    </Button>
+  )
+})
+
+/**
  * Dense sortable data table view for displaying raindrops.
  * Features sortable columns, column visibility toggles, multi-select,
  * context menus, and pagination controls.
@@ -154,7 +506,7 @@ interface TableViewProps {
  *     onOpenUrl={(url) => window.shell.openExternal(url)}
  *   />
  */
-export function TableView({
+const TableView = React.memo(function TableView({
   raindrops,
   selectedIds = new Set(),
   onSelectionChange,
@@ -226,55 +578,54 @@ export function TableView({
 
   const totalPages = Math.ceil(sortedRaindrops.length / pageSize)
 
-  const toggleSelectAll = () => {
+  const toggleSelectAll = useCallback(() => {
     if (selectedIds.size === paginatedRaindrops.length) {
       onSelectionChange?.(new Set())
     } else {
       onSelectionChange?.(new Set(paginatedRaindrops.map((r) => r.id)))
     }
-  }
+  }, [selectedIds.size, paginatedRaindrops, onSelectionChange])
 
-  const toggleSelect = (id: string) => {
-    const next = new Set(selectedIds)
-    if (next.has(id)) {
-      next.delete(id)
-    } else {
-      next.add(id)
+  const handleBulkMoveSelected = useCallback(
+    () => onMoveToCollection?.(Array.from(selectedIds)),
+    [onMoveToCollection, selectedIds],
+  )
+  const handleBulkAddTagsSelected = useCallback(
+    () => onAddTags?.(Array.from(selectedIds)),
+    [onAddTags, selectedIds],
+  )
+  const handleBulkMarkImportant = useCallback(() => {
+    for (const id of selectedIds) {
+      onToggleImportant?.(id)
     }
-    onSelectionChange?.(next)
-  }
+  }, [selectedIds, onToggleImportant])
+  const handleBulkDelete = useCallback(
+    () => onDelete?.(Array.from(selectedIds)),
+    [onDelete, selectedIds],
+  )
+  const handleColumnVisibilityChange = useCallback(
+    (col: keyof ColumnVisibility, checked: boolean) => {
+      setColumnVisibility((prev) => ({ ...prev, [col]: checked }))
+    },
+    [],
+  )
+  const handlePrevPage = useCallback(() => setPage((p) => p - 1), [])
+  const handleNextPage = useCallback(() => setPage((p) => p + 1), [])
 
-  const SortHeader = ({
-    label,
-    sortKeyName,
-    className,
-  }: {
-    label: string
-    sortKeyName: SortKey
-    className?: string
-  }) => {
-    const isActive = sortKey === sortKeyName
-    return (
-      <TableHead className={cn('cursor-pointer select-none', className)}>
-        <button
-          type="button"
-          className="hover:text-foreground flex items-center gap-1"
-          onClick={() => toggleSort(sortKeyName)}
-        >
-          {label}
-          {isActive ? (
-            sortDir === 'asc' ? (
-              <ArrowUp className="h-3.5 w-3.5" />
-            ) : (
-              <ArrowDown className="h-3.5 w-3.5" />
-            )
-          ) : (
-            <ArrowUpDown className="h-3.5 w-3.5 opacity-40" />
-          )}
-        </button>
-      </TableHead>
-    )
-  }
+  const toggleSelect = useCallback(
+    (id: string) => {
+      const next = new Set(selectedIds)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      onSelectionChange?.(next)
+    },
+    [selectedIds, onSelectionChange],
+  )
+
+  const handleSetPage = useCallback((p: number) => setPage(p), [])
 
   return (
     <div className="flex h-full flex-col">
@@ -288,7 +639,7 @@ export function TableView({
             variant="ghost"
             size="sm"
             className="h-7 gap-1 text-xs"
-            onClick={() => onMoveToCollection?.(Array.from(selectedIds))}
+            onClick={handleBulkMoveSelected}
           >
             <FolderInput className="h-3.5 w-3.5" />
             Move to...
@@ -297,7 +648,7 @@ export function TableView({
             variant="ghost"
             size="sm"
             className="h-7 gap-1 text-xs"
-            onClick={() => onAddTags?.(Array.from(selectedIds))}
+            onClick={handleBulkAddTagsSelected}
           >
             <Tag className="h-3.5 w-3.5" />
             Add Tag...
@@ -306,11 +657,7 @@ export function TableView({
             variant="ghost"
             size="sm"
             className="h-7 gap-1 text-xs"
-            onClick={() => {
-              for (const id of selectedIds) {
-                onToggleImportant?.(id)
-              }
-            }}
+            onClick={handleBulkMarkImportant}
           >
             <Star className="h-3.5 w-3.5" />
             Mark Important
@@ -319,7 +666,7 @@ export function TableView({
             variant="ghost"
             size="sm"
             className="text-destructive hover:text-destructive h-7 gap-1 text-xs"
-            onClick={() => onDelete?.(Array.from(selectedIds))}
+            onClick={handleBulkDelete}
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete
@@ -344,18 +691,12 @@ export function TableView({
                 {(
                   Object.keys(columnVisibility) as (keyof ColumnVisibility)[]
                 ).map((col) => (
-                  <DropdownMenuCheckboxItem
+                  <ColumnToggleItem
                     key={col}
+                    col={col}
                     checked={columnVisibility[col]}
-                    onCheckedChange={(checked) =>
-                      setColumnVisibility((prev) => ({
-                        ...prev,
-                        [col]: checked,
-                      }))
-                    }
-                  >
-                    {col.charAt(0).toUpperCase() + col.slice(1)}
-                  </DropdownMenuCheckboxItem>
+                    onToggle={handleColumnVisibilityChange}
+                  />
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -377,18 +718,12 @@ export function TableView({
               {(
                 Object.keys(columnVisibility) as (keyof ColumnVisibility)[]
               ).map((col) => (
-                <DropdownMenuCheckboxItem
+                <ColumnToggleItem
                   key={col}
+                  col={col}
                   checked={columnVisibility[col]}
-                  onCheckedChange={(checked) =>
-                    setColumnVisibility((prev) => ({
-                      ...prev,
-                      [col]: checked,
-                    }))
-                  }
-                >
-                  {col.charAt(0).toUpperCase() + col.slice(1)}
-                </DropdownMenuCheckboxItem>
+                  onToggle={handleColumnVisibilityChange}
+                />
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -420,20 +755,47 @@ export function TableView({
                   label="Title"
                   sortKeyName="title"
                   className="min-w-[200px]"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggleSort={toggleSort}
                 />
               )}
               {columnVisibility.domain && (
-                <SortHeader label="Domain" sortKeyName="domain" />
+                <SortHeader
+                  label="Domain"
+                  sortKeyName="domain"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggleSort={toggleSort}
+                />
               )}
               {columnVisibility.tags && <TableHead>Tags</TableHead>}
               {columnVisibility.created && (
-                <SortHeader label="Created" sortKeyName="createdAt" />
+                <SortHeader
+                  label="Created"
+                  sortKeyName="createdAt"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggleSort={toggleSort}
+                />
               )}
               {columnVisibility.updated && (
-                <SortHeader label="Updated" sortKeyName="updatedAt" />
+                <SortHeader
+                  label="Updated"
+                  sortKeyName="updatedAt"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggleSort={toggleSort}
+                />
               )}
               {columnVisibility.contentType && (
-                <SortHeader label="Type" sortKeyName="type" />
+                <SortHeader
+                  label="Type"
+                  sortKeyName="type"
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onToggleSort={toggleSort}
+                />
               )}
               <TableHead className="w-10">
                 <span className="sr-only">Actions</span>
@@ -441,208 +803,22 @@ export function TableView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedRaindrops.map((raindrop, index) => {
-              const TypeIcon = getTypeIcon(raindrop.type)
-              const isSelected = selectedIds.has(raindrop.id)
-
-              return (
-                <ContextMenu key={raindrop.id}>
-                  <ContextMenuTrigger asChild>
-                    <TableRow
-                      className={cn(
-                        'h-10 cursor-pointer transition-colors',
-                        isSelected && 'bg-accent',
-                        index % 2 === 1 && !isSelected && 'bg-muted/30',
-                      )}
-                      onClick={() => onSelect?.(raindrop)}
-                      onDoubleClick={() => onOpenUrl?.(raindrop.url)}
-                    >
-                      <TableCell className="w-10">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => toggleSelect(raindrop.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select ${raindrop.title}`}
-                        />
-                      </TableCell>
-                      {columnVisibility.type && (
-                        <TableCell className="w-8">
-                          <FaviconIcon
-                            url={raindrop.url}
-                            type={raindrop.type}
-                            size={16}
-                          />
-                        </TableCell>
-                      )}
-                      {columnVisibility.title && (
-                        <TableCell className="min-w-[200px] font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <span className="truncate">{raindrop.title}</span>
-                            {raindrop.isImportant && (
-                              <span className="flex-shrink-0 text-amber-500">
-                                ★
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                      {columnVisibility.domain && (
-                        <TableCell className="text-muted-foreground text-xs">
-                          {raindrop.domain || ''}
-                        </TableCell>
-                      )}
-                      {columnVisibility.tags && (
-                        <TableCell>
-                          <div className="flex items-center gap-1 truncate">
-                            {raindrop.tags.slice(0, 2).map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="secondary"
-                                className="h-4 px-1.5 text-[10px]"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
-                            {raindrop.tags.length > 2 && (
-                              <span className="text-muted-foreground text-[10px]">
-                                +{raindrop.tags.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                      )}
-                      {columnVisibility.created && (
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {formatDate(raindrop.createdAt)}
-                        </TableCell>
-                      )}
-                      {columnVisibility.updated && (
-                        <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                          {formatDate(raindrop.updatedAt)}
-                        </TableCell>
-                      )}
-                      {columnVisibility.contentType && (
-                        <TableCell className="text-muted-foreground text-xs capitalize">
-                          <div className="flex items-center gap-1">
-                            <TypeIcon className="h-3 w-3" />
-                            {raindrop.type}
-                          </div>
-                        </TableCell>
-                      )}
-                      <TableCell className="w-10">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">More actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => onOpenUrl?.(raindrop.url)}
-                            >
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Open URL
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onSelect?.(raindrop)}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() =>
-                                onMoveToCollection?.([raindrop.id])
-                              }
-                            >
-                              <FolderInput className="mr-2 h-4 w-4" />
-                              Move to Collection...
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onAddTags?.([raindrop.id])}
-                            >
-                              <Tag className="mr-2 h-4 w-4" />
-                              Add Tags...
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={async () =>
-                                navigator.clipboard.writeText(raindrop.url)
-                              }
-                            >
-                              <Copy className="mr-2 h-4 w-4" />
-                              Copy URL
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => onToggleImportant?.(raindrop.id)}
-                            >
-                              <Star className="mr-2 h-4 w-4" />
-                              {raindrop.isImportant
-                                ? 'Remove Important'
-                                : 'Mark as Important'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => onDelete?.([raindrop.id])}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Move to Trash
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <ContextMenuItem onClick={() => onOpenUrl?.(raindrop.url)}>
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Open URL
-                    </ContextMenuItem>
-                    <ContextMenuItem onClick={() => onSelect?.(raindrop)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem
-                      onClick={() => onMoveToCollection?.([raindrop.id])}
-                    >
-                      <FolderInput className="mr-2 h-4 w-4" />
-                      Move to Collection...
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={async () =>
-                        navigator.clipboard.writeText(raindrop.url)
-                      }
-                    >
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy URL
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => onToggleImportant?.(raindrop.id)}
-                    >
-                      <Star className="mr-2 h-4 w-4" />
-                      {raindrop.isImportant
-                        ? 'Remove Important'
-                        : 'Mark as Important'}
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => onDelete?.([raindrop.id])}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Move to Trash
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              )
-            })}
+            {paginatedRaindrops.map((raindrop, index) => (
+              <TableRowItem
+                key={raindrop.id}
+                raindrop={raindrop}
+                index={index}
+                isSelected={selectedIds.has(raindrop.id)}
+                columnVisibility={columnVisibility}
+                onSelect={onSelect}
+                onOpenUrl={onOpenUrl}
+                onMoveToCollection={onMoveToCollection}
+                onAddTags={onAddTags}
+                onDelete={onDelete}
+                onToggleImportant={onToggleImportant}
+                onToggleSelect={toggleSelect}
+              />
+            ))}
           </TableBody>
         </Table>
 
@@ -668,7 +844,7 @@ export function TableView({
               size="sm"
               className="h-7 text-xs"
               disabled={page === 0}
-              onClick={() => setPage((p) => p - 1)}
+              onClick={handlePrevPage}
             >
               Previous
             </Button>
@@ -678,15 +854,12 @@ export function TableView({
                   ? i
                   : Math.max(0, Math.min(page - 2, totalPages - 5)) + i
               return (
-                <Button
+                <PageButton
                   key={pageNum}
-                  variant={page === pageNum ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 w-7 p-0 text-xs"
-                  onClick={() => setPage(pageNum)}
-                >
-                  {pageNum + 1}
-                </Button>
+                  pageNum={pageNum}
+                  isActive={page === pageNum}
+                  onSetPage={handleSetPage}
+                />
               )
             })}
             <Button
@@ -694,7 +867,7 @@ export function TableView({
               size="sm"
               className="h-7 text-xs"
               disabled={page >= totalPages - 1}
-              onClick={() => setPage((p) => p + 1)}
+              onClick={handleNextPage}
             >
               Next
             </Button>
@@ -703,4 +876,6 @@ export function TableView({
       )}
     </div>
   )
-}
+})
+export { TableView }
+export default TableView

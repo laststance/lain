@@ -50,7 +50,7 @@ import {
   Puzzle,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -131,18 +131,6 @@ interface IconPickerProps {
 }
 
 /**
- * Resolve an icon name string to its lucide component.
- * @param name - Icon name string (e.g. "Folder")
- * @returns The matching LucideIcon or Folder as fallback
- * @example resolveIcon("Globe") // => Globe component
- */
-function resolveIcon(name?: string): LucideIcon {
-  if (!name) return Folder
-  const entry = ICON_ENTRIES.find((e) => e.name === name)
-  return entry?.icon || Folder
-}
-
-/**
  * Searchable grid icon picker using Lucide icons.
  * Displays a searchable popover with a grid of available icons.
  *
@@ -157,7 +145,11 @@ function resolveIcon(name?: string): LucideIcon {
  *     label="Collection icon"
  *   />
  */
-export function IconPicker({ value, onChange, label }: IconPickerProps) {
+const IconPicker = React.memo(function IconPicker({
+  value,
+  onChange,
+  label,
+}: IconPickerProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -169,7 +161,15 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
     )
   }, [searchQuery])
 
-  const SelectedIcon = resolveIcon(value)
+  const selectedIconEntry = useMemo(
+    () => ICON_ENTRIES.find((e) => e.name === value),
+    [value],
+  )
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
+    [],
+  )
 
   return (
     <div className="space-y-2">
@@ -180,7 +180,11 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
             variant="outline"
             className="w-full justify-start gap-2 font-normal"
           >
-            <SelectedIcon className="h-4 w-4 flex-shrink-0" />
+            {selectedIconEntry ? (
+              <selectedIconEntry.icon className="h-4 w-4 flex-shrink-0" />
+            ) : (
+              <Folder className="h-4 w-4 flex-shrink-0" />
+            )}
             <span className="text-sm">{value || 'Select icon...'}</span>
           </Button>
         </PopoverTrigger>
@@ -189,7 +193,7 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
             <Input
               placeholder="Search icons..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               className="h-8"
             />
             <ScrollArea className="h-[200px]">
@@ -229,4 +233,6 @@ export function IconPicker({ value, onChange, label }: IconPickerProps) {
       </Popover>
     </div>
   )
-}
+})
+export { IconPicker }
+export default IconPicker

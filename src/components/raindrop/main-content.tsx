@@ -9,7 +9,7 @@ import {
   BookmarkPlus,
   X,
 } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import { RaindropCard } from '@/components/raindrop/raindrop-card'
 import { RaindropListItem } from '@/components/raindrop/raindrop-list-item'
@@ -100,7 +100,99 @@ interface MainContentProps {
  *     onAddBookmark={() => setIsAddOpen(true)}
  *   />
  */
-export function MainContent({
+
+/**
+ * Wrapper for RaindropCard inside a .map() to allow useCallback for event handlers.
+ */
+const RaindropCardWrapper = React.memo(function RaindropCardWrapper({
+  raindrop,
+  isSelected,
+  onRaindropClick,
+  onRaindropDoubleClick,
+}: {
+  raindrop: Raindrop
+  isSelected: boolean
+  onRaindropClick: (raindrop: Raindrop, event: React.MouseEvent) => void
+  onRaindropDoubleClick: (raindrop: Raindrop) => void
+}) {
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => onRaindropClick(raindrop, e),
+    [onRaindropClick, raindrop],
+  )
+  const handleDoubleClick = useCallback(
+    () => onRaindropDoubleClick(raindrop),
+    [onRaindropDoubleClick, raindrop],
+  )
+  return (
+    <RaindropCard
+      raindrop={raindrop}
+      isSelected={isSelected}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+    />
+  )
+})
+
+/**
+ * Wrapper for RaindropListItem inside a .map() to allow useCallback for event handlers.
+ */
+const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
+  raindrop,
+  isSelected,
+  onRaindropClick,
+  onRaindropDoubleClick,
+}: {
+  raindrop: Raindrop
+  isSelected: boolean
+  onRaindropClick: (raindrop: Raindrop, event: React.MouseEvent) => void
+  onRaindropDoubleClick: (raindrop: Raindrop) => void
+}) {
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => onRaindropClick(raindrop, e),
+    [onRaindropClick, raindrop],
+  )
+  const handleDoubleClick = useCallback(
+    () => onRaindropDoubleClick(raindrop),
+    [onRaindropDoubleClick, raindrop],
+  )
+  return (
+    <RaindropListItem
+      raindrop={raindrop}
+      isSelected={isSelected}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
+    />
+  )
+})
+
+/**
+ * Search scope button used inside a .map() to allow useCallback.
+ */
+const SearchScopeButton = React.memo(function SearchScopeButton({
+  value,
+  label,
+  isActive,
+  onSetScope,
+}: {
+  value: SearchScope
+  label: string
+  isActive: boolean
+  onSetScope: (scope: SearchScope) => void
+}) {
+  const handleClick = useCallback(() => onSetScope(value), [onSetScope, value])
+  return (
+    <Button
+      variant={isActive ? 'secondary' : 'ghost'}
+      size="sm"
+      className="h-6 px-2 text-xs"
+      onClick={handleClick}
+    >
+      {label}
+    </Button>
+  )
+})
+
+const MainContent = React.memo(function MainContent({
   breadcrumbs,
   raindrops,
   onSelectRaindrop,
@@ -119,6 +211,35 @@ export function MainContent({
   const [searchQuery, setSearchQuery] = useState('')
   const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
+
+  const handleSearchQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
+    [],
+  )
+  const handleAdvancedSearchToggle = useCallback(
+    () => setIsAdvancedSearchOpen((prev) => !prev),
+    [],
+  )
+  const handleViewModeChange = useCallback((val: string) => {
+    if (val) setViewMode(val as ViewMode)
+  }, [])
+  const handleSortChange = useCallback(
+    (val: string) => setSortOption(val as SortOption),
+    [],
+  )
+  const handleDeselectAll = useCallback(
+    () => onSelectedRaindropIdsChange(new Set()),
+    [onSelectedRaindropIdsChange],
+  )
+  const handleSetSearchScope = useCallback(
+    (scope: SearchScope) => setSearchScope(scope),
+    [],
+  )
+  const clearSearch = useCallback(() => {
+    setSearchQuery('')
+    setSearchScope('all')
+    setIsAdvancedSearchOpen(false)
+  }, [])
 
   /**
    * Filter raindrops based on current search query and scope.
@@ -185,52 +306,54 @@ export function MainContent({
    * @param raindrop - The clicked raindrop
    * @param event - Mouse event for detecting modifier keys
    */
-  const handleRaindropClick = (raindrop: Raindrop, event: React.MouseEvent) => {
-    if (event.metaKey || event.ctrlKey) {
-      // Toggle multi-select
-      const next = new Set(selectedRaindropIds)
-      if (next.has(raindrop.id)) {
-        next.delete(raindrop.id)
+  const handleRaindropClick = useCallback(
+    (raindrop: Raindrop, event: React.MouseEvent) => {
+      if (event.metaKey || event.ctrlKey) {
+        // Toggle multi-select
+        const next = new Set(selectedRaindropIds)
+        if (next.has(raindrop.id)) {
+          next.delete(raindrop.id)
+        } else {
+          next.add(raindrop.id)
+        }
+        onSelectedRaindropIdsChange(next)
+      } else if (event.shiftKey && selectedRaindropId) {
+        // Range select
+        const currentIndex = sortedRaindrops.findIndex(
+          (r) => r.id === selectedRaindropId,
+        )
+        const clickedIndex = sortedRaindrops.findIndex(
+          (r) => r.id === raindrop.id,
+        )
+        if (currentIndex !== -1 && clickedIndex !== -1) {
+          const start = Math.min(currentIndex, clickedIndex)
+          const end = Math.max(currentIndex, clickedIndex)
+          const rangeIds = sortedRaindrops
+            .slice(start, end + 1)
+            .map((r) => r.id)
+          onSelectedRaindropIdsChange(new Set(rangeIds))
+        }
       } else {
-        next.add(raindrop.id)
+        onSelectedRaindropIdsChange(new Set())
+        onSelectRaindrop(raindrop)
       }
-      onSelectedRaindropIdsChange(next)
-    } else if (event.shiftKey && selectedRaindropId) {
-      // Range select
-      const currentIndex = sortedRaindrops.findIndex(
-        (r) => r.id === selectedRaindropId,
-      )
-      const clickedIndex = sortedRaindrops.findIndex(
-        (r) => r.id === raindrop.id,
-      )
-      if (currentIndex !== -1 && clickedIndex !== -1) {
-        const start = Math.min(currentIndex, clickedIndex)
-        const end = Math.max(currentIndex, clickedIndex)
-        const rangeIds = sortedRaindrops.slice(start, end + 1).map((r) => r.id)
-        onSelectedRaindropIdsChange(new Set(rangeIds))
-      }
-    } else {
-      onSelectedRaindropIdsChange(new Set())
-      onSelectRaindrop(raindrop)
-    }
-  }
+    },
+    [
+      selectedRaindropIds,
+      selectedRaindropId,
+      sortedRaindrops,
+      onSelectedRaindropIdsChange,
+      onSelectRaindrop,
+    ],
+  )
 
   /**
    * Handle double-click to open URL in external browser.
    * @param raindrop - The double-clicked raindrop
    */
-  const handleRaindropDoubleClick = (raindrop: Raindrop) => {
+  const handleRaindropDoubleClick = useCallback((raindrop: Raindrop) => {
     window.shell.openExternal(raindrop.url)
-  }
-
-  /**
-   * Clear all search state.
-   */
-  const clearSearch = () => {
-    setSearchQuery('')
-    setSearchScope('all')
-    setIsAdvancedSearchOpen(false)
-  }
+  }, [])
 
   return (
     <div className="flex h-full flex-col">
@@ -287,13 +410,17 @@ export function MainContent({
             <Input
               placeholder="Search bookmarks... (Cmd+K)"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchQueryChange}
               className="h-8 pr-8 pl-8 text-sm"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={clearSearch}
+                onClick={() => {
+                  setSearchQuery('')
+                  setSearchScope('all')
+                  setIsAdvancedSearchOpen(false)
+                }}
                 className="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5"
               >
                 <X className="text-muted-foreground h-3 w-3" />
@@ -322,7 +449,7 @@ export function MainContent({
                 variant={isAdvancedSearchOpen ? 'secondary' : 'ghost'}
                 size="icon"
                 className="h-8 w-8 flex-shrink-0"
-                onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
+                onClick={handleAdvancedSearchToggle}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
               </Button>
@@ -336,9 +463,7 @@ export function MainContent({
           <ToggleGroup
             type="single"
             value={viewMode}
-            onValueChange={(val) => {
-              if (val) setViewMode(val as ViewMode)
-            }}
+            onValueChange={handleViewModeChange}
             className="gap-0"
           >
             <Tooltip>
@@ -397,10 +522,7 @@ export function MainContent({
           <Separator orientation="vertical" className="h-5" />
 
           {/* Sort Dropdown */}
-          <Select
-            value={sortOption}
-            onValueChange={(val) => setSortOption(val as SortOption)}
-          >
+          <Select value={sortOption} onValueChange={handleSortChange}>
             <SelectTrigger className="h-8 w-[140px] text-xs">
               <SelectValue />
             </SelectTrigger>
@@ -428,15 +550,13 @@ export function MainContent({
                   { value: 'description', label: 'Description Only' },
                 ] as const
               ).map((scope) => (
-                <Button
+                <SearchScopeButton
                   key={scope.value}
-                  variant={searchScope === scope.value ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => setSearchScope(scope.value)}
-                >
-                  {scope.label}
-                </Button>
+                  value={scope.value}
+                  label={scope.label}
+                  isActive={searchScope === scope.value}
+                  onSetScope={handleSetSearchScope}
+                />
               ))}
             </div>
           </div>
@@ -452,7 +572,7 @@ export function MainContent({
               variant="ghost"
               size="sm"
               className="h-6 text-xs"
-              onClick={() => onSelectedRaindropIdsChange(new Set())}
+              onClick={handleDeselectAll}
             >
               Deselect All
             </Button>
@@ -503,15 +623,15 @@ export function MainContent({
           /* Grid View */
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4">
             {sortedRaindrops.map((raindrop) => (
-              <RaindropCard
+              <RaindropCardWrapper
                 key={raindrop.id}
                 raindrop={raindrop}
                 isSelected={
                   selectedRaindropId === raindrop.id ||
                   selectedRaindropIds.has(raindrop.id)
                 }
-                onClick={(e) => handleRaindropClick(raindrop, e)}
-                onDoubleClick={() => handleRaindropDoubleClick(raindrop)}
+                onRaindropClick={handleRaindropClick}
+                onRaindropDoubleClick={handleRaindropDoubleClick}
               />
             ))}
           </div>
@@ -519,15 +639,15 @@ export function MainContent({
           /* List View (default) */
           <div className="divide-y">
             {sortedRaindrops.map((raindrop) => (
-              <RaindropListItem
+              <RaindropListItemWrapper
                 key={raindrop.id}
                 raindrop={raindrop}
                 isSelected={
                   selectedRaindropId === raindrop.id ||
                   selectedRaindropIds.has(raindrop.id)
                 }
-                onClick={(e) => handleRaindropClick(raindrop, e)}
-                onDoubleClick={() => handleRaindropDoubleClick(raindrop)}
+                onRaindropClick={handleRaindropClick}
+                onRaindropDoubleClick={handleRaindropDoubleClick}
               />
             ))}
           </div>
@@ -535,4 +655,6 @@ export function MainContent({
       </ScrollArea>
     </div>
   )
-}
+})
+export { MainContent }
+export default MainContent

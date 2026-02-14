@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import React, { useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -55,7 +55,35 @@ interface GroupDialogProps {
  *     onSave={(data) => console.log("Save group:", data)}
  *   />
  */
-export function GroupDialog({
+/**
+ * Reset form state when the dialog opens or the group changes.
+ * @param open - Whether dialog is open
+ * @param group - Group to edit (if any)
+ * @param reset - react-hook-form reset function
+ */
+function useGroupFormReset(
+  open: boolean,
+  group: Group | undefined,
+  reset: (values: GroupFormValues) => void,
+) {
+  useEffect(() => {
+    if (open) {
+      if (group) {
+        reset({
+          name: group.name,
+          collapsed: false,
+        })
+      } else {
+        reset({
+          name: '',
+          collapsed: false,
+        })
+      }
+    }
+  }, [open, group, reset])
+}
+
+const GroupDialog = React.memo(function GroupDialog({
   open,
   onOpenChange,
   group,
@@ -80,21 +108,13 @@ export function GroupDialog({
 
   const collapsed = watch('collapsed')
 
-  useEffect(() => {
-    if (open) {
-      if (group) {
-        reset({
-          name: group.name,
-          collapsed: false,
-        })
-      } else {
-        reset({
-          name: '',
-          collapsed: false,
-        })
-      }
-    }
-  }, [open, group, reset])
+  useGroupFormReset(open, group, reset)
+
+  const handleCollapsedChange = useCallback(
+    (checked: boolean) => setValue('collapsed', checked),
+    [setValue],
+  )
+  const handleCancel = useCallback(() => onOpenChange(false), [onOpenChange])
 
   const onSubmit = (data: GroupFormValues) => {
     onSave({
@@ -145,19 +165,13 @@ export function GroupDialog({
               <Switch
                 id="group-collapsed"
                 checked={collapsed}
-                onCheckedChange={(checked: boolean) =>
-                  setValue('collapsed', checked)
-                }
+                onCheckedChange={handleCollapsedChange}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -168,4 +182,6 @@ export function GroupDialog({
       </DialogContent>
     </Dialog>
   )
-}
+})
+export { GroupDialog }
+export default GroupDialog

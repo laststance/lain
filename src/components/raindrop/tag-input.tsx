@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useState, useRef, useCallback, type KeyboardEvent } from 'react'
+import React, { useState, useRef, useCallback, type KeyboardEvent } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -47,7 +47,7 @@ interface TagInputProps {
  *     placeholder="Add tags..."
  *   />
  */
-export function TagInput({
+const TagInput = React.memo(function TagInput({
   value,
   onChange,
   suggestions = [],
@@ -82,39 +82,63 @@ export function TagInput({
     [value, onChange, maxTags],
   )
 
-  const removeTag = useCallback(
-    (tagToRemove: string) => {
-      onChange(value.filter((t) => t !== tagToRemove))
+  const removeTag = (tagToRemove: string) => {
+    onChange(value.filter((t) => t !== tagToRemove))
+  }
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault()
+        if (
+          selectedSuggestionIndex >= 0 &&
+          selectedSuggestionIndex < filteredSuggestions.length
+        ) {
+          addTag(filteredSuggestions[selectedSuggestionIndex])
+        } else {
+          addTag(inputValue)
+        }
+      } else if (
+        e.key === 'Backspace' &&
+        inputValue === '' &&
+        value.length > 0
+      ) {
+        onChange(value.filter((t) => t !== value[value.length - 1]))
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) =>
+          Math.min(prev + 1, filteredSuggestions.length - 1),
+        )
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => Math.max(prev - 1, -1))
+      } else if (e.key === 'Escape') {
+        setShowSuggestions(false)
+        setSelectedSuggestionIndex(-1)
+      }
     },
-    [value, onChange],
+    [
+      addTag,
+      inputValue,
+      selectedSuggestionIndex,
+      filteredSuggestions,
+      value,
+      onChange,
+    ],
   )
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      if (
-        selectedSuggestionIndex >= 0 &&
-        selectedSuggestionIndex < filteredSuggestions.length
-      ) {
-        addTag(filteredSuggestions[selectedSuggestionIndex])
-      } else {
-        addTag(inputValue)
-      }
-    } else if (e.key === 'Backspace' && inputValue === '' && value.length > 0) {
-      removeTag(value[value.length - 1])
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedSuggestionIndex((prev) =>
-        Math.min(prev + 1, filteredSuggestions.length - 1),
-      )
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedSuggestionIndex((prev) => Math.max(prev - 1, -1))
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false)
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputValue(e.target.value)
+      setShowSuggestions(true)
       setSelectedSuggestionIndex(-1)
-    }
-  }
+    },
+    [],
+  )
+  const handleInputFocus = useCallback(() => setShowSuggestions(true), [])
+  const handleInputBlur = useCallback(() => {
+    setTimeout(() => setShowSuggestions(false), 200)
+  }, [])
 
   return (
     <div className="space-y-2">
@@ -152,15 +176,9 @@ export function TagInput({
         <Input
           ref={inputRef}
           value={inputValue}
-          onChange={(e) => {
-            setInputValue(e.target.value)
-            setShowSuggestions(true)
-            setSelectedSuggestionIndex(-1)
-          }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => {
-            setTimeout(() => setShowSuggestions(false), 200)
-          }}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
           placeholder={value.length === 0 ? placeholder : ''}
           disabled={
@@ -182,7 +200,17 @@ export function TagInput({
                 )}
                 onMouseDown={(e) => {
                   e.preventDefault()
-                  addTag(suggestion)
+                  const trimmed = suggestion.trim().toLowerCase()
+                  if (
+                    !trimmed ||
+                    value.includes(trimmed) ||
+                    (maxTags && value.length >= maxTags)
+                  )
+                    return
+                  onChange([...value, trimmed])
+                  setInputValue('')
+                  setShowSuggestions(false)
+                  setSelectedSuggestionIndex(-1)
                 }}
               >
                 {suggestion}
@@ -198,4 +226,6 @@ export function TagInput({
       )}
     </div>
   )
-}
+})
+export { TagInput }
+export default TagInput

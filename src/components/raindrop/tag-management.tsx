@@ -8,7 +8,7 @@ import {
   Check,
   X,
 } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import {
   AlertDialog,
@@ -91,7 +91,132 @@ type SortMode = 'name' | 'count'
  *     onDelete={(name) => deleteTag(name)}
  *   />
  */
-export function TagManagement({
+/**
+ * A single tag row inside the tag list .map() loop.
+ * Extracted as a component to allow useCallback for event handlers.
+ */
+const TagRowItem = React.memo(function TagRowItem({
+  tag,
+  isSelected,
+  isEditing,
+  editValue,
+  onToggleTag,
+  onEditValueChange,
+  onConfirmRename,
+  onCancelRename,
+  onStartRename,
+  onSetDeleteTarget,
+}: {
+  tag: TagEntry
+  isSelected: boolean
+  isEditing: boolean
+  editValue: string
+  onToggleTag: (tagName: string) => void
+  onEditValueChange: (value: string) => void
+  onConfirmRename: () => void
+  onCancelRename: () => void
+  onStartRename: (tagName: string) => void
+  onSetDeleteTarget: (tagName: string) => void
+}) {
+  const handleCheckedChange = useCallback(
+    () => onToggleTag(tag.name),
+    [onToggleTag, tag.name],
+  )
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      onEditValueChange(e.target.value),
+    [onEditValueChange],
+  )
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') onConfirmRename()
+      if (e.key === 'Escape') onCancelRename()
+    },
+    [onConfirmRename, onCancelRename],
+  )
+  const handleStartRename = useCallback(
+    () => onStartRename(tag.name),
+    [onStartRename, tag.name],
+  )
+  const handleSetDelete = useCallback(
+    () => onSetDeleteTarget(tag.name),
+    [onSetDeleteTarget, tag.name],
+  )
+
+  return (
+    <div
+      className={cn(
+        'group hover:bg-accent flex items-center gap-3 rounded-md px-2 py-1.5',
+        isSelected && 'bg-accent/50',
+      )}
+    >
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={handleCheckedChange}
+        aria-label={`Select tag ${tag.name}`}
+      />
+
+      {isEditing ? (
+        <div className="flex flex-1 items-center gap-1">
+          <Input
+            value={editValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            className="h-7 text-sm"
+            autoFocus
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onConfirmRename}
+          >
+            <Check className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onCancelRename}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <>
+          <Badge variant="secondary" className="text-xs">
+            {tag.name}
+          </Badge>
+          <span className="text-muted-foreground ml-auto text-xs">
+            {tag.count}
+          </span>
+          <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={handleStartRename}
+              title="Rename tag"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:text-destructive h-7 w-7"
+              onClick={handleSetDelete}
+              title="Delete tag"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+})
+
+const TagManagement = React.memo(function TagManagement({
   tags,
   open,
   onOpenChange,
@@ -108,6 +233,11 @@ export function TagManagement({
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
   const [mergeTargetName, setMergeTargetName] = useState('')
 
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
+    [],
+  )
+
   const filteredAndSortedTags = useMemo(() => {
     let filtered = tags
     if (searchQuery) {
@@ -120,7 +250,7 @@ export function TagManagement({
     })
   }, [tags, searchQuery, sortMode])
 
-  const toggleTag = (tagName: string) => {
+  const toggleTag = useCallback((tagName: string) => {
     setSelectedTags((prev) => {
       const next = new Set(prev)
       if (next.has(tagName)) {
@@ -130,51 +260,94 @@ export function TagManagement({
       }
       return next
     })
-  }
+  }, [])
 
-  const toggleAll = () => {
+  const toggleAll = useCallback(() => {
     if (selectedTags.size === filteredAndSortedTags.length) {
       setSelectedTags(new Set())
     } else {
       setSelectedTags(new Set(filteredAndSortedTags.map((t) => t.name)))
     }
-  }
+  }, [selectedTags.size, filteredAndSortedTags])
 
-  const startRename = (tagName: string) => {
+  const startRename = useCallback((tagName: string) => {
     setEditingTag(tagName)
     setEditValue(tagName)
-  }
+  }, [])
 
-  const confirmRename = () => {
+  const confirmRename = useCallback(() => {
     if (editingTag && editValue.trim() && editValue.trim() !== editingTag) {
       onRename?.(editingTag, editValue.trim())
     }
     setEditingTag(null)
     setEditValue('')
-  }
+  }, [editingTag, editValue, onRename])
 
-  const cancelRename = () => {
+  const cancelRename = useCallback(() => {
     setEditingTag(null)
     setEditValue('')
-  }
+  }, [])
 
-  const handleMerge = () => {
+  const handleMerge = useCallback(() => {
     if (selectedTags.size >= 2 && mergeTargetName.trim()) {
       onMerge?.(Array.from(selectedTags), mergeTargetName.trim())
       setSelectedTags(new Set())
       setMergeDialogOpen(false)
       setMergeTargetName('')
     }
-  }
+  }, [selectedTags, mergeTargetName, onMerge])
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (deleteTarget) {
       onDelete?.(deleteTarget)
       selectedTags.delete(deleteTarget)
       setSelectedTags(new Set(selectedTags))
       setDeleteTarget(null)
     }
-  }
+  }, [deleteTarget, onDelete, selectedTags])
+
+  const handleSortByName = useCallback(() => setSortMode('name'), [])
+  const handleSortByCount = useCallback(() => setSortMode('count'), [])
+  const handleOpenMergeDialog = useCallback(() => {
+    setMergeTargetName('')
+    setMergeDialogOpen(true)
+  }, [])
+  const handleBulkDelete = useCallback(() => {
+    for (const name of selectedTags) {
+      onDelete?.(name)
+    }
+    setSelectedTags(new Set())
+  }, [selectedTags, onDelete])
+  const handleCloseDialog = useCallback(
+    () => onOpenChange(false),
+    [onOpenChange],
+  )
+  const handleCloseMergeDialog = useCallback(
+    () => setMergeDialogOpen(false),
+    [],
+  )
+  const handleMergeTargetChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setMergeTargetName(e.target.value),
+    [],
+  )
+  const handleMergeKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') handleMerge()
+    },
+    [handleMerge],
+  )
+  const handleDeleteDialogOpenChange = useCallback((open: boolean) => {
+    if (!open) setDeleteTarget(null)
+  }, [])
+  const handleEditValueChange = useCallback(
+    (value: string) => setEditValue(value),
+    [],
+  )
+  const handleSetDeleteTarget = useCallback(
+    (tagName: string) => setDeleteTarget(tagName),
+    [],
+  )
 
   return (
     <>
@@ -198,7 +371,7 @@ export function TagManagement({
                 <Input
                   placeholder="Search tags..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchChange}
                   className="h-8 pl-8"
                 />
               </div>
@@ -210,10 +383,10 @@ export function TagManagement({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setSortMode('name')}>
+                  <DropdownMenuItem onClick={handleSortByName}>
                     Sort by name
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSortMode('count')}>
+                  <DropdownMenuItem onClick={handleSortByCount}>
                     Sort by count
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -232,10 +405,7 @@ export function TagManagement({
                     variant="ghost"
                     size="sm"
                     className="h-7 gap-1 text-xs"
-                    onClick={() => {
-                      setMergeTargetName('')
-                      setMergeDialogOpen(true)
-                    }}
+                    onClick={handleOpenMergeDialog}
                   >
                     <Merge className="h-3.5 w-3.5" />
                     Merge
@@ -245,12 +415,7 @@ export function TagManagement({
                   variant="ghost"
                   size="sm"
                   className="text-destructive hover:text-destructive h-7 gap-1 text-xs"
-                  onClick={() => {
-                    for (const name of selectedTags) {
-                      onDelete?.(name)
-                    }
-                    setSelectedTags(new Set())
-                  }}
+                  onClick={handleBulkDelete}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete
@@ -278,79 +443,19 @@ export function TagManagement({
                 <Separator />
 
                 {filteredAndSortedTags.map((tag) => (
-                  <div
+                  <TagRowItem
                     key={tag.name}
-                    className={cn(
-                      'group hover:bg-accent flex items-center gap-3 rounded-md px-2 py-1.5',
-                      selectedTags.has(tag.name) && 'bg-accent/50',
-                    )}
-                  >
-                    <Checkbox
-                      checked={selectedTags.has(tag.name)}
-                      onCheckedChange={() => toggleTag(tag.name)}
-                      aria-label={`Select tag ${tag.name}`}
-                    />
-
-                    {editingTag === tag.name ? (
-                      <div className="flex flex-1 items-center gap-1">
-                        <Input
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') confirmRename()
-                            if (e.key === 'Escape') cancelRename()
-                          }}
-                          className="h-7 text-sm"
-                          autoFocus
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={confirmRename}
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={cancelRename}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <Badge variant="secondary" className="text-xs">
-                          {tag.name}
-                        </Badge>
-                        <span className="text-muted-foreground ml-auto text-xs">
-                          {tag.count}
-                        </span>
-                        <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => startRename(tag.name)}
-                            title="Rename tag"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive h-7 w-7"
-                            onClick={() => setDeleteTarget(tag.name)}
-                            title="Delete tag"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                    tag={tag}
+                    isSelected={selectedTags.has(tag.name)}
+                    isEditing={editingTag === tag.name}
+                    editValue={editValue}
+                    onToggleTag={toggleTag}
+                    onEditValueChange={handleEditValueChange}
+                    onConfirmRename={confirmRename}
+                    onCancelRename={cancelRename}
+                    onStartRename={startRename}
+                    onSetDeleteTarget={handleSetDeleteTarget}
+                  />
                 ))}
 
                 {filteredAndSortedTags.length === 0 && (
@@ -363,7 +468,7 @@ export function TagManagement({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={handleCloseDialog}>
               Close
             </Button>
           </DialogFooter>
@@ -391,14 +496,12 @@ export function TagManagement({
             <Input
               placeholder="New tag name..."
               value={mergeTargetName}
-              onChange={(e) => setMergeTargetName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleMerge()
-              }}
+              onChange={handleMergeTargetChange}
+              onKeyDown={handleMergeKeyDown}
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
+            <Button variant="outline" onClick={handleCloseMergeDialog}>
               Cancel
             </Button>
             <Button onClick={handleMerge} disabled={!mergeTargetName.trim()}>
@@ -411,9 +514,7 @@ export function TagManagement({
       {/* Delete confirmation */}
       <AlertDialog
         open={deleteTarget !== null}
-        onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null)
-        }}
+        onOpenChange={handleDeleteDialogOpenChange}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -438,4 +539,6 @@ export function TagManagement({
       </AlertDialog>
     </>
   )
-}
+})
+export { TagManagement }
+export default TagManagement

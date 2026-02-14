@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority'
 import { Slot } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -27,7 +27,7 @@ const badgeVariants = cva(
   },
 )
 
-function Badge({
+const Badge = React.memo(function Badge({
   className,
   variant = 'default',
   asChild = false,
@@ -44,6 +44,7 @@ function Badge({
       {...props}
     />
   )
-}
+})
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { Badge, badgeVariants }

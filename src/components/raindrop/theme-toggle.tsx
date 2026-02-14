@@ -1,4 +1,5 @@
 import { Sun, Moon, Monitor } from 'lucide-react'
+import React, { useCallback } from 'react'
 
 import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
@@ -17,8 +18,12 @@ import { cn } from '@/lib/utils'
  * @example
  *   <ThemeToggle />
  */
-export function ThemeToggle() {
+const ThemeToggle = React.memo(function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme()
+
+  const handleSetLight = useCallback(() => setTheme('light'), [setTheme])
+  const handleSetDark = useCallback(() => setTheme('dark'), [setTheme])
+  const handleSetSystem = useCallback(() => setTheme('system'), [setTheme])
 
   return (
     <DropdownMenu>
@@ -34,21 +39,21 @@ export function ThemeToggle() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
-          onClick={() => setTheme('light')}
+          onClick={handleSetLight}
           className={cn(theme === 'light' && 'bg-accent')}
         >
           <Sun className="mr-2 h-4 w-4" />
           <span>Light</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => setTheme('dark')}
+          onClick={handleSetDark}
           className={cn(theme === 'dark' && 'bg-accent')}
         >
           <Moon className="mr-2 h-4 w-4" />
           <span>Dark</span>
         </DropdownMenuItem>
         <DropdownMenuItem
-          onClick={() => setTheme('system')}
+          onClick={handleSetSystem}
           className={cn(theme === 'system' && 'bg-accent')}
         >
           <Monitor className="mr-2 h-4 w-4" />
@@ -57,4 +62,6 @@ export function ThemeToggle() {
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
+})
+export { ThemeToggle }
+export default ThemeToggle

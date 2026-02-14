@@ -1,6 +1,11 @@
+import React from 'react'
+
 import { cn } from '@/lib/utils'
 
-function ExampleWrapper({ className, ...props }: React.ComponentProps<'div'>) {
+const ExampleWrapper = React.memo(function ExampleWrapper({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
   return (
     <div className="bg-background w-full">
       <div
@@ -13,9 +18,9 @@ function ExampleWrapper({ className, ...props }: React.ComponentProps<'div'>) {
       />
     </div>
   )
-}
+})
 
-function Example({
+const Example = React.memo(function Example({
   title,
   children,
   className,
@@ -50,6 +55,6 @@ function Example({
       </div>
     </div>
   )
-}
+})
 
 export { ExampleWrapper, Example }

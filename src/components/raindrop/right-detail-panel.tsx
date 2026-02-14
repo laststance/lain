@@ -20,7 +20,7 @@ import {
   Check,
   Highlighter,
 } from 'lucide-react'
-import { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -98,6 +98,61 @@ interface RightDetailPanelProps {
 }
 
 /**
+ * Sync form values when the selected raindrop changes.
+ * @param raindrop - Selected raindrop data
+ * @param reset - react-hook-form reset function
+ * @param setTags - Setter for tags state
+ * @param setFaviconError - Setter for favicon error state
+ */
+function useRaindropFormSync(
+  raindrop: Raindrop | undefined,
+  reset: (values: RaindropFormValues) => void,
+  setTags: (tags: string[]) => void,
+  setFaviconError: (error: boolean) => void,
+) {
+  useEffect(() => {
+    if (raindrop) {
+      reset({
+        title: raindrop.title,
+        url: raindrop.url,
+        description: raindrop.description || '',
+        type: raindrop.type,
+        notes: raindrop.notes || '',
+        isImportant: raindrop.isImportant || false,
+      })
+      setTags(raindrop.tags || [])
+      setFaviconError(false)
+    }
+  }, [raindrop, reset, setTags, setFaviconError])
+}
+
+/**
+ * Tag autocomplete filtering effect for the detail panel.
+ * @param tagInput - Current tag input text
+ * @param existingTags - All available tags
+ * @param tags - Currently selected tags
+ * @param setTagSuggestions - Setter for suggestions
+ */
+function useDetailTagAutocomplete(
+  tagInput: string,
+  existingTags: string[],
+  tags: string[],
+  setTagSuggestions: (suggestions: string[]) => void,
+) {
+  useEffect(() => {
+    if (!tagInput) {
+      setTagSuggestions([])
+      return
+    }
+    const lower = tagInput.toLowerCase()
+    const filtered = existingTags.filter(
+      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
+    )
+    setTagSuggestions(filtered.slice(0, 5))
+  }, [tagInput, existingTags, tags, setTagSuggestions])
+}
+
+/**
  * Right-side detail panel showing selected raindrop information and edit form.
  * Displays cover image, metadata, tags, highlights, and action buttons.
  * Slides in/out from the right edge of the layout.
@@ -121,7 +176,7 @@ interface RightDetailPanelProps {
  *     onDelete={handleDelete}
  *   />
  */
-export function RightDetailPanel({
+const RightDetailPanel = React.memo(function RightDetailPanel({
   raindrop,
   isOpen,
   onClose,
@@ -159,34 +214,25 @@ export function RightDetailPanel({
   const isImportant = watch('isImportant')
   const currentUrl = watch('url')
 
-  // Reset form when raindrop changes
-  useEffect(() => {
-    if (raindrop) {
-      reset({
-        title: raindrop.title,
-        url: raindrop.url,
-        description: raindrop.description || '',
-        type: raindrop.type,
-        notes: raindrop.notes || '',
-        isImportant: raindrop.isImportant || false,
-      })
-      setTags(raindrop.tags || [])
-      setFaviconError(false)
-    }
-  }, [raindrop, reset])
+  useRaindropFormSync(raindrop, reset, setTags, setFaviconError)
+  useDetailTagAutocomplete(tagInput, existingTags, tags, setTagSuggestions)
 
-  // Tag autocomplete
-  useEffect(() => {
-    if (!tagInput) {
-      setTagSuggestions([])
-      return
-    }
-    const lower = tagInput.toLowerCase()
-    const filtered = existingTags.filter(
-      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
-    )
-    setTagSuggestions(filtered.slice(0, 5))
-  }, [tagInput, existingTags, tags])
+  const handleTypeChange = useCallback(
+    (val: string) => setValue('type', val as ContentType),
+    [setValue],
+  )
+  const handleImportantChange = useCallback(
+    (checked: boolean) => setValue('isImportant', checked),
+    [setValue],
+  )
+  const handleDelete = useCallback(() => {
+    if (!raindrop) return
+    onDelete(raindrop.id)
+    onClose()
+  }, [raindrop, onDelete, onClose])
+  const handlePanelOpen = useCallback(() => {
+    /* Panel open is controlled by parent */
+  }, [])
 
   const addTag = (tag: string) => {
     const trimmed = tag.trim().toLowerCase()
@@ -237,12 +283,6 @@ export function RightDetailPanel({
       ...data,
       tags,
     })
-  }
-
-  const handleDelete = () => {
-    if (!raindrop) return
-    onDelete(raindrop.id)
-    onClose()
   }
 
   const domain = currentUrl ? extractDomain(currentUrl) : ''
@@ -459,10 +499,7 @@ export function RightDetailPanel({
               {/* Type */}
               <div className="grid gap-2">
                 <Label htmlFor="detail-type">Type</Label>
-                <Select
-                  value={selectedType}
-                  onValueChange={(val) => setValue('type', val as ContentType)}
-                >
+                <Select value={selectedType} onValueChange={handleTypeChange}>
                   <SelectTrigger id="detail-type">
                     <SelectValue />
                   </SelectTrigger>
@@ -540,9 +577,7 @@ export function RightDetailPanel({
                 <Switch
                   id="detail-important"
                   checked={isImportant}
-                  onCheckedChange={(checked: boolean) =>
-                    setValue('isImportant', checked)
-                  }
+                  onCheckedChange={handleImportantChange}
                 />
               </div>
 
@@ -634,9 +669,7 @@ export function RightDetailPanel({
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 rounded-l-md rounded-r-none border-r-0"
-                  onClick={() => {
-                    /* Panel open is controlled by parent */
-                  }}
+                  onClick={handlePanelOpen}
                 >
                   <PanelRightOpen className="h-4 w-4" />
                 </Button>
@@ -648,4 +681,6 @@ export function RightDetailPanel({
       )}
     </div>
   )
-}
+})
+export { RightDetailPanel }
+export default RightDetailPanel

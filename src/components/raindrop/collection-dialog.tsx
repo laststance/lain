@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -122,7 +122,45 @@ interface CollectionDialogProps {
  *     onSave={(data) => console.log("Save:", data)}
  *   />
  */
-export function CollectionDialog({
+/**
+ * Reset collection form when the dialog opens or the collection changes.
+ */
+function useCollectionFormReset(
+  open: boolean,
+  collection: Collection | undefined,
+  groups: Group[],
+  reset: (values: CollectionFormValues) => void,
+  setIconSearch: (search: string) => void,
+) {
+  useEffect(() => {
+    if (open) {
+      if (collection) {
+        reset({
+          name: collection.name,
+          icon: collection.icon || 'Folder',
+          color: collection.color || '#8b5cf6',
+          groupId: collection.groupId,
+          parentId: collection.parentId || undefined,
+          viewMode: 'list',
+          isPublic: false,
+        })
+      } else {
+        reset({
+          name: '',
+          icon: 'Folder',
+          color: '#8b5cf6',
+          groupId: groups[0]?.id || '',
+          parentId: undefined,
+          viewMode: 'list',
+          isPublic: false,
+        })
+      }
+      setIconSearch('')
+    }
+  }, [open, collection, groups, reset, setIconSearch])
+}
+
+const CollectionDialog = React.memo(function CollectionDialog({
   open,
   onOpenChange,
   groups,
@@ -157,32 +195,30 @@ export function CollectionDialog({
   const selectedGroupId = watch('groupId')
   const isPublic = watch('isPublic')
 
-  useEffect(() => {
-    if (open) {
-      if (collection) {
-        reset({
-          name: collection.name,
-          icon: collection.icon || 'Folder',
-          color: collection.color || '#8b5cf6',
-          groupId: collection.groupId,
-          parentId: collection.parentId || undefined,
-          viewMode: 'list',
-          isPublic: false,
-        })
-      } else {
-        reset({
-          name: '',
-          icon: 'Folder',
-          color: '#8b5cf6',
-          groupId: groups[0]?.id || '',
-          parentId: undefined,
-          viewMode: 'list',
-          isPublic: false,
-        })
-      }
-      setIconSearch('')
-    }
-  }, [open, collection, groups, reset])
+  useCollectionFormReset(open, collection, groups, reset, setIconSearch)
+
+  const handleGroupChange = useCallback(
+    (val: string) => setValue('groupId', val),
+    [setValue],
+  )
+  const handleParentChange = useCallback(
+    (id: string) => setValue('parentId', id || undefined),
+    [setValue],
+  )
+  const handleIconSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setIconSearch(e.target.value),
+    [],
+  )
+  const handleViewModeChange = useCallback(
+    (val: string) =>
+      setValue('viewMode', val as 'list' | 'grid' | 'table' | 'directory'),
+    [setValue],
+  )
+  const handlePublicChange = useCallback(
+    (checked: boolean) => setValue('isPublic', checked),
+    [setValue],
+  )
+  const handleCancel = useCallback(() => onOpenChange(false), [onOpenChange])
 
   const filteredIcons = useMemo(() => {
     if (!iconSearch) return ICON_OPTIONS
@@ -233,10 +269,7 @@ export function CollectionDialog({
             {/* Group Selector */}
             <div className="grid gap-2">
               <Label htmlFor="collection-group">Group</Label>
-              <Select
-                value={selectedGroupId}
-                onValueChange={(val) => setValue('groupId', val)}
-              >
+              <Select value={selectedGroupId} onValueChange={handleGroupChange}>
                 <SelectTrigger id="collection-group">
                   <SelectValue placeholder="Select a group" />
                 </SelectTrigger>
@@ -261,7 +294,7 @@ export function CollectionDialog({
               <CollectionSelector
                 groups={groups}
                 value={watch('parentId')}
-                onChange={(id) => setValue('parentId', id || undefined)}
+                onChange={handleParentChange}
                 placeholder="None (root level)"
                 allowNone
               />
@@ -296,7 +329,7 @@ export function CollectionDialog({
               <Input
                 placeholder="Search icons..."
                 value={iconSearch}
-                onChange={(e) => setIconSearch(e.target.value)}
+                onChange={handleIconSearchChange}
                 className="h-8"
               />
               <ScrollArea className="h-[120px]">
@@ -325,12 +358,7 @@ export function CollectionDialog({
               <Label htmlFor="collection-view">Default View</Label>
               <Select
                 value={watch('viewMode')}
-                onValueChange={(val) =>
-                  setValue(
-                    'viewMode',
-                    val as 'list' | 'grid' | 'table' | 'directory',
-                  )
-                }
+                onValueChange={handleViewModeChange}
               >
                 <SelectTrigger id="collection-view">
                   <SelectValue />
@@ -355,19 +383,13 @@ export function CollectionDialog({
               <Switch
                 id="collection-public"
                 checked={isPublic}
-                onCheckedChange={(checked: boolean) =>
-                  setValue('isPublic', checked)
-                }
+                onCheckedChange={handlePublicChange}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -378,4 +400,6 @@ export function CollectionDialog({
       </DialogContent>
     </Dialog>
   )
-}
+})
+export { CollectionDialog }
+export default CollectionDialog

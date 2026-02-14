@@ -1,11 +1,11 @@
 'use client'
 
 import { Avatar as AvatarPrimitive } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Avatar({
+const Avatar = React.memo(function Avatar({
   className,
   size = 'default',
   ...props
@@ -23,9 +23,9 @@ function Avatar({
       {...props}
     />
   )
-}
+})
 
-function AvatarImage({
+const AvatarImage = React.memo(function AvatarImage({
   className,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
@@ -39,9 +39,9 @@ function AvatarImage({
       {...props}
     />
   )
-}
+})
 
-function AvatarFallback({
+const AvatarFallback = React.memo(function AvatarFallback({
   className,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
@@ -55,9 +55,12 @@ function AvatarFallback({
       {...props}
     />
   )
-}
+})
 
-function AvatarBadge({ className, ...props }: React.ComponentProps<'span'>) {
+const AvatarBadge = React.memo(function AvatarBadge({
+  className,
+  ...props
+}: React.ComponentProps<'span'>) {
   return (
     <span
       data-slot="avatar-badge"
@@ -71,9 +74,12 @@ function AvatarBadge({ className, ...props }: React.ComponentProps<'span'>) {
       {...props}
     />
   )
-}
+})
 
-function AvatarGroup({ className, ...props }: React.ComponentProps<'div'>) {
+const AvatarGroup = React.memo(function AvatarGroup({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="avatar-group"
@@ -84,9 +90,9 @@ function AvatarGroup({ className, ...props }: React.ComponentProps<'div'>) {
       {...props}
     />
   )
-}
+})
 
-function AvatarGroupCount({
+const AvatarGroupCount = React.memo(function AvatarGroupCount({
   className,
   ...props
 }: React.ComponentProps<'div'>) {
@@ -100,7 +106,7 @@ function AvatarGroupCount({
       {...props}
     />
   )
-}
+})
 
 export {
   Avatar,

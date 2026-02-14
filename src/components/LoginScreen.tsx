@@ -1,3 +1,5 @@
+import React from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -16,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext'
  * @example
  *   <LoginScreen />
  */
-export function LoginScreen() {
+export const LoginScreen = React.memo(function LoginScreen() {
   const { login, isLoading } = useAuth()
 
   return (
@@ -41,4 +43,4 @@ export function LoginScreen() {
       </Card>
     </div>
   )
-}
+})

@@ -1,7 +1,8 @@
-import {
+import React, {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react'
@@ -17,16 +18,12 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 /**
- * Auth provider that bridges Electron IPC auth operations to React state.
- * On mount, checks for existing auth state (stored tokens).
- * Listens for auth state changes pushed from the main process.
+ * Custom hook encapsulating auth state initialization and IPC listener.
+ * Checks for existing auth state on mount and listens for changes from main process.
  *
- * @example
- *   <AuthProvider>
- *     <App />
- *   </AuthProvider>
+ * @returns Auth state: isAuthenticated, isLoading, user, login, logout
  */
-export function AuthProvider({ children }: { children: ReactNode }) {
+function useAuthState() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<RaindropUser | null>(null)
@@ -68,12 +65,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.auth.logout()
   }
 
-  return (
-    <AuthContext value={{ isAuthenticated, isLoading, user, login, logout }}>
-      {children}
-    </AuthContext>
-  )
+  return { isAuthenticated, isLoading, user, login, logout }
 }
+
+/**
+ * Auth provider that bridges Electron IPC auth operations to React state.
+ * On mount, checks for existing auth state (stored tokens).
+ * Listens for auth state changes pushed from the main process.
+ *
+ * @example
+ *   <AuthProvider>
+ *     <App />
+ *   </AuthProvider>
+ */
+export const AuthProvider = React.memo(function AuthProvider({
+  children,
+}: {
+  children: ReactNode
+}) {
+  const { isAuthenticated, isLoading, user, login, logout } = useAuthState()
+
+  const contextValue = useMemo(
+    () => ({ isAuthenticated, isLoading, user, login, logout }),
+    [isAuthenticated, isLoading, user, login, logout],
+  )
+
+  return (
+    // eslint-disable-next-line @laststance/react-next/no-context-provider
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+  )
+})
 
 /**
  * Hook to access auth state and operations.
@@ -83,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  * @example
  *   const { isAuthenticated, user, login, logout } = useAuth()
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext)
   if (!context) {

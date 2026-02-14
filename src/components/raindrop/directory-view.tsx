@@ -12,7 +12,7 @@ import {
   ChevronsUpDown,
   Star,
 } from 'lucide-react'
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -42,6 +42,54 @@ function getTypeInfo(type: ContentType) {
   return map[type] || map.link
 }
 
+/** Empty array constant to avoid re-creating on every render. */
+const EMPTY_PREFIXES: string[] = []
+
+/**
+ * Wrapper for child CollectionTreeNode to memoize the childPrefixes array.
+ */
+const ChildTreeNode = React.memo(function ChildTreeNode({
+  collection,
+  raindropsByCollection,
+  selectedRaindropId,
+  onSelectRaindrop,
+  onOpenUrl,
+  onSelectCollection,
+  depth,
+  isLast,
+  parentPrefixes,
+  childPrefix,
+}: {
+  collection: Collection
+  raindropsByCollection: Record<string, Raindrop[]>
+  selectedRaindropId?: string
+  onSelectRaindrop?: (raindrop: Raindrop) => void
+  onOpenUrl?: (url: string) => void
+  onSelectCollection?: (collection: Collection) => void
+  depth: number
+  isLast: boolean
+  parentPrefixes: string[]
+  childPrefix: string
+}) {
+  const childPrefixes = useMemo(
+    () => [...parentPrefixes, childPrefix],
+    [parentPrefixes, childPrefix],
+  )
+  return (
+    <CollectionTreeNode
+      collection={collection}
+      raindropsByCollection={raindropsByCollection}
+      selectedRaindropId={selectedRaindropId}
+      onSelectRaindrop={onSelectRaindrop}
+      onOpenUrl={onOpenUrl}
+      onSelectCollection={onSelectCollection}
+      depth={depth}
+      isLast={isLast}
+      parentPrefixes={childPrefixes}
+    />
+  )
+})
+
 /**
  * Props for the DirectoryView component.
  */
@@ -63,7 +111,7 @@ interface DirectoryViewProps {
 /**
  * Recursive tree node for a collection and its contents.
  */
-function CollectionTreeNode({
+const CollectionTreeNode = React.memo(function CollectionTreeNode({
   collection,
   raindropsByCollection,
   selectedRaindropId,
@@ -89,6 +137,11 @@ function CollectionTreeNode({
   const raindrops = raindropsByCollection[collection.id] || []
   const children = collection.children || []
   const hasContent = raindrops.length > 0 || children.length > 0
+
+  const folderColorStyle = useMemo(
+    () => ({ color: collection.color || '#8b5cf6' }),
+    [collection.color],
+  )
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded)
@@ -124,13 +177,10 @@ function CollectionTreeNode({
         {isExpanded ? (
           <FolderOpen
             className="h-4 w-4 flex-shrink-0"
-            style={{ color: collection.color || '#8b5cf6' }}
+            style={folderColorStyle}
           />
         ) : (
-          <Folder
-            className="h-4 w-4 flex-shrink-0"
-            style={{ color: collection.color || '#8b5cf6' }}
-          />
+          <Folder className="h-4 w-4 flex-shrink-0" style={folderColorStyle} />
         )}
         <span className="truncate font-medium">{collection.name}/</span>
         <span className="text-muted-foreground flex-shrink-0 text-xs">
@@ -143,7 +193,7 @@ function CollectionTreeNode({
         <div>
           {/* Child collections */}
           {children.map((child, index) => (
-            <CollectionTreeNode
+            <ChildTreeNode
               key={child.id}
               collection={child}
               raindropsByCollection={raindropsByCollection}
@@ -153,7 +203,8 @@ function CollectionTreeNode({
               onSelectCollection={onSelectCollection}
               depth={depth + 1}
               isLast={index === children.length - 1 && raindrops.length === 0}
-              parentPrefixes={[...parentPrefixes, childPrefix]}
+              parentPrefixes={parentPrefixes}
+              childPrefix={childPrefix}
             />
           ))}
 
@@ -212,7 +263,7 @@ function CollectionTreeNode({
       )}
     </div>
   )
-}
+})
 
 /**
  * Unix filesystem-style tree view of collections and their contained raindrops.
@@ -235,7 +286,7 @@ function CollectionTreeNode({
  *     onOpenUrl={(url) => window.shell.openExternal(url)}
  *   />
  */
-export function DirectoryView({
+const DirectoryView = React.memo(function DirectoryView({
   collections,
   raindropsByCollection,
   selectedRaindropId,
@@ -285,7 +336,7 @@ export function DirectoryView({
                 onSelectCollection={onSelectCollection}
                 depth={0}
                 isLast={index === collections.length - 1}
-                parentPrefixes={[]}
+                parentPrefixes={EMPTY_PREFIXES}
               />
             ))
           )}
@@ -293,4 +344,6 @@ export function DirectoryView({
       </ScrollArea>
     </div>
   )
-}
+})
+export { DirectoryView }
+export default DirectoryView

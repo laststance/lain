@@ -1,5 +1,5 @@
 import { Check, ChevronsUpDown, ChevronRight, Folder } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -46,7 +46,7 @@ interface CollectionSelectorProps {
  *     placeholder="Select collection..."
  *   />
  */
-export function CollectionSelector({
+const CollectionSelector = React.memo(function CollectionSelector({
   groups,
   value,
   onChange,
@@ -55,6 +55,13 @@ export function CollectionSelector({
 }: CollectionSelectorProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(e.target.value)
+    },
+    [],
+  )
 
   const selectedCollection = useMemo(() => {
     const findCollection = (
@@ -167,7 +174,7 @@ export function CollectionSelector({
           <Input
             placeholder="Search collections..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
             className="h-8"
           />
         </div>
@@ -214,4 +221,6 @@ export function CollectionSelector({
       </PopoverContent>
     </Popover>
   )
-}
+})
+export { CollectionSelector }
+export default CollectionSelector

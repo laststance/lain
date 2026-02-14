@@ -1,3 +1,4 @@
+import React from 'react'
 import { Provider } from 'react-redux'
 
 import { LoginScreen } from '@/components/LoginScreen'
@@ -11,9 +12,9 @@ import { store } from '@/store'
  * Root component that switches between login and the main 3-panel UI
  * based on Raindrop.io OAuth authentication state.
  *
- * Flow: Provider (Redux) → ThemeProvider → TooltipProvider → AuthProvider → LoginScreen | MainApp
+ * Flow: Provider (Redux) -> ThemeProvider -> TooltipProvider -> AuthProvider -> LoginScreen | MainApp
  */
-function AuthenticatedApp() {
+const AuthenticatedApp = React.memo(function AuthenticatedApp() {
   const { isAuthenticated, isLoading } = useAuth()
 
   if (isLoading) {
@@ -29,9 +30,9 @@ function AuthenticatedApp() {
   }
 
   return <MainApp />
-}
+})
 
-export function App() {
+const App = React.memo(function App() {
   return (
     <Provider store={store}>
       <ThemeProvider defaultTheme="system">
@@ -43,6 +44,7 @@ export function App() {
       </ThemeProvider>
     </Provider>
   )
-}
+})
 
+export { App }
 export default App

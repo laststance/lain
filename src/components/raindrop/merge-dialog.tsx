@@ -1,4 +1,5 @@
 import { AlertTriangle, ArrowRight, FolderInput } from 'lucide-react'
+import React, { useCallback } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -47,19 +48,22 @@ interface MergeDialogProps {
  *     onConfirm={(srcId, tgtId) => mergeCollections(srcId, tgtId)}
  *   />
  */
-export function MergeDialog({
+const MergeDialog = React.memo(function MergeDialog({
   open,
   onOpenChange,
   sourceCollection,
   targetCollection,
   onConfirm,
 }: MergeDialogProps) {
-  if (!sourceCollection || !targetCollection) return null
-
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
+    if (!sourceCollection || !targetCollection) return
     onConfirm(sourceCollection.id, targetCollection.id)
     onOpenChange(false)
-  }
+  }, [sourceCollection, targetCollection, onConfirm, onOpenChange])
+
+  const handleCancel = useCallback(() => onOpenChange(false), [onOpenChange])
+
+  if (!sourceCollection || !targetCollection) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -140,7 +144,7 @@ export function MergeDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
           <Button variant="destructive" onClick={handleConfirm}>
@@ -150,4 +154,6 @@ export function MergeDialog({
       </DialogContent>
     </Dialog>
   )
-}
+})
+export { MergeDialog }
+export default MergeDialog

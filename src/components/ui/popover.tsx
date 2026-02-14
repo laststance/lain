@@ -1,21 +1,21 @@
 import { Popover as PopoverPrimitive } from 'radix-ui'
-import * as React from 'react'
+import React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Popover({
+const Popover = React.memo(function Popover({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
   return <PopoverPrimitive.Root data-slot="popover" {...props} />
-}
+})
 
-function PopoverTrigger({
+const PopoverTrigger = React.memo(function PopoverTrigger({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
-}
+})
 
-function PopoverContent({
+const PopoverContent = React.memo(function PopoverContent({
   className,
   align = 'center',
   sideOffset = 4,
@@ -35,15 +35,18 @@ function PopoverContent({
       />
     </PopoverPrimitive.Portal>
   )
-}
+})
 
-function PopoverAnchor({
+const PopoverAnchor = React.memo(function PopoverAnchor({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
   return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />
-}
+})
 
-function PopoverHeader({ className, ...props }: React.ComponentProps<'div'>) {
+const PopoverHeader = React.memo(function PopoverHeader({
+  className,
+  ...props
+}: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="popover-header"
@@ -51,9 +54,12 @@ function PopoverHeader({ className, ...props }: React.ComponentProps<'div'>) {
       {...props}
     />
   )
-}
+})
 
-function PopoverTitle({ className, ...props }: React.ComponentProps<'h2'>) {
+const PopoverTitle = React.memo(function PopoverTitle({
+  className,
+  ...props
+}: React.ComponentProps<'h2'>) {
   return (
     <div
       data-slot="popover-title"
@@ -61,9 +67,9 @@ function PopoverTitle({ className, ...props }: React.ComponentProps<'h2'>) {
       {...props}
     />
   )
-}
+})
 
-function PopoverDescription({
+const PopoverDescription = React.memo(function PopoverDescription({
   className,
   ...props
 }: React.ComponentProps<'p'>) {
@@ -74,7 +80,7 @@ function PopoverDescription({
       {...props}
     />
   )
-}
+})
 
 export {
   Popover,

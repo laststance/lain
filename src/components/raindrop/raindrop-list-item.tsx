@@ -15,7 +15,7 @@ import {
   Music,
   // TODO: @dnd-kit migration — GripVertical for drag handle
 } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import { FaviconIcon } from '@/components/raindrop/favicon-icon'
 import { Badge } from '@/components/ui/badge'
@@ -101,16 +101,45 @@ interface RaindropListItemProps {
  *     onDoubleClick={() => openExternal(bookmark.url)}
  *   />
  */
-export function RaindropListItem({
+const RaindropListItem = React.memo(function RaindropListItem({
   raindrop,
   isSelected,
   onClick,
   onDoubleClick,
 }: RaindropListItemProps) {
   const [isHovered, setIsHovered] = useState(false)
+  const handleMouseEnter = () => setIsHovered(true)
+  const handleMouseLeave = () => setIsHovered(false)
+  const handleCheckboxClick = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
   const TypeIcon = useMemo(
     () => TYPE_ICON_MAP[raindrop.type] || Globe,
     [raindrop.type],
+  )
+
+  const handleMoreClick = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+  const handleOpenUrl = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      window.shell.openExternal(raindrop.url)
+    },
+    [raindrop.url],
+  )
+  const handleStopPropagation = useCallback(
+    (e: React.MouseEvent) => e.stopPropagation(),
+    [],
+  )
+  const handleCopyUrl = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      navigator.clipboard.writeText(raindrop.url)
+    },
+    [raindrop.url],
   )
 
   const visibleTags = raindrop.tags.slice(0, 3)
@@ -126,8 +155,8 @@ export function RaindropListItem({
         'hover:bg-accent/50',
         isSelected && 'bg-accent',
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
     >
@@ -142,7 +171,7 @@ export function RaindropListItem({
         {isHovered || isSelected ? (
           <Checkbox
             checked={isSelected}
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleCheckboxClick}
             className="h-4 w-4"
           />
         ) : (
@@ -217,50 +246,40 @@ export function RaindropListItem({
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleMoreClick}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                window.shell.openExternal(raindrop.url)
-              }}
-            >
+            <DropdownMenuItem onClick={handleOpenUrl}>
               <ExternalLink className="mr-2 h-4 w-4" />
               Open URL
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onClick={handleStopPropagation}>
               <Pencil className="mr-2 h-4 w-4" />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onClick={handleStopPropagation}>
               <FolderInput className="mr-2 h-4 w-4" />
               Move to Collection...
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onClick={handleStopPropagation}>
               <Tag className="mr-2 h-4 w-4" />
               Add Tags...
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation()
-                navigator.clipboard.writeText(raindrop.url)
-              }}
-            >
+            <DropdownMenuItem onClick={handleCopyUrl}>
               <Copy className="mr-2 h-4 w-4" />
               Copy URL
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuItem onClick={handleStopPropagation}>
               <Star className="mr-2 h-4 w-4" />
               {raindrop.isImportant ? 'Remove Important' : 'Mark as Important'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive"
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleStopPropagation}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Move to Trash
@@ -270,4 +289,6 @@ export function RaindropListItem({
       </div>
     </div>
   )
-}
+})
+export { RaindropListItem }
+export default RaindropListItem

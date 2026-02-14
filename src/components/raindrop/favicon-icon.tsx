@@ -1,5 +1,5 @@
 import { Globe, FileText, Image, Video, File, Music } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 
 import type { ContentType } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -25,21 +25,15 @@ interface FaviconIconProps {
 }
 
 /**
- * Map content type to its corresponding lucide icon component.
- * @param type - The content type
- * @returns React icon component
- * @example getTypeIconComponent("video") // => Video component
+ * Static map of content type to its corresponding lucide icon component.
  */
-function getTypeIconComponent(type: ContentType) {
-  const map: Record<ContentType, typeof Globe> = {
-    link: Globe,
-    article: FileText,
-    image: Image,
-    video: Video,
-    document: File,
-    audio: Music,
-  }
-  return map[type] || Globe
+const TYPE_ICON_MAP: Record<ContentType, typeof Globe> = {
+  link: Globe,
+  article: FileText,
+  image: Image,
+  video: Video,
+  document: File,
+  audio: Music,
 }
 
 /**
@@ -56,7 +50,7 @@ function getTypeIconComponent(type: ContentType) {
  * @example
  *   <FaviconIcon url="https://react.dev" type="article" size={20} />
  */
-export function FaviconIcon({
+const FaviconIcon = React.memo(function FaviconIcon({
   url,
   type = 'link',
   size = 32,
@@ -67,7 +61,11 @@ export function FaviconIcon({
   const faviconUrl = getFaviconUrl(domain, size)
   const initial = getDomainInitial(domain)
   const color = getDomainColor(domain)
-  const TypeIcon = getTypeIconComponent(type)
+  const TypeIcon = useMemo(() => TYPE_ICON_MAP[type] || Globe, [type])
+  const typeIconStyle = useMemo(
+    () => ({ width: size * 0.6, height: size * 0.6 }),
+    [size],
+  )
 
   if (!domain || imgError) {
     if (domain && !imgError) {
@@ -101,10 +99,7 @@ export function FaviconIcon({
         )}
         style={{ width: size, height: size }}
       >
-        <TypeIcon
-          className="text-muted-foreground"
-          style={{ width: size * 0.6, height: size * 0.6 }}
-        />
+        <TypeIcon className="text-muted-foreground" style={typeIconStyle} />
       </div>
     )
   }
@@ -120,4 +115,6 @@ export function FaviconIcon({
       loading="lazy"
     />
   )
-}
+})
+export { FaviconIcon }
+export default FaviconIcon

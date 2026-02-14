@@ -1,5 +1,5 @@
 import { Search, X, ChevronRight } from 'lucide-react'
-import { useState, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -123,7 +123,17 @@ interface CollectionSearchProps {
  *     onClose={() => setIsSearchOpen(false)}
  *   />
  */
-export function CollectionSearch({
+/**
+ * Auto-focus an input ref on mount.
+ * @param ref - React ref to the input element
+ */
+function useAutoFocus(ref: React.RefObject<HTMLInputElement | null>) {
+  useEffect(() => {
+    ref.current?.focus()
+  }, [ref])
+}
+
+const CollectionSearch = React.memo(function CollectionSearch({
   groups,
   onSelect,
   onClose,
@@ -145,10 +155,15 @@ export function CollectionSearch({
     )
   }, [allCollections, query])
 
-  // Auto-focus the input on mount
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+  useAutoFocus(inputRef)
+
+  const handleQueryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setQuery(e.target.value)
+      setFocusedIndex(0)
+    },
+    [],
+  )
 
   /**
    * Handle keyboard navigation within search results.
@@ -188,10 +203,7 @@ export function CollectionSearch({
           ref={inputRef}
           placeholder="Find collection..."
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setFocusedIndex(0)
-          }}
+          onChange={handleQueryChange}
           className="h-7 pr-7 pl-7 text-xs"
         />
         <button
@@ -269,4 +281,6 @@ export function CollectionSearch({
       )}
     </div>
   )
-}
+})
+export { CollectionSearch }
+export default CollectionSearch

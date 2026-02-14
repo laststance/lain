@@ -9,9 +9,11 @@ import { RaindropAuth } from './raindrop-auth.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const isTestMode = process.env.LAIN_TEST_MODE === '1'
+
 const clientId = process.env.VITE_RAINDROP_CLIENT_ID ?? ''
 const clientSecret = process.env.RAINDROP_CLIENT_SECRET ?? ''
-const auth = new RaindropAuth(clientId, clientSecret)
+const auth = isTestMode ? null : new RaindropAuth(clientId, clientSecret)
 
 let mainWindow: BrowserWindow | null = null
 
@@ -42,8 +44,10 @@ function createWindow(): void {
 /**
  * Register IPC handlers for auth operations.
  * All handlers validate the sender before processing.
+ *
+ * @param auth - Initialized RaindropAuth instance
  */
-function registerAuthIPC(): void {
+function registerAuthIPC(auth: RaindropAuth): void {
   ipcMain.handle('auth:login', async (event) => {
     validateSender(event)
     await auth.login()
@@ -109,9 +113,17 @@ function registerShellIPC(): void {
 // Enable remote debugging for Electron MCP integration
 app.commandLine.appendSwitch('remote-debugging-port', '9222')
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   registerShellIPC()
-  registerAuthIPC()
+
+  if (isTestMode) {
+    const { registerTestAuthIPC } = await import('./test-auth.ts')
+    registerTestAuthIPC(() => mainWindow)
+  } else {
+    if (!auth) throw new Error('auth must be initialized in non-test mode')
+    registerAuthIPC(auth)
+  }
+
   createWindow()
 
   app.on('activate', () => {

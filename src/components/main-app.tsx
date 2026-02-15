@@ -443,7 +443,7 @@ export const MainApp = React.memo(function MainApp() {
           onMergeCollections={handleOpenMerge}
         />
 
-        <SidebarInset className="flex-1">
+        <SidebarInset className="min-w-0 flex-1">
           <MainContent
             breadcrumbs={breadcrumbs}
             raindrops={raindrops}

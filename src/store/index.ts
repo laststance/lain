@@ -2,6 +2,12 @@ import { createStorageMiddleware } from '@laststance/redux-storage-middleware'
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
 
 import { api } from './api/emptyApi'
+import {
+  listenerMiddleware,
+  setupAuthListeners,
+  setupThemeListeners,
+} from './listenerMiddleware'
+import { authSlice } from './slices/authSlice'
 import { dialogSlice } from './slices/dialogSlice'
 import { searchSlice } from './slices/searchSlice'
 import { settingsSlice } from './slices/settingsSlice'
@@ -16,6 +22,7 @@ const rootReducer = combineReducers({
   search: searchSlice.reducer,
   dialog: dialogSlice.reducer,
   settings: settingsSlice.reducer,
+  auth: authSlice.reducer,
 })
 
 export type RootState = ReturnType<typeof rootReducer>
@@ -24,7 +31,7 @@ export type RootState = ReturnType<typeof rootReducer>
  * Storage middleware for localStorage persistence.
  * Persists: ui (viewMode, sidebarWidth, collectionViewModes),
  *           search (recentSearches), settings (shortcuts, theme, defaultViewMode).
- * Does NOT persist: RTK Query cache, dialog states, selectedCollectionId.
+ * Does NOT persist: RTK Query cache, dialog states, auth (checked via IPC on launch).
  */
 const {
   middleware: storageMiddleware,
@@ -37,7 +44,8 @@ const {
 })
 
 /**
- * Redux store configured with RTK Query middleware and storage persistence.
+ * Redux store configured with listener middleware, RTK Query, and storage persistence.
+ * Theme DOM operations and auth IPC subscriptions are managed by listenerMiddleware.
  *
  * @example
  *   // In App.tsx
@@ -52,8 +60,14 @@ const {
 export const store = configureStore({
   reducer,
   middleware: (getDefault) =>
-    getDefault().concat(api.middleware, storageMiddleware),
+    getDefault()
+      .prepend(listenerMiddleware.middleware)
+      .concat(api.middleware, storageMiddleware),
 })
+
+// Initialize side effects after store creation (synchronous for theme, async for auth)
+setupThemeListeners(store)
+setupAuthListeners(store)
 
 export type AppDispatch = typeof store.dispatch
 export { storageApi }

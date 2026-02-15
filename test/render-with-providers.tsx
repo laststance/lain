@@ -3,9 +3,9 @@ import { render, renderHook } from '@testing-library/react'
 import type { RenderOptions, RenderHookOptions } from '@testing-library/react'
 import { Provider } from 'react-redux'
 
-import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { api } from '@/store/api/emptyApi'
+import { authSlice } from '@/store/slices/authSlice'
 import { dialogSlice } from '@/store/slices/dialogSlice'
 import { searchSlice } from '@/store/slices/searchSlice'
 import { settingsSlice } from '@/store/slices/settingsSlice'
@@ -17,6 +17,7 @@ const rootReducer = combineReducers({
   search: searchSlice.reducer,
   dialog: dialogSlice.reducer,
   settings: settingsSlice.reducer,
+  auth: authSlice.reducer,
 })
 
 type RootState = ReturnType<typeof rootReducer>
@@ -28,6 +29,7 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
 /**
  * Render a component wrapped in all required providers for testing.
  * Creates a fresh Redux store per test to avoid state leaks.
+ * No listenerMiddleware — theme DOM ops and auth IPC are not tested in unit tests.
  *
  * @param ui - React element to render
  * @param options - Optional preloadedState and render options
@@ -49,13 +51,10 @@ export function renderWithProviders(
     preloadedState,
   })
 
-  // eslint-disable-next-line @laststance/react-next/all-memo
   function Wrapper({ children }: { children: React.ReactNode }) {
     return (
       <Provider store={store}>
-        <ThemeProvider defaultTheme="light">
-          <TooltipProvider>{children}</TooltipProvider>
-        </ThemeProvider>
+        <TooltipProvider>{children}</TooltipProvider>
       </Provider>
     )
   }

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 
 import { AddBookmarkDialog } from '@/components/raindrop/add-bookmark-dialog'
 import { CollectionDialog } from '@/components/raindrop/collection-dialog'
@@ -37,24 +37,6 @@ import {
   setSelectedCollectionId,
   setSelectedRaindropIds,
 } from '@/store/slices/uiSlice'
-
-/**
- * Custom hook for the global search shortcut (Cmd+K / Ctrl+K).
- *
- * @param onOpen - Callback fired when the shortcut is triggered
- */
-function useGlobalSearchShortcut(onOpen: () => void) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        onOpen()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onOpen])
-}
 
 /**
  * Main authenticated app view — 3-panel layout with sidebar, content, and detail.
@@ -190,11 +172,6 @@ export const MainApp = React.memo(function MainApp() {
 
   const handleSearchOpenChange = useCallback(
     (open: boolean) => dispatch(setSearchOpen(open)),
-    [dispatch],
-  )
-
-  const handleOpenSearch = useCallback(
-    () => dispatch(setSearchOpen(true)),
     [dispatch],
   )
 
@@ -409,9 +386,6 @@ export const MainApp = React.memo(function MainApp() {
     },
     [dispatch],
   )
-
-  // Global search shortcut (Cmd+K)
-  useGlobalSearchShortcut(handleOpenSearch)
 
   // Loading skeleton while sidebar data loads
   if (isSidebarLoading) {

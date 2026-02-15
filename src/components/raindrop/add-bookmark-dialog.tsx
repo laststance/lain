@@ -13,7 +13,7 @@ import {
   Plus,
   Sparkles,
 } from 'lucide-react'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -143,32 +143,6 @@ function useDebouncedUrlParsing(url: string, parseUrl: (url: string) => void) {
 }
 
 /**
- * Tag autocomplete filtering effect.
- * @param tagInput - Current tag input text
- * @param existingTags - All available tags
- * @param tags - Currently selected tags
- * @param setTagSuggestions - Setter for filtered suggestions
- */
-function useTagAutocomplete(
-  tagInput: string,
-  existingTags: string[],
-  tags: string[],
-  setTagSuggestions: (suggestions: string[]) => void,
-) {
-  useEffect(() => {
-    if (!tagInput) {
-      setTagSuggestions([])
-      return
-    }
-    const lower = tagInput.toLowerCase()
-    const filtered = existingTags.filter(
-      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
-    )
-    setTagSuggestions(filtered.slice(0, 5))
-  }, [tagInput, existingTags, tags, setTagSuggestions])
-}
-
-/**
  * Dialog for adding a new bookmark (raindrop).
  * Supports URL auto-parsing, tag input with autocomplete,
  * collection selection, type detection, and optional notes.
@@ -200,7 +174,6 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
 }: AddBookmarkDialogProps) {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
   const [isParsing, setIsParsing] = useState(false)
   const [parsedFavicon, setParsedFavicon] = useState('')
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -291,7 +264,14 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
   )
 
   useDebouncedUrlParsing(url, parseUrl)
-  useTagAutocomplete(tagInput, existingTags, tags, setTagSuggestions)
+
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput) return []
+    const lower = tagInput.toLowerCase()
+    return existingTags
+      .filter((tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag))
+      .slice(0, 5)
+  }, [tagInput, existingTags, tags])
 
   const handleCollectionChange = useCallback(
     (id: string) => setValue('collectionId', id),
@@ -313,7 +293,6 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
       setTags([...tags, trimmed])
     }
     setTagInput('')
-    setTagSuggestions([])
   }
 
   const removeTag = (tag: string) => {

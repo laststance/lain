@@ -36,6 +36,8 @@ export type ShortcutMap = Record<string, ShortcutBinding>
 interface SettingsState {
   shortcuts: ShortcutMap
   theme: 'light' | 'dark' | 'system'
+  /** Computed actual theme after resolving 'system' via matchMedia. Updated by listenerMiddleware. */
+  resolvedTheme: 'light' | 'dark'
   defaultViewMode: ViewMode
 }
 
@@ -82,6 +84,7 @@ export const DEFAULT_SHORTCUTS: ShortcutMap = {
 const initialState: SettingsState = {
   shortcuts: DEFAULT_SHORTCUTS,
   theme: 'system',
+  resolvedTheme: 'light',
   defaultViewMode: 'list',
 }
 
@@ -104,11 +107,19 @@ export const settingsSlice = createSlice({
     ) {
       state.shortcuts[action.payload.actionId] = action.payload.binding
     },
+    setResolvedTheme(state, action: PayloadAction<'light' | 'dark'>) {
+      state.resolvedTheme = action.payload
+    },
     resetShortcuts(state) {
       state.shortcuts = DEFAULT_SHORTCUTS
     },
   },
 })
 
-export const { setTheme, setDefaultViewMode, updateShortcut, resetShortcuts } =
-  settingsSlice.actions
+export const {
+  setTheme,
+  setResolvedTheme,
+  setDefaultViewMode,
+  updateShortcut,
+  resetShortcuts,
+} = settingsSlice.actions

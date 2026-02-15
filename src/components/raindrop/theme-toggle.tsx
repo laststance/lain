@@ -1,7 +1,6 @@
 import { Sun, Moon, Monitor } from 'lucide-react'
 import React, { useCallback } from 'react'
 
-import { useTheme } from '@/components/theme-provider'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -10,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/store/hooks'
 
 /**
  * Theme toggle dropdown button.

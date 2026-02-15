@@ -34,5 +34,6 @@ release/
 
 # Test
 test-results/
+coverage/
 
 .nogic

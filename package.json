@@ -17,7 +17,6 @@
     "test:e2e": "pnpm build && playwright test",
     "test:e2e:ui": "pnpm build && playwright test --ui",
     "codegen:api": "npx @rtk-query/codegen-openapi rtk-codegen.config.ts",
-    "codegen:msw": "orval",
     "prepare": "husky",
     "prettier": "prettier --ignore-unknown --write ."
   },
@@ -80,7 +79,6 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "msw": "^2.12.10",
-    "orval": "^8.3.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "prettier-plugin-tailwindcss-canonical-classes": "^0.1.3",

@@ -32,8 +32,7 @@ logs/
 # Electron Builder output
 release/
 
-# Generated mock handlers (Orval)
-test/mocks/generated/
-
 # Test
 test-results/
+
+.nogic

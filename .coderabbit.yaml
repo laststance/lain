@@ -1,0 +1,161 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit Configuration for Lain (Raindrop.io Desktop Client)
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+
+language: 'ja-JP'
+
+tone_instructions: |
+  Be concise and focus on critical issues.
+  Respect project conventions defined in CLAUDE.md and .claude/rules/.
+  This is an Electron + React 19 + Redux Toolkit project.
+
+# =============================================================================
+# REVIEWS
+# =============================================================================
+
+reviews:
+  profile: 'chill'
+
+  high_level_summary: true
+  sequence_diagrams: true
+  collapse_walkthrough: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - 'wip'
+      - 'draft'
+      - 'do not merge'
+
+  # ---------------------------------------------------------------------------
+  # Path Filters — exclude generated/build artifacts
+  # ---------------------------------------------------------------------------
+  path_filters:
+    - '!dist/**'
+    - '!dist-electron/**'
+    - '!build/**'
+    - '!coverage/**'
+    - '!node_modules/**'
+    - '!pnpm-lock.yaml'
+    - '!*.min.js'
+    - '!*.min.css'
+    - '!**/*.snap'
+    - '!**/*.icns'
+    - '!src/store/api/raindropApi.ts'
+    - '!src/components/ui/**'
+
+  # ---------------------------------------------------------------------------
+  # Path Instructions — domain-specific review guidance
+  # ---------------------------------------------------------------------------
+  path_instructions:
+    # React / TypeScript Components
+    - path: 'src/components/**/*.tsx'
+      instructions: |
+        Review React 19 components for:
+        - Rules of Hooks (NEVER suggest hooks inside .map(), conditionals, or callbacks)
+        - TypeScript strict typing for props
+        - Accessibility (WCAG 2.2 AA+, Apple HIG, 44×44px tap targets)
+        - shadcn/ui primitives usage from src/components/ui/
+        - Components should be wrapped in memo() (enforced by ESLint)
+
+        React 19 patterns preferred:
+        - Suspense + use() over useState + useEffect for data fetching
+        - useOptimistic + startTransition for optimistic UI
+        - forwardRef is unnecessary in React 19 (use ref prop directly)
+
+        Do NOT suggest useReducer — this project uses Redux Toolkit.
+
+    # Redux Store & RTK Query
+    - path: 'src/store/**/*.ts'
+      instructions: |
+        Review Redux Toolkit code for:
+        - RTK Query cache invalidation tags (Raindrop, Collection, Tag, User, Filter, Backup)
+        - No direct state mutation outside Immer reducers
+        - Type safety with RootState and AppDispatch
+        - axiosBaseQuery error handling (errors handled by axios interceptors)
+
+    # Hooks
+    - path: 'src/hooks/**/*.ts'
+      instructions: |
+        Review custom hooks for:
+        - Proper RTK Query hook composition
+        - useCallback/useMemo only when measured necessary
+        - Error handling pattern: check 'data' in result (interceptor handles errors)
+
+    # Axios & API utilities
+    - path: 'src/lib/**/*.ts'
+      instructions: |
+        Review for:
+        - Axios interceptor patterns (centralized error handling)
+        - ts-pattern exhaustive matching
+        - Type safety with API response shapes
+        - No leaked credentials or tokens in renderer
+
+    # Electron Main Process
+    - path: 'electron/**/*.ts'
+      instructions: |
+        SECURITY CRITICAL — Review for:
+        - IPC validation (validateSender on ALL handlers)
+        - contextIsolation: true, nodeIntegration: false, sandbox: true
+        - safeStorage for token persistence (not localStorage)
+        - Protocol validation (https/http only) for shell.openExternal
+        - No token exposure to renderer globals
+
+    # Unit Tests
+    - path: '**/*.test.{ts,tsx}'
+      instructions: |
+        Review tests for:
+        - @testing-library/react semantic queries (getByRole preferred)
+        - MSW handlers for API mocking (not jest.mock)
+        - Edge case coverage
+        - No implementation details testing (test behavior, not internals)
+
+    # E2E Tests
+    - path: 'e2e/**/*.{ts,spec.ts}'
+      instructions: |
+        Review Playwright E2E tests for:
+        - Resilient selectors (role, data-slot, data-testid)
+        - Appropriate timeouts and waitFor usage
+        - Test isolation (no shared state between tests)
+        - LAIN_TEST_MODE auth bypass pattern compliance
+
+  # ---------------------------------------------------------------------------
+  # Tools
+  # ---------------------------------------------------------------------------
+  tools:
+    eslint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    actionlint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+# =============================================================================
+# KNOWLEDGE BASE
+# =============================================================================
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    file_patterns:
+      - 'CLAUDE.md'
+      - '.claude/rules/*.md'
+      - 'SPEC.md'
+
+# =============================================================================
+# CHAT
+# =============================================================================
+
+chat:
+  auto_reply: true

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 
 import { AddBookmarkDialog } from '@/components/raindrop/add-bookmark-dialog'
 import { CollectionDialog } from '@/components/raindrop/collection-dialog'
@@ -6,71 +6,111 @@ import { GlobalSearchCommand } from '@/components/raindrop/global-search-command
 import { GroupDialog } from '@/components/raindrop/group-dialog'
 import { LeftSidebar } from '@/components/raindrop/left-sidebar'
 import { MainContent } from '@/components/raindrop/main-content'
+import { MergeDialog } from '@/components/raindrop/merge-dialog'
 import { RightDetailPanel } from '@/components/raindrop/right-detail-panel'
 import { TagManagement } from '@/components/raindrop/tag-management'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
-import { systemCollections, groups, mockRaindrops } from '@/data/mock-data'
-import type { Raindrop, Group, Collection } from '@/lib/types'
-
-/**
- * Custom hook for the global search shortcut (Cmd+K / Ctrl+K).
- *
- * @param onOpen - Callback fired when the shortcut is triggered
- */
-function useGlobalSearchShortcut(onOpen: () => void) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        onOpen()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onOpen])
-}
+import { useCollectionsCrud } from '@/hooks/useCollectionsCrud'
+import { useRaindropsCrud } from '@/hooks/useRaindropsCrud'
+import { useSidebarData } from '@/hooks/useSidebarData'
+import { useTagsCrud } from '@/hooks/useTagsCrud'
+import { mapSortOptionToApi } from '@/lib/api-mappers'
+import type { Collection, Raindrop, SortOption } from '@/lib/types'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  closeAddBookmark,
+  closeCollectionDialog,
+  closeGroupDialog,
+  closeMergeDialog,
+  closeTagManagement,
+  openAddBookmark,
+  openCollectionDialog,
+  openGroupDialog,
+  openMergeDialog,
+  openTagManagement,
+} from '@/store/slices/dialogSlice'
+import { setSearchOpen } from '@/store/slices/searchSlice'
+import {
+  clearSelection,
+  setDetailPanelOpen,
+  setSelectedCollectionId,
+  setSelectedRaindropIds,
+} from '@/store/slices/uiSlice'
 
 /**
  * Main authenticated app view — 3-panel layout with sidebar, content, and detail.
- * Replaces the old UserProfile component after successful OAuth login.
+ * Connects all UI components to the Raindrop.io API via RTK Query hooks and
+ * Redux slices. Orchestrates all CRUD operations through callback props.
  *
  * @example
  *   // Used in App.tsx after auth check
  *   if (isAuthenticated) return <MainApp />
  */
 export const MainApp = React.memo(function MainApp() {
-  const [selectedCollectionId, setSelectedCollectionId] =
-    useState<string>('all')
+  const dispatch = useAppDispatch()
+
+  // --- Redux State ---
+  const selectedCollectionId = useAppSelector((s) => s.ui.selectedCollectionId)
+  const isDetailPanelOpen = useAppSelector((s) => s.ui.isDetailPanelOpen)
+  const selectedRaindropIds = useAppSelector((s) => s.ui.selectedRaindropIds)
+  const isSearchOpen = useAppSelector((s) => s.search.isSearchOpen)
+  const isAddBookmarkOpen = useAppSelector((s) => s.dialog.addBookmark.open)
+  const isCollectionDialogOpen = useAppSelector(
+    (s) => s.dialog.collectionDialog.open,
+  )
+  const isGroupDialogOpen = useAppSelector((s) => s.dialog.groupDialog.open)
+  const isTagManagementOpen = useAppSelector((s) => s.dialog.tagManagement.open)
+  const isMergeDialogOpen = useAppSelector((s) => s.dialog.mergeDialog.open)
+
+  // --- Local State ---
   const [selectedRaindrop, setSelectedRaindrop] = useState<
     Raindrop | undefined
   >()
-  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [selectedRaindropIds, setSelectedRaindropIds] = useState<Set<string>>(
-    new Set(),
-  )
-
-  // Dialog states
-  const [isAddBookmarkOpen, setIsAddBookmarkOpen] = useState(false)
-  const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
-  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
-  const [isTagManagementOpen, setIsTagManagementOpen] = useState(false)
+  const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [editingCollection, setEditingCollection] = useState<
     Collection | undefined
   >()
-  const [editingGroup, setEditingGroup] = useState<Group | undefined>()
 
-  const currentRaindrops = mockRaindrops
+  // --- Data Hooks ---
+  const {
+    groups,
+    systemCollections,
+    isLoading: isSidebarLoading,
+  } = useSidebarData()
 
-  const allTags = Array.from(
-    new Set(mockRaindrops.flatMap((r) => r.tags || [])),
-  ).map((tag) => ({
-    name: tag,
-    count: mockRaindrops.filter((r) => r.tags?.includes(tag)).length,
-  }))
+  const apiSort = mapSortOptionToApi(sortOption)
+  const {
+    raindrops,
+    isLoading: isRaindropsLoading,
+    isFetching: isRaindropsFetching,
+    hasMore,
+    loadMore,
+    createRaindrop,
+    updateRaindrop,
+    deleteRaindrop,
+    batchMoveToCollection,
+    batchAddTag,
+    batchDeleteRaindrops,
+  } = useRaindropsCrud({ collectionId: selectedCollectionId, sort: apiSort })
 
-  const getBreadcrumbs = (): string[] => {
+  const { tags: allTags, renameTag, deleteTag } = useTagsCrud()
+  const {
+    createCollection: saveCollection,
+    updateCollection,
+    deleteCollection,
+    merge,
+    emptyTrash,
+  } = useCollectionsCrud()
+
+  // Bridge: string[] (Redux) → Set<string> (MainContent expects Set)
+  const selectedRaindropIdsSet = useMemo(
+    () => new Set(selectedRaindropIds),
+    [selectedRaindropIds],
+  )
+
+  // --- Breadcrumbs ---
+  const breadcrumbs = useMemo(() => {
     if (selectedCollectionId === 'all') return ['All Bookmarks']
     if (selectedCollectionId === 'unsorted') return ['Unsorted']
     if (selectedCollectionId === 'trash') return ['Trash']
@@ -104,80 +144,263 @@ export const MainApp = React.memo(function MainApp() {
     }
 
     return ['Unknown']
-  }
+  }, [selectedCollectionId, groups])
 
-  const handleSelectRaindrop = useCallback((raindrop: Raindrop) => {
-    setSelectedRaindrop(raindrop)
-    setIsDetailPanelOpen(true)
-  }, [])
-
-  // CRUD handlers (mock — will connect to Raindrop.io API later)
-  const handleSaveBookmark = useCallback((bookmark: unknown) => {
-    console.log('Save bookmark:', bookmark)
-  }, [])
-
-  const handleSaveRaindrop = useCallback((raindrop: Raindrop) => {
-    console.log('Update raindrop:', raindrop)
-  }, [])
-
-  const handleDeleteRaindrop = useCallback((raindropId: string) => {
-    console.log('Delete raindrop:', raindropId)
-  }, [])
-
-  const handleSaveCollection = useCallback((collection: unknown) => {
-    console.log('Save collection:', collection)
-    setEditingCollection(undefined)
-  }, [])
-
-  const handleSaveGroup = useCallback((group: unknown) => {
-    console.log('Save group:', group)
-    setEditingGroup(undefined)
-  }, [])
-
-  const handleRenameTag = useCallback((oldName: string, newName: string) => {
-    console.log('Rename tag:', oldName, 'to', newName)
-  }, [])
-
-  const handleDeleteTag = useCallback((tagName: string) => {
-    console.log('Delete tag:', tagName)
-  }, [])
-
-  const handleMergeTags = useCallback(
-    (sourceTags: string[], targetTag: string) => {
-      console.log('Merge tags:', sourceTags, 'into', targetTag)
-    },
-    [],
+  // --- Event Handlers ---
+  const handleSelectCollection = useCallback(
+    (id: string) => dispatch(setSelectedCollectionId(id)),
+    [dispatch],
   )
 
-  // Inline callback extractions
-  const handleAddBookmark = useCallback(() => {
-    setIsAddBookmarkOpen(true)
+  const handleSelectRaindrop = useCallback(
+    (raindrop: Raindrop) => {
+      setSelectedRaindrop(raindrop)
+      dispatch(setDetailPanelOpen(true))
+    },
+    [dispatch],
+  )
+
+  const handleSelectedIdsChange = useCallback(
+    (ids: Set<string>) => dispatch(setSelectedRaindropIds([...ids])),
+    [dispatch],
+  )
+
+  const handleCloseDetailPanel = useCallback(
+    () => dispatch(setDetailPanelOpen(false)),
+    [dispatch],
+  )
+
+  const handleSearchOpenChange = useCallback(
+    (open: boolean) => dispatch(setSearchOpen(open)),
+    [dispatch],
+  )
+
+  const handleSortChange = useCallback((sort: SortOption) => {
+    setSortOption(sort)
   }, [])
+
+  // --- CRUD Handlers ---
+  const handleSaveBookmark = useCallback(
+    (bookmark: unknown) => {
+      const data = bookmark as {
+        url?: string
+        title?: string
+        description?: string
+        tags?: string[]
+        collectionId?: string
+      }
+      if (data.url) {
+        createRaindrop({
+          url: data.url,
+          title: data.title,
+          description: data.description,
+          tags: data.tags,
+          collectionId: data.collectionId,
+        })
+      }
+    },
+    [createRaindrop],
+  )
+
+  const handleSaveRaindrop = useCallback(
+    async (raindrop: Raindrop) => updateRaindrop(raindrop.id, raindrop),
+    [updateRaindrop],
+  )
+
+  const handleDeleteRaindrop = useCallback(
+    (raindropId: string) => {
+      deleteRaindrop(raindropId)
+      dispatch(setDetailPanelOpen(false))
+    },
+    [deleteRaindrop, dispatch],
+  )
+
+  // --- Collection CRUD Handlers ---
+  const handleSaveCollection = useCallback(
+    async (collection: unknown) => {
+      const data = collection as {
+        id?: string
+        title?: string
+        name?: string
+        view?: string
+        parentId?: string
+      }
+      const title = data.title ?? data.name
+      if (!title) return
+      if (data.id) {
+        await updateCollection(data.id, { title, view: data.view })
+      } else {
+        await saveCollection({ title, parentId: data.parentId })
+      }
+      dispatch(closeCollectionDialog())
+    },
+    [saveCollection, updateCollection, dispatch],
+  )
+
+  const handleEditCollection = useCallback(
+    (collection: Collection) => {
+      setEditingCollection(collection)
+      dispatch(openCollectionDialog())
+    },
+    [dispatch],
+  )
+
+  const handleDeleteCollection = useCallback(
+    async (collectionId: string) => {
+      await deleteCollection(collectionId)
+    },
+    [deleteCollection],
+  )
+
+  const handleEmptyTrash = useCallback(async () => {
+    await emptyTrash()
+  }, [emptyTrash])
+
+  const handleSaveGroup = useCallback(
+    (_group: unknown) => {
+      dispatch(closeGroupDialog())
+    },
+    [dispatch],
+  )
+
+  // --- Merge ---
+  const handleMergeCollections = useCallback(
+    async (sourceId: string, targetId: string) => {
+      await merge(targetId, [sourceId])
+      dispatch(closeMergeDialog())
+    },
+    [merge, dispatch],
+  )
+
+  // --- Tags ---
+  const handleRenameTag = useCallback(
+    async (oldName: string, newName: string) =>
+      renameTag(selectedCollectionId, oldName, newName),
+    [renameTag, selectedCollectionId],
+  )
+
+  const handleDeleteTag = useCallback(
+    async (tagName: string) => deleteTag(selectedCollectionId, [tagName]),
+    [deleteTag, selectedCollectionId],
+  )
+
+  const handleMergeTags = useCallback(
+    async (sourceTags: string[], targetTag: string) => {
+      for (const sourceTag of sourceTags) {
+        await renameTag(selectedCollectionId, sourceTag, targetTag)
+      }
+    },
+    [renameTag, selectedCollectionId],
+  )
+
+  // --- Batch Operations ---
+  const handleBatchMove = useCallback(
+    async (ids: string[], targetCollectionId: string) => {
+      await batchMoveToCollection(ids, targetCollectionId)
+      dispatch(clearSelection())
+    },
+    [batchMoveToCollection, dispatch],
+  )
+
+  const handleBatchAddTag = useCallback(
+    async (ids: string[], tags: string[]) => {
+      await batchAddTag(ids, tags)
+      dispatch(clearSelection())
+    },
+    [batchAddTag, dispatch],
+  )
+
+  const handleBatchDelete = useCallback(
+    async (ids: string[]) => {
+      await batchDeleteRaindrops(ids)
+      dispatch(clearSelection())
+    },
+    [batchDeleteRaindrops, dispatch],
+  )
+
+  // --- Dialog Openers ---
+  const handleAddBookmark = useCallback(
+    () =>
+      dispatch(
+        openAddBookmark(
+          selectedCollectionId !== 'all'
+            ? { defaultCollectionId: selectedCollectionId }
+            : undefined,
+        ),
+      ),
+    [dispatch, selectedCollectionId],
+  )
 
   const handleAddCollection = useCallback(() => {
     setEditingCollection(undefined)
-    setIsCollectionDialogOpen(true)
-  }, [])
+    dispatch(openCollectionDialog())
+  }, [dispatch])
 
-  const handleAddGroup = useCallback(() => {
-    setEditingGroup(undefined)
-    setIsGroupDialogOpen(true)
-  }, [])
+  const handleAddGroup = useCallback(
+    () => dispatch(openGroupDialog()),
+    [dispatch],
+  )
 
-  const handleManageTags = useCallback(() => {
-    setIsTagManagementOpen(true)
-  }, [])
+  const handleManageTags = useCallback(
+    () => dispatch(openTagManagement()),
+    [dispatch],
+  )
 
-  const handleCloseDetailPanel = useCallback(() => {
-    setIsDetailPanelOpen(false)
-  }, [])
+  const handleOpenMerge = useCallback(
+    () => dispatch(openMergeDialog()),
+    [dispatch],
+  )
 
-  const handleOpenSearch = useCallback(() => {
-    setIsSearchOpen(true)
-  }, [])
+  // --- Dialog Close Handlers ---
+  const handleAddBookmarkOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) dispatch(closeAddBookmark())
+    },
+    [dispatch],
+  )
 
-  // Global search shortcut (Cmd+K)
-  useGlobalSearchShortcut(handleOpenSearch)
+  const handleCollectionDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        dispatch(closeCollectionDialog())
+        setEditingCollection(undefined)
+      }
+    },
+    [dispatch],
+  )
+
+  const handleGroupDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) dispatch(closeGroupDialog())
+    },
+    [dispatch],
+  )
+
+  const handleTagManagementOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) dispatch(closeTagManagement())
+    },
+    [dispatch],
+  )
+
+  const handleMergeDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) dispatch(closeMergeDialog())
+    },
+    [dispatch],
+  )
+
+  // Loading skeleton while sidebar data loads
+  if (isSidebarLoading) {
+    return (
+      <SidebarProvider defaultOpen>
+        <div className="flex h-screen w-screen items-center justify-center">
+          <div className="text-muted-foreground animate-pulse">Loading...</div>
+        </div>
+        <Toaster />
+      </SidebarProvider>
+    )
+  }
 
   return (
     <SidebarProvider defaultOpen>
@@ -186,24 +409,37 @@ export const MainApp = React.memo(function MainApp() {
           systemCollections={systemCollections}
           groups={groups}
           selectedCollectionId={selectedCollectionId}
-          onSelectCollection={setSelectedCollectionId}
+          onSelectCollection={handleSelectCollection}
           onAddBookmark={handleAddBookmark}
           onAddCollection={handleAddCollection}
           onAddGroup={handleAddGroup}
           onManageTags={handleManageTags}
+          onEditCollection={handleEditCollection}
+          onDeleteCollection={handleDeleteCollection}
+          onEmptyTrash={handleEmptyTrash}
+          onMergeCollections={handleOpenMerge}
         />
 
-        <SidebarInset className="flex-1">
+        <SidebarInset className="min-w-0 flex-1">
           <MainContent
-            breadcrumbs={getBreadcrumbs()}
-            raindrops={currentRaindrops}
+            breadcrumbs={breadcrumbs}
+            raindrops={raindrops}
+            isLoading={isRaindropsLoading}
+            isFetching={isRaindropsFetching}
+            hasMore={hasMore}
+            onLoadMore={loadMore}
             onSelectRaindrop={handleSelectRaindrop}
             selectedRaindropId={selectedRaindrop?.id}
-            selectedRaindropIds={selectedRaindropIds}
-            onSelectedRaindropIdsChange={setSelectedRaindropIds}
+            selectedRaindropIds={selectedRaindropIdsSet}
+            onSelectedRaindropIdsChange={handleSelectedIdsChange}
             groups={groups}
             collections={groups.flatMap((g) => g.collections)}
             onAddBookmark={handleAddBookmark}
+            sortOption={sortOption}
+            onSortChange={handleSortChange}
+            onBatchMove={handleBatchMove}
+            onBatchAddTag={handleBatchAddTag}
+            onBatchDelete={handleBatchDelete}
           />
         </SidebarInset>
 
@@ -219,10 +455,10 @@ export const MainApp = React.memo(function MainApp() {
 
         <GlobalSearchCommand
           open={isSearchOpen}
-          onOpenChange={setIsSearchOpen}
-          raindrops={mockRaindrops}
+          onOpenChange={handleSearchOpenChange}
+          raindrops={raindrops}
           onSelectRaindrop={handleSelectRaindrop}
-          onSelectCollection={setSelectedCollectionId}
+          onSelectCollection={handleSelectCollection}
           groups={groups}
           collections={groups.flatMap((g) => g.collections)}
           currentCollectionId={selectedCollectionId}
@@ -230,7 +466,7 @@ export const MainApp = React.memo(function MainApp() {
 
         <AddBookmarkDialog
           open={isAddBookmarkOpen}
-          onOpenChange={setIsAddBookmarkOpen}
+          onOpenChange={handleAddBookmarkOpenChange}
           groups={groups}
           existingTags={allTags.map((t) => t.name)}
           defaultCollectionId={
@@ -241,7 +477,7 @@ export const MainApp = React.memo(function MainApp() {
 
         <CollectionDialog
           open={isCollectionDialogOpen}
-          onOpenChange={setIsCollectionDialogOpen}
+          onOpenChange={handleCollectionDialogOpenChange}
           groups={groups}
           collection={editingCollection}
           onSave={handleSaveCollection}
@@ -249,18 +485,25 @@ export const MainApp = React.memo(function MainApp() {
 
         <GroupDialog
           open={isGroupDialogOpen}
-          onOpenChange={setIsGroupDialogOpen}
-          group={editingGroup}
+          onOpenChange={handleGroupDialogOpenChange}
+          group={undefined}
           onSave={handleSaveGroup}
         />
 
         <TagManagement
           open={isTagManagementOpen}
-          onOpenChange={setIsTagManagementOpen}
+          onOpenChange={handleTagManagementOpenChange}
           tags={allTags}
           onRename={handleRenameTag}
           onDelete={handleDeleteTag}
           onMerge={handleMergeTags}
+        />
+
+        <MergeDialog
+          open={isMergeDialogOpen}
+          onOpenChange={handleMergeDialogOpenChange}
+          collections={groups.flatMap((g) => g.collections)}
+          onConfirm={handleMergeCollections}
         />
       </div>
       <Toaster />

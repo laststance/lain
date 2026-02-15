@@ -13,7 +13,7 @@ import {
   Plus,
   Sparkles,
 } from 'lucide-react'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -143,32 +143,6 @@ function useDebouncedUrlParsing(url: string, parseUrl: (url: string) => void) {
 }
 
 /**
- * Tag autocomplete filtering effect.
- * @param tagInput - Current tag input text
- * @param existingTags - All available tags
- * @param tags - Currently selected tags
- * @param setTagSuggestions - Setter for filtered suggestions
- */
-function useTagAutocomplete(
-  tagInput: string,
-  existingTags: string[],
-  tags: string[],
-  setTagSuggestions: (suggestions: string[]) => void,
-) {
-  useEffect(() => {
-    if (!tagInput) {
-      setTagSuggestions([])
-      return
-    }
-    const lower = tagInput.toLowerCase()
-    const filtered = existingTags.filter(
-      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
-    )
-    setTagSuggestions(filtered.slice(0, 5))
-  }, [tagInput, existingTags, tags, setTagSuggestions])
-}
-
-/**
  * Dialog for adding a new bookmark (raindrop).
  * Supports URL auto-parsing, tag input with autocomplete,
  * collection selection, type detection, and optional notes.
@@ -200,7 +174,6 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
 }: AddBookmarkDialogProps) {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
   const [isParsing, setIsParsing] = useState(false)
   const [parsedFavicon, setParsedFavicon] = useState('')
   const [isNotesOpen, setIsNotesOpen] = useState(false)
@@ -291,7 +264,14 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
   )
 
   useDebouncedUrlParsing(url, parseUrl)
-  useTagAutocomplete(tagInput, existingTags, tags, setTagSuggestions)
+
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput) return []
+    const lower = tagInput.toLowerCase()
+    return existingTags
+      .filter((tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag))
+      .slice(0, 5)
+  }, [tagInput, existingTags, tags])
 
   const handleCollectionChange = useCallback(
     (id: string) => setValue('collectionId', id),
@@ -313,7 +293,6 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
       setTags([...tags, trimmed])
     }
     setTagInput('')
-    setTagSuggestions([])
   }
 
   const removeTag = (tag: string) => {
@@ -340,7 +319,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px]">
+      <DialogContent className="sm:max-w-135">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -382,7 +361,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
                   <img
                     src={parsedFavicon}
                     alt=""
-                    className="h-5 w-5 flex-shrink-0 rounded-sm"
+                    className="h-5 w-5 shrink-0 rounded-sm"
                     onError={(e) => {
                       ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
@@ -423,7 +402,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
             {/* Tags */}
             <div className="grid gap-2">
               <Label>Tags</Label>
-              <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border px-3 py-2">
+              <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border px-3 py-2">
                 {tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="gap-1 pr-1">
                     {tag}
@@ -442,7 +421,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagKeyDown}
                   placeholder={tags.length === 0 ? 'Add tags...' : ''}
-                  className="placeholder:text-muted-foreground min-w-[80px] flex-1 bg-transparent text-sm outline-none"
+                  className="placeholder:text-muted-foreground min-w-20 flex-1 bg-transparent text-sm outline-none"
                 />
               </div>
               {tagSuggestions.length > 0 && (

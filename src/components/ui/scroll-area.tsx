@@ -6,10 +6,12 @@ import { cn } from '@/lib/utils'
 const ScrollArea = React.memo(function ScrollArea({
   className,
   children,
+  ref,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: React.ComponentPropsWithRef<typeof ScrollAreaPrimitive.Root>) {
   return (
     <ScrollAreaPrimitive.Root
+      ref={ref}
       data-slot="scroll-area"
       className={cn('relative', className)}
       {...props}

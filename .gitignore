@@ -13,6 +13,7 @@ dist-electron/
 # Claude Code
 CLAUDE.md
 AGENTS.md
+claudedocs
 
 # Editor
 .vscode/
@@ -31,4 +32,8 @@ logs/
 # Electron Builder output
 release/
 
-claudedocs
+# Test
+test-results/
+coverage/
+
+.nogic

@@ -38,6 +38,11 @@ import type {
   ContentType,
 } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import {
+  addRecentSearch as addRecentSearchAction,
+  clearRecentSearches as clearRecentSearchesAction,
+} from '@/store/slices/searchSlice'
 
 /**
  * Props for the GlobalSearchCommand component.
@@ -230,41 +235,12 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
   collections,
   currentCollectionId,
 }: GlobalSearchCommandProps) {
+  const dispatch = useAppDispatch()
+  const recentSearches = useAppSelector((s) => s.search.recentSearches)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchScope, setSearchScope] = useState<SearchScope>('all')
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    try {
-      const stored = localStorage.getItem('lain-recent-searches')
-      return stored ? JSON.parse(stored) : []
-    } catch {
-      return []
-    }
-  })
 
   useGlobalSearchShortcut(open, onOpenChange)
-
-  const addRecentSearch = useCallback(
-    (query: string) => {
-      const trimmed = query.trim()
-      if (!trimmed) return
-      const updated = [
-        trimmed,
-        ...recentSearches.filter((s) => s !== trimmed),
-      ].slice(0, 5)
-      setRecentSearches(updated)
-      try {
-        localStorage.setItem('lain-recent-searches', JSON.stringify(updated))
-      } catch {
-        // Storage quota exceeded — silently ignore
-      }
-    },
-    [recentSearches],
-  )
-
-  const clearRecentSearches = () => {
-    setRecentSearches([])
-    localStorage.removeItem('lain-recent-searches')
-  }
 
   const matchesSearch = useCallback(
     (raindrop: Raindrop, query: string): boolean => {
@@ -315,12 +291,12 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
 
   const handleSelect = useCallback(
     (raindrop: Raindrop) => {
-      addRecentSearch(searchQuery)
+      dispatch(addRecentSearchAction(searchQuery))
       onSelectRaindrop?.(raindrop)
       onOpenChange(false)
       setSearchQuery('')
     },
-    [addRecentSearch, searchQuery, onSelectRaindrop, onOpenChange],
+    [dispatch, searchQuery, onSelectRaindrop, onOpenChange],
   )
 
   const handleRecentSearchClick = useCallback((query: string) => {
@@ -399,7 +375,7 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground text-xs"
-                      onClick={clearRecentSearches}
+                      onClick={() => dispatch(clearRecentSearchesAction())}
                     >
                       Clear
                     </button>

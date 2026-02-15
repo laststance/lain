@@ -10,6 +10,8 @@ import {
   Tag,
   FolderPlus,
   Layers,
+  Pencil,
+  Merge,
 } from 'lucide-react'
 import React, { useState, useCallback, useMemo } from 'react'
 
@@ -50,6 +52,9 @@ import {
 } from '@/components/ui/tooltip'
 import type { SystemCollection, Group, Collection } from '@/lib/types'
 
+/** Stable click handler that stops propagation (used in dropdown triggers). */
+const stopPropagation = (e: React.MouseEvent) => e.stopPropagation()
+
 /**
  * Static map of system collection icon names to lucide components.
  * Defined at module level to avoid creating components during render.
@@ -89,6 +94,8 @@ const CollectionItem = React.memo(function CollectionItem({
   expandedCollections,
   onSelectCollection,
   onToggleCollection,
+  onEditCollection,
+  onDeleteCollection,
   sidebarMenuButtonStyles,
 }: {
   collection: Collection
@@ -97,6 +104,8 @@ const CollectionItem = React.memo(function CollectionItem({
   expandedCollections: Set<string>
   onSelectCollection: (id: string) => void
   onToggleCollection: (id: string) => void
+  onEditCollection?: (collection: Collection) => void
+  onDeleteCollection?: (collectionId: string) => void
   sidebarMenuButtonStyles: Record<number, React.CSSProperties>
 }) {
   const isSelected = selectedCollectionId === collection.id
@@ -111,6 +120,14 @@ const CollectionItem = React.memo(function CollectionItem({
     e.stopPropagation()
     onToggleCollection(collection.id)
   }
+  const handleEdit = useCallback(
+    () => onEditCollection?.(collection),
+    [onEditCollection, collection],
+  )
+  const handleDelete = useCallback(
+    () => onDeleteCollection?.(collection.id),
+    [onDeleteCollection, collection],
+  )
 
   return (
     <div>
@@ -150,9 +167,45 @@ const CollectionItem = React.memo(function CollectionItem({
             <span className="truncate text-sm">{collection.name}</span>
           </div>
 
-          <span className="text-muted-foreground flex-shrink-0 text-xs tabular-nums opacity-0 transition-opacity group-hover/collection:opacity-100">
-            {collection.count}
-          </span>
+          <div className="flex flex-shrink-0 items-center gap-1">
+            <span className="text-muted-foreground text-xs tabular-nums opacity-0 transition-opacity group-hover/collection:opacity-100">
+              {collection.count}
+            </span>
+            {(onEditCollection || onDeleteCollection) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 opacity-0 group-hover/collection:opacity-100"
+                    onClick={stopPropagation}
+                  >
+                    <MoreHorizontal className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  {onEditCollection && (
+                    <DropdownMenuItem onClick={handleEdit}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  )}
+                  {onDeleteCollection && (
+                    <>
+                      {onEditCollection && <DropdownMenuSeparator />}
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={handleDelete}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </SidebarMenuButton>
       </SidebarMenuItem>
 
@@ -167,6 +220,8 @@ const CollectionItem = React.memo(function CollectionItem({
               expandedCollections={expandedCollections}
               onSelectCollection={onSelectCollection}
               onToggleCollection={onToggleCollection}
+              onEditCollection={onEditCollection}
+              onDeleteCollection={onDeleteCollection}
               sidebarMenuButtonStyles={sidebarMenuButtonStyles}
             />
           ))}
@@ -189,6 +244,8 @@ const GroupSection = React.memo(function GroupSection({
   onSelectCollection,
   onToggleCollection,
   onAddCollection,
+  onEditCollection,
+  onDeleteCollection,
   sidebarMenuButtonStyles,
 }: {
   group: Group
@@ -199,6 +256,8 @@ const GroupSection = React.memo(function GroupSection({
   onSelectCollection: (id: string) => void
   onToggleCollection: (id: string) => void
   onAddCollection: () => void
+  onEditCollection?: (collection: Collection) => void
+  onDeleteCollection?: (collectionId: string) => void
   sidebarMenuButtonStyles: Record<number, React.CSSProperties>
 }) {
   const handleOpenChange = useCallback(
@@ -257,6 +316,8 @@ const GroupSection = React.memo(function GroupSection({
                   expandedCollections={expandedCollections}
                   onSelectCollection={onSelectCollection}
                   onToggleCollection={onToggleCollection}
+                  onEditCollection={onEditCollection}
+                  onDeleteCollection={onDeleteCollection}
                   sidebarMenuButtonStyles={sidebarMenuButtonStyles}
                 />
               ))}
@@ -276,10 +337,12 @@ const SystemCollectionItem = React.memo(function SystemCollectionItem({
   sc,
   isSelected,
   onSelectCollection,
+  onEmptyTrash,
 }: {
   sc: SystemCollection
   isSelected: boolean
   onSelectCollection: (id: string) => void
+  onEmptyTrash?: () => void
 }) {
   const handleClick = useCallback(
     () => onSelectCollection(sc.id),
@@ -291,14 +354,39 @@ const SystemCollectionItem = React.memo(function SystemCollectionItem({
       <SidebarMenuButton
         isActive={isSelected}
         onClick={handleClick}
-        className="h-8"
+        className="group/syscol h-8"
         tooltip={sc.name}
       >
         <SystemIcon iconName={sc.icon} className="h-4 w-4" />
         <span className="flex-1 truncate">{sc.name}</span>
-        <span className="text-muted-foreground text-xs tabular-nums">
-          {sc.count}
-        </span>
+        <div className="flex flex-shrink-0 items-center gap-1">
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {sc.count}
+          </span>
+          {sc.id === 'trash' && onEmptyTrash && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 opacity-0 group-hover/syscol:opacity-100"
+                  onClick={stopPropagation}
+                >
+                  <MoreHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={onEmptyTrash}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Empty Trash
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
@@ -324,6 +412,14 @@ interface LeftSidebarProps {
   onAddGroup: () => void
   /** Callback to open the tag management dialog */
   onManageTags: () => void
+  /** Callback to open collection in edit mode */
+  onEditCollection: (collection: Collection) => void
+  /** Callback to delete a collection */
+  onDeleteCollection: (collectionId: string) => Promise<void>
+  /** Callback to empty the trash */
+  onEmptyTrash: () => Promise<void>
+  /** Callback to open the merge collections dialog */
+  onMergeCollections: () => void
 }
 
 /**
@@ -339,6 +435,10 @@ interface LeftSidebarProps {
  * @param onAddCollection - Opens the add collection dialog
  * @param onAddGroup - Opens the add group dialog
  * @param onManageTags - Opens the tag management dialog
+ * @param onEditCollection - Opens collection in edit mode
+ * @param onDeleteCollection - Deletes a collection by ID
+ * @param onEmptyTrash - Empties the trash
+ * @param onMergeCollections - Opens the merge collections dialog
  *
  * @example
  *   <LeftSidebar
@@ -350,6 +450,10 @@ interface LeftSidebarProps {
  *     onAddCollection={() => setIsCollectionDialogOpen(true)}
  *     onAddGroup={() => setIsGroupDialogOpen(true)}
  *     onManageTags={() => setIsTagManagementOpen(true)}
+ *     onEditCollection={(collection) => handleEditCollection(collection)}
+ *     onDeleteCollection={(id) => handleDeleteCollection(id)}
+ *     onEmptyTrash={() => handleEmptyTrash()}
+ *     onMergeCollections={() => handleOpenMerge()}
  *   />
  */
 const LeftSidebar = React.memo(function LeftSidebar({
@@ -361,6 +465,10 @@ const LeftSidebar = React.memo(function LeftSidebar({
   onAddCollection,
   onAddGroup,
   onManageTags,
+  onEditCollection,
+  onDeleteCollection,
+  onEmptyTrash,
+  onMergeCollections,
 }: LeftSidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
     new Set(groups.map((g) => g.id)),
@@ -497,6 +605,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
                     sc={sc}
                     isSelected={selectedCollectionId === sc.id}
                     onSelectCollection={onSelectCollection}
+                    onEmptyTrash={onEmptyTrash}
                   />
                 ))}
               </SidebarMenu>
@@ -517,6 +626,8 @@ const LeftSidebar = React.memo(function LeftSidebar({
               onSelectCollection={onSelectCollection}
               onToggleCollection={toggleCollection}
               onAddCollection={onAddCollection}
+              onEditCollection={onEditCollection}
+              onDeleteCollection={onDeleteCollection}
               sidebarMenuButtonStyles={sidebarMenuButtonStyles}
             />
           ))}
@@ -552,6 +663,20 @@ const LeftSidebar = React.memo(function LeftSidebar({
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top">Manage Tags</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onMergeCollections}
+                >
+                  <Merge className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">Merge Collections</TooltipContent>
             </Tooltip>
           </div>
 

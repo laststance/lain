@@ -7,9 +7,10 @@ import {
   FolderTree,
   SlidersHorizontal,
   BookmarkPlus,
+  Loader2,
   X,
 } from 'lucide-react'
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 
 import { RaindropCard } from '@/components/raindrop/raindrop-card'
 import { RaindropListItem } from '@/components/raindrop/raindrop-list-item'
@@ -23,6 +24,14 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -33,7 +42,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   Tooltip,
   TooltipContent,
@@ -49,13 +57,99 @@ import type {
 } from '@/lib/types'
 
 /**
+ * Static map of view mode to icon component and label for the toolbar dropdown.
+ */
+const VIEW_MODE_OPTIONS: {
+  value: ViewMode
+  label: string
+  icon: typeof List
+}[] = [
+  { value: 'list', label: 'List', icon: List },
+  { value: 'grid', label: 'Grid', icon: LayoutGrid },
+  { value: 'table', label: 'Table', icon: Table2 },
+  { value: 'directory', label: 'Directory', icon: FolderTree },
+]
+
+/**
+ * Infinite scroll hook using IntersectionObserver on a sentinel element.
+ * Returns a ref to attach to the sentinel div at the bottom of the list.
+ *
+ * @param options.hasMore - Whether more pages are available
+ * @param options.isFetching - Whether a fetch is currently in progress
+ * @param options.onLoadMore - Callback to load the next page
+ * @returns Ref to attach to the sentinel element
+ *
+ * @example
+ *   const sentinelRef = useInfiniteScroll({ hasMore, isFetching, onLoadMore })
+ *   // <div ref={sentinelRef} /> at the bottom of the list
+ */
+function useInfiniteScroll({
+  hasMore,
+  isFetching,
+  onLoadMore,
+  scrollContainerRef,
+}: {
+  hasMore: boolean
+  isFetching: boolean
+  onLoadMore?: () => void
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  // Store volatile values in refs to keep the observer stable.
+  // useEffect sync avoids "Cannot access refs during render" (React compiler).
+  const hasMoreRef = useRef(hasMore)
+  const isFetchingRef = useRef(isFetching)
+  const onLoadMoreRef = useRef(onLoadMore)
+  useEffect(() => {
+    hasMoreRef.current = hasMore
+    isFetchingRef.current = isFetching
+    onLoadMoreRef.current = onLoadMore
+  })
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    // ScrollArea renders a [data-slot="scroll-area-viewport"] as the scroll container
+    const root =
+      scrollContainerRef.current?.querySelector<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]',
+      ) ?? null
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMoreRef.current &&
+          !isFetchingRef.current
+        ) {
+          onLoadMoreRef.current?.()
+        }
+      },
+      { root, rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [scrollContainerRef]) // stable ref object — observer created once
+
+  return sentinelRef
+}
+
+/**
  * Props for the MainContent component.
  */
 interface MainContentProps {
   /** Breadcrumb path segments for current navigation */
   breadcrumbs: string[]
-  /** Array of raindrops (bookmarks) to display */
+  /** Array of raindrops (bookmarks) to display (already sorted by API) */
   raindrops: Raindrop[]
+  /** True during initial load (no cached data) */
+  isLoading?: boolean
+  /** True while fetching (including background refetch / next page) */
+  isFetching?: boolean
+  /** True if more pages are available for infinite scroll */
+  hasMore?: boolean
+  /** Load the next page of results */
+  onLoadMore?: () => void
   /** Callback when a raindrop is selected */
   onSelectRaindrop: (raindrop: Raindrop) => void
   /** ID of the currently selected raindrop */
@@ -70,6 +164,16 @@ interface MainContentProps {
   collections: Collection[]
   /** Callback to open the add bookmark dialog */
   onAddBookmark: () => void
+  /** Current sort option (controlled by parent) */
+  sortOption: SortOption
+  /** Callback when sort changes (lifts state to parent for API sort) */
+  onSortChange: (sort: SortOption) => void
+  /** Batch move selected raindrops to a collection */
+  onBatchMove?: (ids: string[], targetCollectionId: string) => Promise<void>
+  /** Batch add tags to selected raindrops */
+  onBatchAddTag?: (ids: string[], tags: string[]) => Promise<void>
+  /** Batch delete selected raindrops */
+  onBatchDelete?: (ids: string[]) => Promise<void>
 }
 
 /**
@@ -140,16 +244,22 @@ const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
   raindrop,
   isSelected,
   onRaindropClick,
+  onToggleSelect,
   onRaindropDoubleClick,
 }: {
   raindrop: Raindrop
   isSelected: boolean
   onRaindropClick: (raindrop: Raindrop, event: React.MouseEvent) => void
+  onToggleSelect: (raindropId: string) => void
   onRaindropDoubleClick: (raindrop: Raindrop) => void
 }) {
   const handleClick = useCallback(
     (e: React.MouseEvent) => onRaindropClick(raindrop, e),
     [onRaindropClick, raindrop],
+  )
+  const handleToggleSelect = useCallback(
+    () => onToggleSelect(raindrop.id),
+    [onToggleSelect, raindrop.id],
   )
   const handleDoubleClick = useCallback(
     () => onRaindropDoubleClick(raindrop),
@@ -160,6 +270,7 @@ const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
       raindrop={raindrop}
       isSelected={isSelected}
       onClick={handleClick}
+      onToggleSelect={handleToggleSelect}
       onDoubleClick={handleDoubleClick}
     />
   )
@@ -195,6 +306,10 @@ const SearchScopeButton = React.memo(function SearchScopeButton({
 const MainContent = React.memo(function MainContent({
   breadcrumbs,
   raindrops,
+  isLoading,
+  isFetching,
+  hasMore,
+  onLoadMore,
   onSelectRaindrop,
   selectedRaindropId,
   selectedRaindropIds,
@@ -202,12 +317,16 @@ const MainContent = React.memo(function MainContent({
   groups: _groups,
   collections: _collections,
   onAddBookmark,
+  sortOption,
+  onSortChange,
+  onBatchMove,
+  onBatchAddTag,
+  onBatchDelete,
 }: MainContentProps) {
   // Reserved for bulk action "Move to..." functionality
   void _groups
   void _collections
   const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
@@ -224,8 +343,8 @@ const MainContent = React.memo(function MainContent({
     if (val) setViewMode(val as ViewMode)
   }, [])
   const handleSortChange = useCallback(
-    (val: string) => setSortOption(val as SortOption),
-    [],
+    (val: string) => onSortChange(val as SortOption),
+    [onSortChange],
   )
   const handleDeselectAll = useCallback(
     () => onSelectedRaindropIdsChange(new Set()),
@@ -240,6 +359,10 @@ const MainContent = React.memo(function MainContent({
     setSearchScope('all')
     setIsAdvancedSearchOpen(false)
   }, [])
+
+  const handleBatchDelete = useCallback(async () => {
+    await onBatchDelete?.([...selectedRaindropIds])
+  }, [onBatchDelete, selectedRaindropIds])
 
   /**
    * Filter raindrops based on current search query and scope.
@@ -270,36 +393,8 @@ const MainContent = React.memo(function MainContent({
     })
   }, [raindrops, searchQuery, searchScope])
 
-  /**
-   * Sort filtered raindrops based on current sort option.
-   * @returns Sorted array of raindrops
-   */
-  const sortedRaindrops = useMemo(() => {
-    const sorted = [...filteredRaindrops]
-
-    switch (sortOption) {
-      case 'newest':
-        return sorted.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        )
-      case 'oldest':
-        return sorted.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        )
-      case 'title-asc':
-        return sorted.sort((a, b) => a.title.localeCompare(b.title))
-      case 'title-desc':
-        return sorted.sort((a, b) => b.title.localeCompare(a.title))
-      case 'domain':
-        return sorted.sort((a, b) =>
-          (a.domain || '').localeCompare(b.domain || ''),
-        )
-      default:
-        return sorted
-    }
-  }, [filteredRaindrops, sortOption])
+  // Sort is handled by the API via useRaindropsCrud({ sort: apiSort }).
+  // Client-side search filtering above is still needed (API search is P3 scope).
 
   /**
    * Handle click on a raindrop with multi-select support.
@@ -319,16 +414,16 @@ const MainContent = React.memo(function MainContent({
         onSelectedRaindropIdsChange(next)
       } else if (event.shiftKey && selectedRaindropId) {
         // Range select
-        const currentIndex = sortedRaindrops.findIndex(
+        const currentIndex = filteredRaindrops.findIndex(
           (r) => r.id === selectedRaindropId,
         )
-        const clickedIndex = sortedRaindrops.findIndex(
+        const clickedIndex = filteredRaindrops.findIndex(
           (r) => r.id === raindrop.id,
         )
         if (currentIndex !== -1 && clickedIndex !== -1) {
           const start = Math.min(currentIndex, clickedIndex)
           const end = Math.max(currentIndex, clickedIndex)
-          const rangeIds = sortedRaindrops
+          const rangeIds = filteredRaindrops
             .slice(start, end + 1)
             .map((r) => r.id)
           onSelectedRaindropIdsChange(new Set(rangeIds))
@@ -341,10 +436,27 @@ const MainContent = React.memo(function MainContent({
     [
       selectedRaindropIds,
       selectedRaindropId,
-      sortedRaindrops,
+      filteredRaindrops,
       onSelectedRaindropIdsChange,
       onSelectRaindrop,
     ],
+  )
+
+  /**
+   * Toggle a single raindrop's selection state (used by checkbox click).
+   * @param raindropId - The ID of the raindrop to toggle
+   */
+  const handleToggleSelect = useCallback(
+    (raindropId: string) => {
+      const next = new Set(selectedRaindropIds)
+      if (next.has(raindropId)) {
+        next.delete(raindropId)
+      } else {
+        next.add(raindropId)
+      }
+      onSelectedRaindropIdsChange(next)
+    },
+    [selectedRaindropIds, onSelectedRaindropIdsChange],
   )
 
   /**
@@ -354,6 +466,15 @@ const MainContent = React.memo(function MainContent({
   const handleRaindropDoubleClick = useCallback((raindrop: Raindrop) => {
     window.shell.openExternal(raindrop.url)
   }, [])
+
+  // --- Infinite Scroll ---
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useInfiniteScroll({
+    hasMore: hasMore ?? false,
+    isFetching: isFetching ?? false,
+    onLoadMore,
+    scrollContainerRef: scrollAreaRef,
+  })
 
   return (
     <div className="flex h-full flex-col">
@@ -387,7 +508,7 @@ const MainContent = React.memo(function MainContent({
 
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-xs tabular-nums">
-              {sortedRaindrops.length} items
+              {filteredRaindrops.length} items
             </span>
 
             <Tooltip>
@@ -459,65 +580,39 @@ const MainContent = React.memo(function MainContent({
 
           <Separator orientation="vertical" className="h-5" />
 
-          {/* View Mode Toggle */}
-          <ToggleGroup
-            type="single"
-            value={viewMode}
-            onValueChange={handleViewModeChange}
-            className="gap-0"
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="list"
-                  aria-label="List view"
-                  className="h-8 w-8 p-0"
-                >
-                  <List className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>List view</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="grid"
-                  aria-label="Grid view"
-                  className="h-8 w-8 p-0"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Grid view</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="table"
-                  aria-label="Table view"
-                  className="h-8 w-8 p-0"
-                >
-                  <Table2 className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Table view</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="directory"
-                  aria-label="Directory view"
-                  className="h-8 w-8 p-0"
-                >
-                  <FolderTree className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Directory view</TooltipContent>
-            </Tooltip>
-          </ToggleGroup>
+          {/* View Mode Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+                aria-label="View mode"
+              >
+                {(() => {
+                  const current = VIEW_MODE_OPTIONS.find(
+                    (o) => o.value === viewMode,
+                  )
+                  const Icon = current?.icon ?? List
+                  return <Icon className="h-3.5 w-3.5" />
+                })()}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              <DropdownMenuLabel>View Mode</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={viewMode}
+                onValueChange={handleViewModeChange}
+              >
+                {VIEW_MODE_OPTIONS.map((opt) => (
+                  <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                    <opt.icon className="mr-2 h-3.5 w-3.5" />
+                    {opt.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Separator orientation="vertical" className="h-5" />
 
@@ -577,26 +672,51 @@ const MainContent = React.memo(function MainContent({
               Deselect All
             </Button>
             <Separator orientation="vertical" className="h-4" />
-            <Button variant="ghost" size="sm" className="h-6 text-xs">
-              Move to...
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 text-xs">
-              Add Tag...
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive h-6 text-xs"
-            >
-              Delete
-            </Button>
+            {onBatchMove && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                disabled
+              >
+                Move to...
+              </Button>
+            )}
+            {onBatchAddTag && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                disabled
+              >
+                Add Tag...
+              </Button>
+            )}
+            {onBatchDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive h-6 text-xs"
+                onClick={handleBatchDelete}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         )}
       </div>
 
       {/* Content Area */}
-      <ScrollArea className="flex-1">
-        {sortedRaindrops.length === 0 ? (
+      <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
+        {isLoading ? (
+          /* Loading skeleton */
+          <div className="flex flex-col items-center justify-center px-4 py-20">
+            <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
+            <p className="text-muted-foreground mt-2 text-sm">
+              Loading bookmarks...
+            </p>
+          </div>
+        ) : filteredRaindrops.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center px-4 py-20">
             <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
@@ -622,7 +742,7 @@ const MainContent = React.memo(function MainContent({
         ) : viewMode === 'grid' ? (
           /* Grid View */
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4">
-            {sortedRaindrops.map((raindrop) => (
+            {filteredRaindrops.map((raindrop) => (
               <RaindropCardWrapper
                 key={raindrop.id}
                 raindrop={raindrop}
@@ -638,7 +758,7 @@ const MainContent = React.memo(function MainContent({
         ) : (
           /* List View (default) */
           <div className="divide-y">
-            {sortedRaindrops.map((raindrop) => (
+            {filteredRaindrops.map((raindrop) => (
               <RaindropListItemWrapper
                 key={raindrop.id}
                 raindrop={raindrop}
@@ -647,9 +767,22 @@ const MainContent = React.memo(function MainContent({
                   selectedRaindropIds.has(raindrop.id)
                 }
                 onRaindropClick={handleRaindropClick}
+                onToggleSelect={handleToggleSelect}
                 onRaindropDoubleClick={handleRaindropDoubleClick}
               />
             ))}
+          </div>
+        )}
+
+        {/* Infinite scroll sentinel + loading indicator */}
+        {hasMore && (
+          <div
+            ref={sentinelRef}
+            className="flex items-center justify-center py-4"
+          >
+            {isFetching && (
+              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+            )}
           </div>
         )}
       </ScrollArea>

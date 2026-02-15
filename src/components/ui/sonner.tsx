@@ -10,10 +10,10 @@ import {
 import React from 'react'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
-import { useTheme } from '@/components/theme-provider'
+import { useTheme } from '@/store/hooks'
 
 const Toaster = React.memo(function Toaster({ ...props }: ToasterProps) {
-  const { theme = 'system' } = useTheme()
+  const { resolvedTheme } = useTheme()
 
   const icons = React.useMemo(
     () => ({
@@ -48,7 +48,7 @@ const Toaster = React.memo(function Toaster({ ...props }: ToasterProps) {
 
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
+      theme={resolvedTheme}
       className="toaster group"
       icons={icons}
       style={style}

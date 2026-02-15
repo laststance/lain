@@ -1,5 +1,5 @@
 import { Search, X, ChevronRight } from 'lucide-react'
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -123,16 +123,6 @@ interface CollectionSearchProps {
  *     onClose={() => setIsSearchOpen(false)}
  *   />
  */
-/**
- * Auto-focus an input ref on mount.
- * @param ref - React ref to the input element
- */
-function useAutoFocus(ref: React.RefObject<HTMLInputElement | null>) {
-  useEffect(() => {
-    ref.current?.focus()
-  }, [ref])
-}
-
 const CollectionSearch = React.memo(function CollectionSearch({
   groups,
   onSelect,
@@ -140,7 +130,6 @@ const CollectionSearch = React.memo(function CollectionSearch({
 }: CollectionSearchProps) {
   const [query, setQuery] = useState('')
   const [focusedIndex, setFocusedIndex] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
 
   const allCollections = useMemo(() => flattenCollections(groups), [groups])
 
@@ -154,8 +143,6 @@ const CollectionSearch = React.memo(function CollectionSearch({
       col.name.toLowerCase().includes(lower),
     )
   }, [allCollections, query])
-
-  useAutoFocus(inputRef)
 
   const handleQueryChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,7 +187,7 @@ const CollectionSearch = React.memo(function CollectionSearch({
       <div className="relative">
         <Search className="text-muted-foreground absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2" />
         <Input
-          ref={inputRef}
+          autoFocus
           placeholder="Find collection..."
           value={query}
           onChange={handleQueryChange}

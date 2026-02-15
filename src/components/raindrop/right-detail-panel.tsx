@@ -20,7 +20,7 @@ import {
   Check,
   Highlighter,
 } from 'lucide-react'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -127,32 +127,6 @@ function useRaindropFormSync(
 }
 
 /**
- * Tag autocomplete filtering effect for the detail panel.
- * @param tagInput - Current tag input text
- * @param existingTags - All available tags
- * @param tags - Currently selected tags
- * @param setTagSuggestions - Setter for suggestions
- */
-function useDetailTagAutocomplete(
-  tagInput: string,
-  existingTags: string[],
-  tags: string[],
-  setTagSuggestions: (suggestions: string[]) => void,
-) {
-  useEffect(() => {
-    if (!tagInput) {
-      setTagSuggestions([])
-      return
-    }
-    const lower = tagInput.toLowerCase()
-    const filtered = existingTags.filter(
-      (tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag),
-    )
-    setTagSuggestions(filtered.slice(0, 5))
-  }, [tagInput, existingTags, tags, setTagSuggestions])
-}
-
-/**
  * Right-side detail panel showing selected raindrop information and edit form.
  * Displays cover image, metadata, tags, highlights, and action buttons.
  * Slides in/out from the right edge of the layout.
@@ -187,7 +161,6 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
 }: RightDetailPanelProps) {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
-  const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
   const [copied, setCopied] = useState(false)
   const [faviconError, setFaviconError] = useState(false)
 
@@ -215,7 +188,18 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
   const currentUrl = watch('url')
 
   useRaindropFormSync(raindrop, reset, setTags, setFaviconError)
-  useDetailTagAutocomplete(tagInput, existingTags, tags, setTagSuggestions)
+
+  const tagSuggestions = useMemo(() => {
+    if (!tagInput) return []
+    const lower = tagInput.toLowerCase()
+    return existingTags
+      .filter(
+        (tag) =>
+          tag.toLowerCase().includes(lower) &&
+          !tags.includes(tag.toLowerCase()),
+      )
+      .slice(0, 5)
+  }, [tagInput, existingTags, tags])
 
   const handleTypeChange = useCallback(
     (val: string) => setValue('type', val as ContentType),
@@ -240,7 +224,6 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
       setTags([...tags, trimmed])
     }
     setTagInput('')
-    setTagSuggestions([])
   }
 
   const removeTag = (tagName: string) => {
@@ -325,6 +308,7 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
 
   return (
     <div
+      data-testid="detail-panel"
       className={cn(
         'bg-background flex h-screen flex-col border-l transition-all duration-200 ease-in-out',
         isOpen
@@ -359,7 +343,7 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
             </TooltipProvider>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
               {/* Cover Image */}
               {raindrop.coverImage && (

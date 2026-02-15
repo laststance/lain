@@ -18,16 +18,22 @@ import { lainAxios } from './axios'
  * @returns BaseQueryFn compatible with RTK Query
  */
 export function axiosBaseQuery(): BaseQueryFn<
-  { url: string; method?: Method; data?: unknown; params?: unknown },
+  {
+    url: string
+    method?: Method
+    data?: unknown
+    body?: unknown
+    params?: unknown
+  },
   unknown,
   unknown
 > {
-  return async ({ url, method = 'GET', data, params }) => {
+  return async ({ url, method = 'GET', data, body, params }) => {
     try {
       const result = await lainAxios({
         url,
         method,
-        data,
+        data: data ?? body,
         params,
       } satisfies AxiosRequestConfig)
       return { data: result.data }

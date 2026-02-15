@@ -11,6 +11,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  knip:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepare
+      - run: pnpm knip
+
   lint:
     runs-on: macos-latest
     steps:
@@ -45,3 +52,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare
       - run: pnpm test:e2e
+
+  e2e-coverage:
+    runs-on: macos-latest
+    needs: [e2e]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/prepare
+      - run: pnpm --silent coverage:e2e-spec > docs/e2e-coverage.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-spec-coverage
+          path: docs/e2e-coverage.md

@@ -8,6 +8,7 @@ export default defineConfig([
   globalIgnores([
     'dist',
     'dist-electron',
+    'coverage',
     'src/store/api/raindropApi.ts',
     'eslint.config.js',
     'vitest.config.ts',

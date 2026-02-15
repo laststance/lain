@@ -359,7 +359,7 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
             </TooltipProvider>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
               {/* Cover Image */}
               {raindrop.coverImage && (

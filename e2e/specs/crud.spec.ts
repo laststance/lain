@@ -195,17 +195,60 @@ test.describe('Content Scrolling', () => {
 })
 
 test.describe('View Mode Toggle', () => {
-  test('should have view mode buttons in toolbar', async ({ page }) => {
-    // Wait for main content to render
+  test('should show view mode dropdown trigger in toolbar', async ({
+    page,
+  }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
     )
 
-    // All 4 view mode buttons should be present (aria-label on ToggleGroupItem)
-    await expect(page.getByLabel('List view')).toBeVisible({ timeout: 5_000 })
-    await expect(page.getByLabel('Grid view')).toBeVisible()
-    await expect(page.getByLabel('Table view')).toBeVisible()
-    await expect(page.getByLabel('Directory view')).toBeVisible()
+    // View mode dropdown trigger button should be visible
+    await expect(page.getByLabel('View mode')).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('should open dropdown with all 4 view mode options', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    // Open the view mode dropdown
+    await page.getByLabel('View mode').click()
+
+    // All 4 options should be present as radio menu items
+    await expect(
+      page.getByRole('menuitemradio', { name: 'List' }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitemradio', { name: 'Grid' }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitemradio', { name: 'Table' }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitemradio', { name: 'Directory' }),
+    ).toBeVisible()
+  })
+
+  test('should switch view mode via dropdown selection', async ({ page }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    // Wait for bookmarks to render in default list view
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Switch to Grid view
+    await page.getByLabel('View mode').click()
+    await page.getByRole('menuitemradio', { name: 'Grid' }).click()
+
+    // Bookmarks should still be visible after view mode change
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 5_000 })
   })
 })
 
@@ -295,6 +338,102 @@ test.describe('Bulk Delete', () => {
 
     // Selection bar should disappear
     await expect(page.getByText(/\d+ selected/)).not.toBeVisible()
+  })
+})
+
+test.describe('Detail Panel Layout (addbaa1 regression)', () => {
+  test('should open detail panel within viewport when raindrop is clicked', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    // Wait for bookmarks to render
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Click a raindrop to open the detail panel
+    await page.getByRole('heading', { name: 'React Documentation' }).click()
+
+    // Detail panel should become visible with "Details" header
+    await expect(page.getByText('Details')).toBeVisible({ timeout: 5_000 })
+
+    // Get viewport width
+    const viewportWidth = await page.evaluate(() => window.innerWidth)
+
+    // Verify the detail panel is within viewport bounds
+    const detailPanel = page.locator('.flex.h-screen.flex-col.border-l').last()
+    const box = await detailPanel.boundingBox()
+    expect(box).toBeTruthy()
+    expect(box!.width).toBeGreaterThan(0) // Panel is expanded
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth + 1) // Within viewport (1px tolerance)
+  })
+
+  test('should keep SidebarInset min-w-0 when detail panel is open', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Open detail panel
+    await page.getByRole('heading', { name: 'React Documentation' }).click()
+    await expect(page.getByText('Details')).toBeVisible({ timeout: 5_000 })
+
+    // Verify SidebarInset has min-w-0 (CSS class check)
+    const sidebarInset = page.locator('[data-slot="sidebar-inset"]')
+    const classes = await sidebarInset.getAttribute('class')
+    expect(classes).toContain('min-w-0')
+
+    // Verify SidebarInset doesn't overflow viewport
+    const viewportWidth = await page.evaluate(() => window.innerWidth)
+    const insetBox = await sidebarInset.boundingBox()
+    expect(insetBox).toBeTruthy()
+    expect(insetBox!.x + insetBox!.width).toBeLessThanOrEqual(viewportWidth + 1)
+  })
+
+  test('should close detail panel and keep content visible', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Open detail panel
+    await page.getByRole('heading', { name: 'React Documentation' }).click()
+    await expect(page.getByText('Details')).toBeVisible({ timeout: 5_000 })
+
+    // Close detail panel via close button (PanelRightClose icon)
+    // Button is inside the detail panel header, has no aria-label but tooltip "Close panel"
+    const closeButton = page
+      .locator('.flex.h-screen.flex-col.border-l button:has(svg)')
+      .first()
+    await closeButton.click()
+
+    // Wait for panel to collapse
+    await expect(page.getByText('Details')).not.toBeVisible({ timeout: 3_000 })
+
+    // Content should still be visible and within viewport after panel closes
+    const viewportWidth = await page.evaluate(() => window.innerWidth)
+    const sidebarInset = page.locator('[data-slot="sidebar-inset"]')
+    const insetBox = await sidebarInset.boundingBox()
+    expect(insetBox).toBeTruthy()
+    expect(insetBox!.x + insetBox!.width).toBeLessThanOrEqual(viewportWidth + 1)
+
+    // Bookmarks should still be visible after panel close
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible()
   })
 })
 

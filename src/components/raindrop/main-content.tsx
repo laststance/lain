@@ -24,6 +24,14 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -34,7 +42,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +55,20 @@ import type {
   SortOption,
   SearchScope,
 } from '@/lib/types'
+
+/**
+ * Static map of view mode to icon component and label for the toolbar dropdown.
+ */
+const VIEW_MODE_OPTIONS: {
+  value: ViewMode
+  label: string
+  icon: typeof List
+}[] = [
+  { value: 'list', label: 'List', icon: List },
+  { value: 'grid', label: 'Grid', icon: LayoutGrid },
+  { value: 'table', label: 'Table', icon: Table2 },
+  { value: 'directory', label: 'Directory', icon: FolderTree },
+]
 
 /**
  * Infinite scroll hook using IntersectionObserver on a sentinel element.
@@ -559,65 +580,39 @@ const MainContent = React.memo(function MainContent({
 
           <Separator orientation="vertical" className="h-5" />
 
-          {/* View Mode Toggle */}
-          <ToggleGroup
-            type="single"
-            value={viewMode}
-            onValueChange={handleViewModeChange}
-            className="gap-0"
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="list"
-                  aria-label="List view"
-                  className="h-8 w-8 p-0"
-                >
-                  <List className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>List view</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="grid"
-                  aria-label="Grid view"
-                  className="h-8 w-8 p-0"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Grid view</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="table"
-                  aria-label="Table view"
-                  className="h-8 w-8 p-0"
-                >
-                  <Table2 className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Table view</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <ToggleGroupItem
-                  value="directory"
-                  aria-label="Directory view"
-                  className="h-8 w-8 p-0"
-                >
-                  <FolderTree className="h-3.5 w-3.5" />
-                </ToggleGroupItem>
-              </TooltipTrigger>
-              <TooltipContent>Directory view</TooltipContent>
-            </Tooltip>
-          </ToggleGroup>
+          {/* View Mode Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+                aria-label="View mode"
+              >
+                {(() => {
+                  const current = VIEW_MODE_OPTIONS.find(
+                    (o) => o.value === viewMode,
+                  )
+                  const Icon = current?.icon ?? List
+                  return <Icon className="h-3.5 w-3.5" />
+                })()}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              <DropdownMenuLabel>View Mode</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={viewMode}
+                onValueChange={handleViewModeChange}
+              >
+                {VIEW_MODE_OPTIONS.map((opt) => (
+                  <DropdownMenuRadioItem key={opt.value} value={opt.value}>
+                    <opt.icon className="mr-2 h-3.5 w-3.5" />
+                    {opt.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Separator orientation="vertical" className="h-5" />
 

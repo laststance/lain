@@ -30,4 +30,20 @@ describe('useCollectionsCrud', () => {
       await result.current.deleteCollection('100')
     })
   })
+
+  it('merges collections via mutation', async () => {
+    const { result } = renderHookWithProviders(() => useCollectionsCrud())
+
+    await act(async () => {
+      await result.current.merge('100', ['101'])
+    })
+  })
+
+  it('empties trash via deleteCollection99', async () => {
+    const { result } = renderHookWithProviders(() => useCollectionsCrud())
+
+    await act(async () => {
+      await result.current.emptyTrash()
+    })
+  })
 })

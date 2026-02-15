@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { collectionIdToApi } from '@/lib/api-mappers'
 import {
+  useDeleteCollection99Mutation,
   useDeleteCollectionByIdMutation,
   usePostCollectionMutation,
   usePutCollectionByIdMutation,
@@ -29,6 +30,7 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
   const [putCollection] = usePutCollectionByIdMutation()
   const [deleteCollectionMutation] = useDeleteCollectionByIdMutation()
   const [mergeCollections] = usePutCollectionsMergeMutation()
+  const [deleteCollection99] = useDeleteCollection99Mutation()
 
   const createCollection = useCallback(
     async (data: CreateCollectionFormData) => {
@@ -95,7 +97,20 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
     [mergeCollections],
   )
 
-  return { createCollection, updateCollection, deleteCollection, merge }
+  const emptyTrash = useCallback(async () => {
+    const result = await deleteCollection99()
+    if ('data' in result) {
+      toast.success('Trash emptied')
+    }
+  }, [deleteCollection99])
+
+  return {
+    createCollection,
+    updateCollection,
+    deleteCollection,
+    merge,
+    emptyTrash,
+  }
 }
 
 /**
@@ -130,4 +145,6 @@ interface UseCollectionsCrudReturn {
   deleteCollection: (id: string) => Promise<void>
   /** Merge source collections into a target collection */
   merge: (targetId: string, sourceIds: string[]) => Promise<void>
+  /** Empty the trash (DELETE /collection/-99) */
+  emptyTrash: () => Promise<void>
 }

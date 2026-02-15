@@ -340,7 +340,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px]">
+      <DialogContent className="sm:max-w-135">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -382,7 +382,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
                   <img
                     src={parsedFavicon}
                     alt=""
-                    className="h-5 w-5 flex-shrink-0 rounded-sm"
+                    className="h-5 w-5 shrink-0 rounded-sm"
                     onError={(e) => {
                       ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
@@ -423,7 +423,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
             {/* Tags */}
             <div className="grid gap-2">
               <Label>Tags</Label>
-              <div className="flex min-h-[40px] flex-wrap items-center gap-1.5 rounded-md border px-3 py-2">
+              <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border px-3 py-2">
                 {tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="gap-1 pr-1">
                     {tag}
@@ -442,7 +442,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleTagKeyDown}
                   placeholder={tags.length === 0 ? 'Add tags...' : ''}
-                  className="placeholder:text-muted-foreground min-w-[80px] flex-1 bg-transparent text-sm outline-none"
+                  className="placeholder:text-muted-foreground min-w-20 flex-1 bg-transparent text-sm outline-none"
                 />
               </div>
               {tagSuggestions.length > 0 && (

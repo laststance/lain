@@ -6,6 +6,7 @@ import { GlobalSearchCommand } from '@/components/raindrop/global-search-command
 import { GroupDialog } from '@/components/raindrop/group-dialog'
 import { LeftSidebar } from '@/components/raindrop/left-sidebar'
 import { MainContent } from '@/components/raindrop/main-content'
+import { MergeDialog } from '@/components/raindrop/merge-dialog'
 import { RightDetailPanel } from '@/components/raindrop/right-detail-panel'
 import { TagManagement } from '@/components/raindrop/tag-management'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
@@ -14,20 +15,24 @@ import { useCollectionsCrud } from '@/hooks/useCollectionsCrud'
 import { useRaindropsCrud } from '@/hooks/useRaindropsCrud'
 import { useSidebarData } from '@/hooks/useSidebarData'
 import { useTagsCrud } from '@/hooks/useTagsCrud'
-import type { Collection, Raindrop } from '@/lib/types'
+import { mapSortOptionToApi } from '@/lib/api-mappers'
+import type { Collection, Raindrop, SortOption } from '@/lib/types'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   closeAddBookmark,
   closeCollectionDialog,
   closeGroupDialog,
+  closeMergeDialog,
   closeTagManagement,
   openAddBookmark,
   openCollectionDialog,
   openGroupDialog,
+  openMergeDialog,
   openTagManagement,
 } from '@/store/slices/dialogSlice'
 import { setSearchOpen } from '@/store/slices/searchSlice'
 import {
+  clearSelection,
   setDetailPanelOpen,
   setSelectedCollectionId,
   setSelectedRaindropIds,
@@ -54,7 +59,7 @@ function useGlobalSearchShortcut(onOpen: () => void) {
 /**
  * Main authenticated app view — 3-panel layout with sidebar, content, and detail.
  * Connects all UI components to the Raindrop.io API via RTK Query hooks and
- * Redux slices. Replaces mock data with real API data.
+ * Redux slices. Orchestrates all CRUD operations through callback props.
  *
  * @example
  *   // Used in App.tsx after auth check
@@ -74,6 +79,16 @@ export const MainApp = React.memo(function MainApp() {
   )
   const isGroupDialogOpen = useAppSelector((s) => s.dialog.groupDialog.open)
   const isTagManagementOpen = useAppSelector((s) => s.dialog.tagManagement.open)
+  const isMergeDialogOpen = useAppSelector((s) => s.dialog.mergeDialog.open)
+
+  // --- Local State ---
+  const [selectedRaindrop, setSelectedRaindrop] = useState<
+    Raindrop | undefined
+  >()
+  const [sortOption, setSortOption] = useState<SortOption>('newest')
+  const [editingCollection, setEditingCollection] = useState<
+    Collection | undefined
+  >()
 
   // --- Data Hooks ---
   const {
@@ -82,6 +97,7 @@ export const MainApp = React.memo(function MainApp() {
     isLoading: isSidebarLoading,
   } = useSidebarData()
 
+  const apiSort = mapSortOptionToApi(sortOption)
   const {
     raindrops,
     isLoading: isRaindropsLoading,
@@ -91,17 +107,21 @@ export const MainApp = React.memo(function MainApp() {
     createRaindrop,
     updateRaindrop,
     deleteRaindrop,
-  } = useRaindropsCrud({ collectionId: selectedCollectionId })
+    batchMoveToCollection,
+    batchAddTag,
+    batchDeleteRaindrops,
+  } = useRaindropsCrud({ collectionId: selectedCollectionId, sort: apiSort })
 
   const { tags: allTags, renameTag, deleteTag } = useTagsCrud()
-  const { createCollection: saveCollection } = useCollectionsCrud()
+  const {
+    createCollection: saveCollection,
+    updateCollection,
+    deleteCollection,
+    merge,
+    emptyTrash,
+  } = useCollectionsCrud()
 
-  // --- Local State (ephemeral UI only) ---
-  const [selectedRaindrop, setSelectedRaindrop] = useState<
-    Raindrop | undefined
-  >()
-
-  // Bridge: string[] (Redux) → Set<string> (MainContent expects Set until Phase 2.4)
+  // Bridge: string[] (Redux) → Set<string> (MainContent expects Set)
   const selectedRaindropIdsSet = useMemo(
     () => new Set(selectedRaindropIds),
     [selectedRaindropIds],
@@ -178,6 +198,10 @@ export const MainApp = React.memo(function MainApp() {
     [dispatch],
   )
 
+  const handleSortChange = useCallback((sort: SortOption) => {
+    setSortOption(sort)
+  }, [])
+
   // --- CRUD Handlers ---
   const handleSaveBookmark = useCallback(
     (bookmark: unknown) => {
@@ -214,14 +238,46 @@ export const MainApp = React.memo(function MainApp() {
     [deleteRaindrop, dispatch],
   )
 
+  // --- Collection CRUD Handlers ---
   const handleSaveCollection = useCallback(
-    (collection: unknown) => {
-      const data = collection as { title?: string }
-      if (data.title) saveCollection({ title: data.title })
+    async (collection: unknown) => {
+      const data = collection as {
+        id?: string
+        title?: string
+        name?: string
+        view?: string
+        parentId?: string
+      }
+      const title = data.title ?? data.name
+      if (!title) return
+      if (data.id) {
+        await updateCollection(data.id, { title, view: data.view })
+      } else {
+        await saveCollection({ title, parentId: data.parentId })
+      }
       dispatch(closeCollectionDialog())
     },
-    [saveCollection, dispatch],
+    [saveCollection, updateCollection, dispatch],
   )
+
+  const handleEditCollection = useCallback(
+    (collection: Collection) => {
+      setEditingCollection(collection)
+      dispatch(openCollectionDialog())
+    },
+    [dispatch],
+  )
+
+  const handleDeleteCollection = useCallback(
+    async (collectionId: string) => {
+      await deleteCollection(collectionId)
+    },
+    [deleteCollection],
+  )
+
+  const handleEmptyTrash = useCallback(async () => {
+    await emptyTrash()
+  }, [emptyTrash])
 
   const handleSaveGroup = useCallback(
     (_group: unknown) => {
@@ -230,6 +286,16 @@ export const MainApp = React.memo(function MainApp() {
     [dispatch],
   )
 
+  // --- Merge ---
+  const handleMergeCollections = useCallback(
+    async (sourceId: string, targetId: string) => {
+      await merge(targetId, [sourceId])
+      dispatch(closeMergeDialog())
+    },
+    [merge, dispatch],
+  )
+
+  // --- Tags ---
   const handleRenameTag = useCallback(
     async (oldName: string, newName: string) =>
       renameTag(selectedCollectionId, oldName, newName),
@@ -247,6 +313,31 @@ export const MainApp = React.memo(function MainApp() {
     [renameTag, selectedCollectionId],
   )
 
+  // --- Batch Operations ---
+  const handleBatchMove = useCallback(
+    async (ids: string[], targetCollectionId: string) => {
+      await batchMoveToCollection(ids, targetCollectionId)
+      dispatch(clearSelection())
+    },
+    [batchMoveToCollection, dispatch],
+  )
+
+  const handleBatchAddTag = useCallback(
+    async (ids: string[], tags: string[]) => {
+      await batchAddTag(ids, tags)
+      dispatch(clearSelection())
+    },
+    [batchAddTag, dispatch],
+  )
+
+  const handleBatchDelete = useCallback(
+    async (ids: string[]) => {
+      await batchDeleteRaindrops(ids)
+      dispatch(clearSelection())
+    },
+    [batchDeleteRaindrops, dispatch],
+  )
+
   // --- Dialog Openers ---
   const handleAddBookmark = useCallback(
     () =>
@@ -260,10 +351,10 @@ export const MainApp = React.memo(function MainApp() {
     [dispatch, selectedCollectionId],
   )
 
-  const handleAddCollection = useCallback(
-    () => dispatch(openCollectionDialog()),
-    [dispatch],
-  )
+  const handleAddCollection = useCallback(() => {
+    setEditingCollection(undefined)
+    dispatch(openCollectionDialog())
+  }, [dispatch])
 
   const handleAddGroup = useCallback(
     () => dispatch(openGroupDialog()),
@@ -272,6 +363,11 @@ export const MainApp = React.memo(function MainApp() {
 
   const handleManageTags = useCallback(
     () => dispatch(openTagManagement()),
+    [dispatch],
+  )
+
+  const handleOpenMerge = useCallback(
+    () => dispatch(openMergeDialog()),
     [dispatch],
   )
 
@@ -285,7 +381,10 @@ export const MainApp = React.memo(function MainApp() {
 
   const handleCollectionDialogOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) dispatch(closeCollectionDialog())
+      if (!open) {
+        dispatch(closeCollectionDialog())
+        setEditingCollection(undefined)
+      }
     },
     [dispatch],
   )
@@ -300,6 +399,13 @@ export const MainApp = React.memo(function MainApp() {
   const handleTagManagementOpenChange = useCallback(
     (open: boolean) => {
       if (!open) dispatch(closeTagManagement())
+    },
+    [dispatch],
+  )
+
+  const handleMergeDialogOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) dispatch(closeMergeDialog())
     },
     [dispatch],
   )
@@ -331,6 +437,10 @@ export const MainApp = React.memo(function MainApp() {
           onAddCollection={handleAddCollection}
           onAddGroup={handleAddGroup}
           onManageTags={handleManageTags}
+          onEditCollection={handleEditCollection}
+          onDeleteCollection={handleDeleteCollection}
+          onEmptyTrash={handleEmptyTrash}
+          onMergeCollections={handleOpenMerge}
         />
 
         <SidebarInset className="flex-1">
@@ -348,6 +458,11 @@ export const MainApp = React.memo(function MainApp() {
             groups={groups}
             collections={groups.flatMap((g) => g.collections)}
             onAddBookmark={handleAddBookmark}
+            sortOption={sortOption}
+            onSortChange={handleSortChange}
+            onBatchMove={handleBatchMove}
+            onBatchAddTag={handleBatchAddTag}
+            onBatchDelete={handleBatchDelete}
           />
         </SidebarInset>
 
@@ -387,7 +502,7 @@ export const MainApp = React.memo(function MainApp() {
           open={isCollectionDialogOpen}
           onOpenChange={handleCollectionDialogOpenChange}
           groups={groups}
-          collection={undefined}
+          collection={editingCollection}
           onSave={handleSaveCollection}
         />
 
@@ -405,6 +520,13 @@ export const MainApp = React.memo(function MainApp() {
           onRename={handleRenameTag}
           onDelete={handleDeleteTag}
           onMerge={handleMergeTags}
+        />
+
+        <MergeDialog
+          open={isMergeDialogOpen}
+          onOpenChange={handleMergeDialogOpenChange}
+          collections={groups.flatMap((g) => g.collections)}
+          onConfirm={handleMergeCollections}
         />
       </div>
       <Toaster />

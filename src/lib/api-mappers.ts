@@ -14,6 +14,7 @@ import type {
   Group,
   SystemCollection,
   ContentType,
+  SortOption,
 } from '@/lib/types'
 import type {
   Raindrop as ApiRaindropBase,
@@ -21,6 +22,7 @@ import type {
   User as ApiUser,
   RaindropCreate,
   RaindropUpdate,
+  GetRaindropsByCollectionIdApiArg,
 } from '@/store/api/raindropApi'
 
 /**
@@ -31,6 +33,29 @@ import type {
 type ApiRaindrop = ApiRaindropBase & {
   important?: boolean
   domain?: string
+}
+
+/** API sort type from the generated RTK Query arg */
+type ApiSort = GetRaindropsByCollectionIdApiArg['sort']
+
+/**
+ * Map UI SortOption to API sort parameter for GET /raindrops/:collectionId.
+ * @param sort - UI sort option from the toolbar dropdown
+ * @returns API sort string compatible with Raindrop.io API
+ * @example
+ *   mapSortOptionToApi('newest')    // => '-created'
+ *   mapSortOptionToApi('title-asc') // => 'title'
+ */
+export function mapSortOptionToApi(sort: SortOption): ApiSort {
+  const map: Record<SortOption, ApiSort> = {
+    newest: '-created',
+    oldest: 'created',
+    'title-asc': 'title',
+    'title-desc': '-title',
+    domain: 'domain',
+    relevance: 'score',
+  }
+  return map[sort]
 }
 
 // ---------------------------------------------------------------------------

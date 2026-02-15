@@ -9,6 +9,7 @@ import type {
 import {
   collectionIdToApi,
   collectionIdToUi,
+  mapSortOptionToApi,
   toUiRaindrop,
   toApiRaindropCreate,
   toApiRaindropUpdate,
@@ -39,6 +40,17 @@ describe('collectionIdToUi', () => {
   it('converts numeric IDs to strings', () => {
     expect(collectionIdToUi(42)).toBe('42')
     expect(collectionIdToUi(100)).toBe('100')
+  })
+})
+
+describe('mapSortOptionToApi', () => {
+  it('maps all UI sort options to API sort params', () => {
+    expect(mapSortOptionToApi('newest')).toBe('-created')
+    expect(mapSortOptionToApi('oldest')).toBe('created')
+    expect(mapSortOptionToApi('title-asc')).toBe('title')
+    expect(mapSortOptionToApi('title-desc')).toBe('-title')
+    expect(mapSortOptionToApi('domain')).toBe('domain')
+    expect(mapSortOptionToApi('relevance')).toBe('score')
   })
 })
 

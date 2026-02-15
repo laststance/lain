@@ -208,3 +208,120 @@ test.describe('View Mode Toggle', () => {
     await expect(page.getByLabel('Directory view')).toBeVisible()
   })
 })
+
+test.describe('Sort Dropdown', () => {
+  test('should render sort dropdown with default "Newest First"', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    // Sort dropdown should show current value
+    await expect(page.getByText('Newest First')).toBeVisible({
+      timeout: 5_000,
+    })
+  })
+
+  test('should change sort option via dropdown', async ({ page }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    // Wait for data to load
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Open sort dropdown and select "Title A-Z"
+    await page.getByText('Newest First').click()
+    await page.getByRole('option', { name: 'Title A-Z' }).click()
+
+    // Dropdown should now show "Title A-Z"
+    await expect(page.getByText('Title A-Z')).toBeVisible()
+  })
+})
+
+test.describe('Bulk Delete', () => {
+  test('should show Delete button in bulk bar and handle click', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    // Wait for list items
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Select first item via checkbox
+    const firstItem = page.locator('.divide-y > div').first()
+    await firstItem.hover()
+    const checkbox = firstItem.locator('[data-slot="checkbox"]')
+    await checkbox.click()
+
+    // Bulk bar should show "1 selected" and Delete button
+    await expect(page.getByText('1 selected')).toBeVisible()
+    const deleteButton = page.getByRole('button', { name: 'Delete' })
+    await expect(deleteButton).toBeVisible()
+
+    // Click Delete — should trigger batch delete mutation
+    await deleteButton.click()
+
+    // After delete, selection bar should clear
+    await expect(page.getByText(/\d+ selected/)).not.toBeVisible({
+      timeout: 5_000,
+    })
+  })
+
+  test('should show Deselect All button in bulk bar', async ({ page }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Select first item
+    const firstItem = page.locator('.divide-y > div').first()
+    await firstItem.hover()
+    await firstItem.locator('[data-slot="checkbox"]').click()
+    await expect(page.getByText('1 selected')).toBeVisible()
+
+    // Click Deselect All
+    await page.getByRole('button', { name: 'Deselect All' }).click()
+
+    // Selection bar should disappear
+    await expect(page.getByText(/\d+ selected/)).not.toBeVisible()
+  })
+})
+
+test.describe('Bulk Operations Bar', () => {
+  test('should show disabled Move to... and Add Tag... buttons', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
+      { timeout: 10_000 },
+    )
+
+    await expect(
+      page.getByRole('heading', { name: 'React Documentation' }),
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Select an item to show bulk bar
+    const firstItem = page.locator('.divide-y > div').first()
+    await firstItem.hover()
+    await firstItem.locator('[data-slot="checkbox"]').click()
+    await expect(page.getByText('1 selected')).toBeVisible()
+
+    // Move to... and Add Tag... should be visible but disabled
+    const moveButton = page.getByRole('button', { name: 'Move to...' })
+    const tagButton = page.getByRole('button', { name: 'Add Tag...' })
+    await expect(moveButton).toBeVisible()
+    await expect(tagButton).toBeVisible()
+    await expect(moveButton).toBeDisabled()
+    await expect(tagButton).toBeDisabled()
+  })
+})

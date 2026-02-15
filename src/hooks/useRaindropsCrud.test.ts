@@ -100,4 +100,59 @@ describe('useRaindropsCrud', () => {
     // MSW returns count: 60 with 50 loaded → hasMore should be true
     expect(result.current.hasMore).toBe(true)
   })
+
+  it('batch moves raindrops to another collection', async () => {
+    const { result } = renderHookWithProviders(() =>
+      useRaindropsCrud({ collectionId: 'all' }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    await act(async () => {
+      await result.current.batchMoveToCollection(['1', '2'], '100')
+    })
+  })
+
+  it('batch adds tags to raindrops', async () => {
+    const { result } = renderHookWithProviders(() =>
+      useRaindropsCrud({ collectionId: 'all' }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    await act(async () => {
+      await result.current.batchAddTag(['1', '2'], ['new-tag'])
+    })
+  })
+
+  it('batch deletes raindrops', async () => {
+    const { result } = renderHookWithProviders(() =>
+      useRaindropsCrud({ collectionId: 'all' }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    await act(async () => {
+      await result.current.batchDeleteRaindrops(['1', '2'])
+    })
+  })
+
+  it('accepts sort parameter for API-driven sorting', async () => {
+    const { result } = renderHookWithProviders(() =>
+      useRaindropsCrud({ collectionId: 'all', sort: 'title' }),
+    )
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    // Verify data loaded (sorting is handled by API/MSW)
+    expect(result.current.raindrops.length).toBeGreaterThan(0)
+  })
 })

@@ -11,9 +11,11 @@ import type { CreateBookmarkData } from '@/lib/api-mappers'
 import type { Raindrop } from '@/lib/types'
 import {
   useDeleteRaindropByIdMutation,
+  useDeleteRaindropsByCollectionIdMutation,
   useGetRaindropsByCollectionIdQuery,
   usePostRaindropMutation,
   usePutRaindropByIdMutation,
+  usePutRaindropsByCollectionIdMutation,
 } from '@/store/api/raindropApi'
 import type { GetRaindropsByCollectionIdApiArg } from '@/store/api/raindropApi'
 
@@ -100,6 +102,8 @@ export function useRaindropsCrud({
   const [postRaindrop] = usePostRaindropMutation()
   const [putRaindrop] = usePutRaindropByIdMutation()
   const [deleteRaindropMutation] = useDeleteRaindropByIdMutation()
+  const [batchUpdateMutation] = usePutRaindropsByCollectionIdMutation()
+  const [batchDeleteMutation] = useDeleteRaindropsByCollectionIdMutation()
 
   const createRaindrop = useCallback(
     async (formData: CreateBookmarkData) => {
@@ -138,6 +142,54 @@ export function useRaindropsCrud({
     [deleteRaindropMutation],
   )
 
+  const batchMoveToCollection = useCallback(
+    async (ids: string[], targetCollectionId: string) => {
+      const result = await batchUpdateMutation({
+        collectionId: apiCollectionId,
+        raindropsBatchUpdateRequest: {
+          ids: ids.map(Number),
+          collection: { $id: collectionIdToApi(targetCollectionId) },
+        },
+      })
+      if ('data' in result) {
+        toast.success(`Moved ${ids.length} bookmarks`)
+        setResetKey((k) => k + 1)
+      }
+    },
+    [batchUpdateMutation, apiCollectionId],
+  )
+
+  const batchAddTag = useCallback(
+    async (ids: string[], tags: string[]) => {
+      const result = await batchUpdateMutation({
+        collectionId: apiCollectionId,
+        raindropsBatchUpdateRequest: {
+          ids: ids.map(Number),
+          tags,
+        },
+      })
+      if ('data' in result) {
+        toast.success(`Tagged ${ids.length} bookmarks`)
+        setResetKey((k) => k + 1)
+      }
+    },
+    [batchUpdateMutation, apiCollectionId],
+  )
+
+  const batchDeleteRaindrops = useCallback(
+    async (ids: string[]) => {
+      const result = await batchDeleteMutation({
+        collectionId: apiCollectionId,
+        body: { ids: ids.map(Number) },
+      })
+      if ('data' in result) {
+        toast.success(`Deleted ${ids.length} bookmarks`)
+        setResetKey((k) => k + 1)
+      }
+    },
+    [batchDeleteMutation, apiCollectionId],
+  )
+
   return {
     raindrops,
     totalCount,
@@ -148,6 +200,9 @@ export function useRaindropsCrud({
     createRaindrop,
     updateRaindrop,
     deleteRaindrop,
+    batchMoveToCollection,
+    batchAddTag,
+    batchDeleteRaindrops,
   }
 }
 
@@ -179,4 +234,13 @@ interface UseRaindropsCrudReturn {
   updateRaindrop: (id: string, data: Partial<Raindrop>) => Promise<void>
   /** Delete a raindrop by ID */
   deleteRaindrop: (id: string) => Promise<void>
+  /** Move selected raindrops to a different collection */
+  batchMoveToCollection: (
+    ids: string[],
+    targetCollectionId: string,
+  ) => Promise<void>
+  /** Add tags to selected raindrops */
+  batchAddTag: (ids: string[], tags: string[]) => Promise<void>
+  /** Delete selected raindrops */
+  batchDeleteRaindrops: (ids: string[]) => Promise<void>
 }

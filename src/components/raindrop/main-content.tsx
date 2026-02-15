@@ -119,7 +119,7 @@ function useInfiniteScroll({
 interface MainContentProps {
   /** Breadcrumb path segments for current navigation */
   breadcrumbs: string[]
-  /** Array of raindrops (bookmarks) to display */
+  /** Array of raindrops (bookmarks) to display (already sorted by API) */
   raindrops: Raindrop[]
   /** True during initial load (no cached data) */
   isLoading?: boolean
@@ -143,6 +143,16 @@ interface MainContentProps {
   collections: Collection[]
   /** Callback to open the add bookmark dialog */
   onAddBookmark: () => void
+  /** Current sort option (controlled by parent) */
+  sortOption: SortOption
+  /** Callback when sort changes (lifts state to parent for API sort) */
+  onSortChange: (sort: SortOption) => void
+  /** Batch move selected raindrops to a collection */
+  onBatchMove?: (ids: string[], targetCollectionId: string) => Promise<void>
+  /** Batch add tags to selected raindrops */
+  onBatchAddTag?: (ids: string[], tags: string[]) => Promise<void>
+  /** Batch delete selected raindrops */
+  onBatchDelete?: (ids: string[]) => Promise<void>
 }
 
 /**
@@ -286,12 +296,16 @@ const MainContent = React.memo(function MainContent({
   groups: _groups,
   collections: _collections,
   onAddBookmark,
+  sortOption,
+  onSortChange,
+  onBatchMove,
+  onBatchAddTag,
+  onBatchDelete,
 }: MainContentProps) {
   // Reserved for bulk action "Move to..." functionality
   void _groups
   void _collections
   const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [sortOption, setSortOption] = useState<SortOption>('newest')
   const [searchQuery, setSearchQuery] = useState('')
   const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
@@ -308,8 +322,8 @@ const MainContent = React.memo(function MainContent({
     if (val) setViewMode(val as ViewMode)
   }, [])
   const handleSortChange = useCallback(
-    (val: string) => setSortOption(val as SortOption),
-    [],
+    (val: string) => onSortChange(val as SortOption),
+    [onSortChange],
   )
   const handleDeselectAll = useCallback(
     () => onSelectedRaindropIdsChange(new Set()),
@@ -324,6 +338,10 @@ const MainContent = React.memo(function MainContent({
     setSearchScope('all')
     setIsAdvancedSearchOpen(false)
   }, [])
+
+  const handleBatchDelete = useCallback(async () => {
+    await onBatchDelete?.([...selectedRaindropIds])
+  }, [onBatchDelete, selectedRaindropIds])
 
   /**
    * Filter raindrops based on current search query and scope.
@@ -354,36 +372,8 @@ const MainContent = React.memo(function MainContent({
     })
   }, [raindrops, searchQuery, searchScope])
 
-  /**
-   * Sort filtered raindrops based on current sort option.
-   * @returns Sorted array of raindrops
-   */
-  const sortedRaindrops = useMemo(() => {
-    const sorted = [...filteredRaindrops]
-
-    switch (sortOption) {
-      case 'newest':
-        return sorted.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        )
-      case 'oldest':
-        return sorted.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        )
-      case 'title-asc':
-        return sorted.sort((a, b) => a.title.localeCompare(b.title))
-      case 'title-desc':
-        return sorted.sort((a, b) => b.title.localeCompare(a.title))
-      case 'domain':
-        return sorted.sort((a, b) =>
-          (a.domain || '').localeCompare(b.domain || ''),
-        )
-      default:
-        return sorted
-    }
-  }, [filteredRaindrops, sortOption])
+  // Sort is handled by the API via useRaindropsCrud({ sort: apiSort }).
+  // Client-side search filtering above is still needed (API search is P3 scope).
 
   /**
    * Handle click on a raindrop with multi-select support.
@@ -403,16 +393,16 @@ const MainContent = React.memo(function MainContent({
         onSelectedRaindropIdsChange(next)
       } else if (event.shiftKey && selectedRaindropId) {
         // Range select
-        const currentIndex = sortedRaindrops.findIndex(
+        const currentIndex = filteredRaindrops.findIndex(
           (r) => r.id === selectedRaindropId,
         )
-        const clickedIndex = sortedRaindrops.findIndex(
+        const clickedIndex = filteredRaindrops.findIndex(
           (r) => r.id === raindrop.id,
         )
         if (currentIndex !== -1 && clickedIndex !== -1) {
           const start = Math.min(currentIndex, clickedIndex)
           const end = Math.max(currentIndex, clickedIndex)
-          const rangeIds = sortedRaindrops
+          const rangeIds = filteredRaindrops
             .slice(start, end + 1)
             .map((r) => r.id)
           onSelectedRaindropIdsChange(new Set(rangeIds))
@@ -425,7 +415,7 @@ const MainContent = React.memo(function MainContent({
     [
       selectedRaindropIds,
       selectedRaindropId,
-      sortedRaindrops,
+      filteredRaindrops,
       onSelectedRaindropIdsChange,
       onSelectRaindrop,
     ],
@@ -497,7 +487,7 @@ const MainContent = React.memo(function MainContent({
 
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-xs tabular-nums">
-              {sortedRaindrops.length} items
+              {filteredRaindrops.length} items
             </span>
 
             <Tooltip>
@@ -687,19 +677,36 @@ const MainContent = React.memo(function MainContent({
               Deselect All
             </Button>
             <Separator orientation="vertical" className="h-4" />
-            <Button variant="ghost" size="sm" className="h-6 text-xs">
-              Move to...
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 text-xs">
-              Add Tag...
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive h-6 text-xs"
-            >
-              Delete
-            </Button>
+            {onBatchMove && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                disabled
+              >
+                Move to...
+              </Button>
+            )}
+            {onBatchAddTag && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                disabled
+              >
+                Add Tag...
+              </Button>
+            )}
+            {onBatchDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive h-6 text-xs"
+                onClick={handleBatchDelete}
+              >
+                Delete
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -714,7 +721,7 @@ const MainContent = React.memo(function MainContent({
               Loading bookmarks...
             </p>
           </div>
-        ) : sortedRaindrops.length === 0 ? (
+        ) : filteredRaindrops.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center px-4 py-20">
             <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
@@ -740,7 +747,7 @@ const MainContent = React.memo(function MainContent({
         ) : viewMode === 'grid' ? (
           /* Grid View */
           <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4">
-            {sortedRaindrops.map((raindrop) => (
+            {filteredRaindrops.map((raindrop) => (
               <RaindropCardWrapper
                 key={raindrop.id}
                 raindrop={raindrop}
@@ -756,7 +763,7 @@ const MainContent = React.memo(function MainContent({
         ) : (
           /* List View (default) */
           <div className="divide-y">
-            {sortedRaindrops.map((raindrop) => (
+            {filteredRaindrops.map((raindrop) => (
               <RaindropListItemWrapper
                 key={raindrop.id}
                 raindrop={raindrop}

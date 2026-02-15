@@ -8,11 +8,41 @@ import {
   mockTags,
 } from '../fixtures'
 
+/** Fixture types inferred from the shared fixtures */
+type MockRaindrop = (typeof mockRaindrops)[number]
+type MockCollection = (typeof mockCollections)[number]
+type MockTag = (typeof mockTags)[number]
+
+/**
+ * Mutable in-memory store for E2E tests.
+ * Each call to `mockRaindropApi()` creates a fresh store,
+ * so mutations within a test are visible to subsequent reads.
+ */
+class E2eMockStore {
+  raindrops: MockRaindrop[]
+  collections: MockCollection[]
+  childCollections: MockCollection[]
+  user: typeof mockUser
+  tags: MockTag[]
+  private nextId = 10000
+
+  constructor() {
+    this.raindrops = structuredClone(mockRaindrops)
+    this.collections = structuredClone(mockCollections)
+    this.childCollections = structuredClone(mockChildCollections)
+    this.user = structuredClone(mockUser)
+    this.tags = structuredClone(mockTags)
+  }
+
+  genId(): number {
+    return this.nextId++
+  }
+}
+
 /**
  * Mock Raindrop.io API responses via Playwright page.route().
- * Imports shared fixture data from fixtures/ (single source of truth).
- *
- * Called BEFORE page loads data so all API requests are intercepted.
+ * Creates a fresh stateful store per invocation so CRUD mutations
+ * are reflected in subsequent reads within the same test.
  *
  * @param page - Playwright page instance
  *
@@ -22,21 +52,48 @@ import {
  *   await page.waitForLoadState('domcontentloaded')
  */
 export async function mockRaindropApi(page: Page): Promise<void> {
+  const store = new E2eMockStore()
+
   await page.route('**/api.raindrop.io/rest/v1/**', async (route) => {
     const url = new URL(route.request().url())
     const path = url.pathname.replace('/rest/v1', '')
     const method = route.request().method()
 
-    // GET /raindrops/:collectionId (with pagination)
+    // GET /raindrops/:collectionId (with pagination + sort)
     if (method === 'GET' && /^\/raindrops\/(-?\d+)$/.test(path)) {
       const collectionId = Number(path.split('/').pop())
       const pageNum = Number(url.searchParams.get('page') ?? '0')
       const perpage = Number(url.searchParams.get('perpage') ?? '50')
+      const sort = url.searchParams.get('sort') ?? undefined
 
-      const all =
+      let all =
         collectionId === 0
-          ? mockRaindrops
-          : mockRaindrops.filter((r) => r.collection.$id === collectionId)
+          ? store.raindrops
+          : store.raindrops.filter((r) => r.collection.$id === collectionId)
+
+      // Apply sort
+      if (sort) {
+        all = [...all].sort((a, b) => {
+          switch (sort) {
+            case '-created':
+              return (
+                new Date(b.created).getTime() - new Date(a.created).getTime()
+              )
+            case 'created':
+              return (
+                new Date(a.created).getTime() - new Date(b.created).getTime()
+              )
+            case 'title':
+              return a.title.localeCompare(b.title)
+            case '-title':
+              return b.title.localeCompare(a.title)
+            case 'domain':
+              return a.domain.localeCompare(b.domain)
+            default:
+              return 0
+          }
+        })
+      }
 
       const start = pageNum * perpage
       const items = all.slice(start, start + perpage)
@@ -48,35 +105,182 @@ export async function mockRaindropApi(page: Page): Promise<void> {
     // GET /raindrop/:id (single)
     if (method === 'GET' && /^\/raindrop\/\d+$/.test(path)) {
       const id = Number(path.split('/').pop())
-      const item = mockRaindrops.find((r) => r._id === id)
+      const item = store.raindrops.find((r) => r._id === id)
       if (item) {
         return route.fulfill({ json: { result: true, item } })
       }
       return route.fulfill({ status: 404, json: { result: false } })
     }
 
+    // POST /raindrop (create)
+    if (method === 'POST' && path === '/raindrop') {
+      const body = JSON.parse(
+        (await route.request().postData()) ?? '{}',
+      ) as Record<string, unknown>
+      const newItem: MockRaindrop = {
+        _id: store.genId(),
+        title: (body.title as string) ?? 'Untitled',
+        link: (body.link as string) ?? '',
+        excerpt: (body.excerpt as string) ?? '',
+        type: (body.type as MockRaindrop['type']) ?? 'link',
+        cover: '',
+        tags: (body.tags as string[]) ?? [],
+        important: (body.important as boolean) ?? false,
+        domain: '',
+        created: new Date().toISOString(),
+        lastUpdate: new Date().toISOString(),
+        collection: (body.collection as { $id: number }) ?? { $id: 0 },
+        media: [],
+        note: '',
+        highlights: [],
+        removed: false,
+        sort: 0,
+      }
+      try {
+        newItem.domain = new URL(newItem.link).hostname
+      } catch {
+        /* ignore */
+      }
+      store.raindrops.unshift(newItem)
+      return route.fulfill({ json: { result: true, item: newItem } })
+    }
+
+    // PUT /raindrop/:id (update)
+    if (method === 'PUT' && /^\/raindrop\/\d+$/.test(path)) {
+      const id = Number(path.split('/').pop())
+      const body = JSON.parse(
+        (await route.request().postData()) ?? '{}',
+      ) as Record<string, unknown>
+      const existing = store.raindrops.find((r) => r._id === id)
+      if (existing) {
+        Object.assign(existing, body)
+        return route.fulfill({ json: { result: true, item: existing } })
+      }
+      return route.fulfill({ status: 404, json: { result: false } })
+    }
+
+    // DELETE /raindrop/:id
+    if (method === 'DELETE' && /^\/raindrop\/\d+$/.test(path)) {
+      const id = Number(path.split('/').pop())
+      store.raindrops = store.raindrops.filter((r) => r._id !== id)
+      return route.fulfill({ json: { result: true } })
+    }
+
+    // PUT /raindrops/:collectionId (batch update)
+    if (method === 'PUT' && /^\/raindrops\/(-?\d+)$/.test(path)) {
+      const body = JSON.parse((await route.request().postData()) ?? '{}') as {
+        ids?: number[]
+        [key: string]: unknown
+      }
+      const { ids, ...data } = body
+      let modified = 0
+      for (const id of ids ?? []) {
+        const r = store.raindrops.find((r) => r._id === id)
+        if (r) {
+          Object.assign(r, data)
+          modified++
+        }
+      }
+      return route.fulfill({ json: { result: true, modified } })
+    }
+
+    // DELETE /raindrops/:collectionId (batch delete)
+    if (method === 'DELETE' && /^\/raindrops\/(-?\d+)$/.test(path)) {
+      const body = JSON.parse((await route.request().postData()) ?? '{}') as {
+        ids?: number[]
+      }
+      const deleteIds = new Set(body.ids ?? [])
+      const before = store.raindrops.length
+      store.raindrops = store.raindrops.filter((r) => !deleteIds.has(r._id))
+      return route.fulfill({
+        json: { result: true, modified: before - store.raindrops.length },
+      })
+    }
+
     // GET /collections
     if (method === 'GET' && path === '/collections') {
       return route.fulfill({
-        json: { result: true, items: mockCollections },
+        json: { result: true, items: store.collections },
       })
     }
 
     // GET /collections/childrens
     if (method === 'GET' && path === '/collections/childrens') {
       return route.fulfill({
-        json: { result: true, items: mockChildCollections },
+        json: { result: true, items: store.childCollections },
       })
+    }
+
+    // POST /collection (create)
+    if (method === 'POST' && path === '/collection') {
+      const body = JSON.parse(
+        (await route.request().postData()) ?? '{}',
+      ) as Record<string, unknown>
+      const newColl: MockCollection = {
+        _id: store.genId(),
+        title: (body.title as string) ?? 'Untitled',
+        parent: (body.parent as { $id: number }) ?? null,
+        color: null,
+        cover: [],
+        count: 0,
+        expanded: true,
+        sort: store.collections.length,
+        view: 'list',
+        access: { level: 4, draggable: true },
+        creatorRef: { _id: 1 },
+      }
+      if (newColl.parent) {
+        store.childCollections.push(newColl)
+      } else {
+        store.collections.push(newColl)
+      }
+      return route.fulfill({ json: { result: true, item: newColl } })
+    }
+
+    // DELETE /collection/-99 (empty trash)
+    if (method === 'DELETE' && path === '/collection/-99') {
+      store.raindrops = store.raindrops.filter(
+        (r) => r.collection.$id !== -99 && !r.removed,
+      )
+      return route.fulfill({ json: { result: true } })
+    }
+
+    // PUT /collection/:id
+    if (method === 'PUT' && /^\/collection\/\d+$/.test(path)) {
+      const id = Number(path.split('/').pop())
+      const body = JSON.parse(
+        (await route.request().postData()) ?? '{}',
+      ) as Record<string, unknown>
+      const coll = [...store.collections, ...store.childCollections].find(
+        (c) => c._id === id,
+      )
+      if (coll) Object.assign(coll, body)
+      return route.fulfill({ json: { result: true, item: coll } })
+    }
+
+    // DELETE /collection/:id
+    if (method === 'DELETE' && /^\/collection\/\d+$/.test(path)) {
+      const id = Number(path.split('/').pop())
+      store.collections = store.collections.filter((c) => c._id !== id)
+      store.childCollections = store.childCollections.filter(
+        (c) => c._id !== id,
+      )
+      return route.fulfill({ json: { result: true } })
+    }
+
+    // PUT /collections/merge
+    if (method === 'PUT' && path === '/collections/merge') {
+      return route.fulfill({ json: { result: true } })
     }
 
     // GET /user
     if (method === 'GET' && path === '/user') {
-      return route.fulfill({ json: { result: true, user: mockUser } })
+      return route.fulfill({ json: { result: true, user: store.user } })
     }
 
     // GET /tags (with or without collectionId)
     if (method === 'GET' && /^\/tags(\/(-?\d+))?$/.test(path)) {
-      return route.fulfill({ json: { result: true, items: mockTags } })
+      return route.fulfill({ json: { result: true, items: store.tags } })
     }
 
     // GET /filters/:collectionId
@@ -85,17 +289,48 @@ export async function mockRaindropApi(page: Page): Promise<void> {
         json: {
           result: true,
           items: {
-            type: [
+            types: [
               { _id: 'link', count: 30 },
               { _id: 'article', count: 15 },
             ],
-            tag: [{ _id: 'react', count: 8 }],
+            tags: store.tags.slice(0, 10),
           },
         },
       })
     }
 
-    // Fallback: return generic success for mutations
+    // POST /raindrop/suggest
+    if (method === 'POST' && path === '/raindrop/suggest') {
+      return route.fulfill({
+        json: {
+          result: true,
+          item: { collections: [{ $id: 100 }], tags: ['suggested-tag'] },
+        },
+      })
+    }
+
+    // GET /import/url/parse
+    if (method === 'GET' && path === '/import/url/parse') {
+      const targetUrl = url.searchParams.get('url') ?? ''
+      let domain = ''
+      try {
+        domain = new URL(targetUrl).hostname
+      } catch {
+        /* ignore */
+      }
+      return route.fulfill({
+        json: {
+          result: true,
+          item: {
+            title: `Parsed: ${domain}`,
+            excerpt: 'Auto-parsed description',
+            link: targetUrl,
+          },
+        },
+      })
+    }
+
+    // Fallback: return generic success for unhandled mutations
     return route.fulfill({ json: { result: true } })
   })
 }

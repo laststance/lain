@@ -5,8 +5,10 @@ import { LoginScreen } from '@/components/LoginScreen'
 import { MainApp } from '@/components/main-app'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { store } from '@/store'
+
+import { AuthProvider } from './contexts/AuthProvider'
+import { useAuth } from './contexts/useAuth'
 
 /**
  * Root component that switches between login and the main 3-panel UI

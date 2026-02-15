@@ -110,8 +110,10 @@ function registerShellIPC(): void {
   })
 }
 
-// Enable remote debugging for Electron MCP integration
-app.commandLine.appendSwitch('remote-debugging-port', '9222')
+// Enable remote debugging for Electron MCP integration (dev only)
+if (!isTestMode) {
+  app.commandLine.appendSwitch('remote-debugging-port', '9222')
+}
 
 app.whenReady().then(async () => {
   registerShellIPC()

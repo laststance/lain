@@ -64,21 +64,30 @@ const MergeDialog = React.memo(function MergeDialog({
 
   const canConfirm = sourceId && targetId && sourceId !== targetId
 
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setSourceId('')
+        setTargetId('')
+      }
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange],
+  )
+
+  const handleCancel = useCallback(
+    () => handleOpenChange(false),
+    [handleOpenChange],
+  )
+
   const handleConfirm = useCallback(() => {
     if (!canConfirm) return
     onConfirm(sourceId, targetId)
-    setSourceId('')
-    setTargetId('')
-  }, [canConfirm, sourceId, targetId, onConfirm])
-
-  const handleCancel = useCallback(() => {
-    onOpenChange(false)
-    setSourceId('')
-    setTargetId('')
-  }, [onOpenChange])
+    handleOpenChange(false)
+  }, [canConfirm, sourceId, targetId, onConfirm, handleOpenChange])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

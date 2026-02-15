@@ -40,17 +40,23 @@ describe('useUrlSuggest', () => {
   })
 
   it('returns null for failed requests', async () => {
+    // Override MSW handler to simulate a server error
+    const { server } = await import('@test/mocks/server')
+    const { http, HttpResponse } = await import('msw')
+    server.use(
+      http.get('https://api.raindrop.io/rest/v1/import/url/parse', () =>
+        HttpResponse.error(),
+      ),
+    )
+
     const { result } = renderHookWithProviders(() => useUrlSuggest())
 
     const box: { value: Suggestion } = { value: null }
 
     await act(async () => {
-      // Empty URL should still return a result from our MSW mock
-      box.value = await result.current.fetchSuggestion('')
+      box.value = await result.current.fetchSuggestion('https://will-fail.com')
     })
 
-    // Our MSW mock handles all URLs, so it won't fail — but the hook
-    // gracefully handles errors by returning null
-    expect(box.value === null || typeof box.value === 'object').toBe(true)
+    expect(box.value).toBeNull()
   })
 })

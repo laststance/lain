@@ -50,6 +50,8 @@ export function useTagsCrud(): UseTagsCrudReturn {
       })
       if ('data' in result) {
         toast.success(`Tag renamed to "${newName}"`)
+      } else {
+        toast.error('Failed to rename tag')
       }
     },
     [putTags],
@@ -72,6 +74,8 @@ export function useTagsCrud(): UseTagsCrudReturn {
             ? `Tag "${tagNames[0]}" deleted`
             : `${tagNames.length} tags deleted`,
         )
+      } else {
+        toast.error('Failed to delete tag')
       }
     },
     [deleteTags],

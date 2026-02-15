@@ -59,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/prepare
-      - run: pnpm coverage:e2e-spec > docs/e2e-coverage.md
+      - run: pnpm --silent coverage:e2e-spec > docs/e2e-coverage.md
       - uses: actions/upload-artifact@v4
         with:
           name: e2e-spec-coverage

@@ -193,7 +193,11 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
     if (!tagInput) return []
     const lower = tagInput.toLowerCase()
     return existingTags
-      .filter((tag) => tag.toLowerCase().includes(lower) && !tags.includes(tag))
+      .filter(
+        (tag) =>
+          tag.toLowerCase().includes(lower) &&
+          !tags.includes(tag.toLowerCase()),
+      )
       .slice(0, 5)
   }, [tagInput, existingTags, tags])
 
@@ -304,6 +308,7 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
 
   return (
     <div
+      data-testid="detail-panel"
       className={cn(
         'bg-background flex h-screen flex-col border-l transition-all duration-200 ease-in-out',
         isOpen

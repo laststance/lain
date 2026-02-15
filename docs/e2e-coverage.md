@@ -1,6 +1,3 @@
-> lain@0.1.0 coverage:e2e-spec /Users/ryotamurakami/laststance/lain
-> tsx scripts/e2e-coverage-report.ts
-
 # E2E SPEC.md Coverage Report
 
 Generated: 2026-02-15

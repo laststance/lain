@@ -37,6 +37,11 @@ export const test = base.extend<ElectronFixtures>({
   page: async ({ electronApp }, use) => {
     const page = await electronApp.firstWindow()
     await mockRaindropApi(page)
+    // Reload after mock setup to avoid race condition where RTK Query
+    // fires API calls before page.route() intercepts are registered.
+    // Without this, CI runners may fail because the app loads faster
+    // than Playwright can set up route handlers.
+    await page.reload()
     await page.waitForLoadState('domcontentloaded')
     await use(page)
   },

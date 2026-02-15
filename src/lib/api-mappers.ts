@@ -328,12 +328,19 @@ export function toUiGroups(
  */
 export function toUiSystemCollections(
   rootCollections: ApiCollection[],
+  unsortedCount = 0,
+  trashCount = 0,
 ): SystemCollection[] {
   const totalCount = rootCollections.reduce((sum, c) => sum + (c.count ?? 0), 0)
 
   return [
     { id: 'all', name: 'All Bookmarks', icon: 'Inbox', count: totalCount },
-    { id: 'unsorted', name: 'Unsorted', icon: 'FileQuestion', count: 0 },
-    { id: 'trash', name: 'Trash', icon: 'Trash2', count: 0 },
+    {
+      id: 'unsorted',
+      name: 'Unsorted',
+      icon: 'FileQuestion',
+      count: unsortedCount,
+    },
+    { id: 'trash', name: 'Trash', icon: 'Trash2', count: trashCount },
   ]
 }

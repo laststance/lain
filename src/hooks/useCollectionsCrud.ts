@@ -44,6 +44,8 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
       const result = await postCollection({ collectionCreate: apiData })
       if ('data' in result) {
         toast.success('Collection created')
+      } else {
+        toast.error('Failed to create collection')
       }
     },
     [postCollection],
@@ -65,6 +67,8 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
       })
       if ('data' in result) {
         toast.success('Collection updated')
+      } else {
+        toast.error('Failed to update collection')
       }
     },
     [putCollection],
@@ -77,6 +81,8 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
       })
       if ('data' in result) {
         toast.success('Collection deleted')
+      } else {
+        toast.error('Failed to delete collection')
       }
     },
     [deleteCollectionMutation],
@@ -92,6 +98,8 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
       })
       if ('data' in result) {
         toast.success('Collections merged')
+      } else {
+        toast.error('Failed to merge collections')
       }
     },
     [mergeCollections],
@@ -101,6 +109,8 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
     const result = await deleteCollection99()
     if ('data' in result) {
       toast.success('Trash emptied')
+    } else {
+      toast.error('Failed to empty trash')
     }
   }, [deleteCollection99])
 

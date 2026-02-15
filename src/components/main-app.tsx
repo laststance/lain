@@ -285,8 +285,11 @@ export const MainApp = React.memo(function MainApp() {
   )
 
   const handleMergeTags = useCallback(
-    async (sourceTags: string[], targetTag: string) =>
-      renameTag(selectedCollectionId, sourceTags[0], targetTag),
+    async (sourceTags: string[], targetTag: string) => {
+      for (const sourceTag of sourceTags) {
+        await renameTag(selectedCollectionId, sourceTag, targetTag)
+      }
+    },
     [renameTag, selectedCollectionId],
   )
 

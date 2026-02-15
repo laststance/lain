@@ -44,15 +44,10 @@ describe('MainApp Layout', () => {
     )
 
     // RightDetailPanel should exist but be collapsed (w-0)
-    // It uses: w-0 min-w-0 overflow-hidden border-l-0 when closed
-    const detailPanel = document.querySelector(
-      '.flex.h-screen.flex-col.border-l',
-    )
-    // When closed, the panel has w-0 and overflow-hidden
-    if (detailPanel) {
-      expect(detailPanel.className).toContain('w-0')
-      expect(detailPanel.className).toContain('overflow-hidden')
-    }
+    const detailPanel = document.querySelector('[data-testid="detail-panel"]')
+    expect(detailPanel).toBeTruthy()
+    expect(detailPanel!.className).toContain('w-0')
+    expect(detailPanel!.className).toContain('overflow-hidden')
   })
 
   it('opens detail panel when a raindrop is clicked', async () => {
@@ -76,11 +71,9 @@ describe('MainApp Layout', () => {
 
     // Detail panel should open with w-[360px]
     await waitFor(() => {
-      const panels = document.querySelectorAll('.flex.h-screen.flex-col')
-      const openPanel = Array.from(panels).find((el) =>
-        el.className.includes('w-[360px]'),
-      )
-      expect(openPanel).toBeTruthy()
+      const detailPanel = document.querySelector('[data-testid="detail-panel"]')
+      expect(detailPanel).toBeTruthy()
+      expect(detailPanel!.className).toContain('w-[360px]')
     })
 
     // SidebarInset should still have min-w-0 (prevents overflow)

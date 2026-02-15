@@ -192,7 +192,7 @@ const CollectionItem = React.memo(function CollectionItem({
                   )}
                   {onDeleteCollection && (
                     <>
-                      <DropdownMenuSeparator />
+                      {onEditCollection && <DropdownMenuSeparator />}
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={handleDelete}

@@ -1,6 +1,6 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit'
-import { render } from '@testing-library/react'
-import type { RenderOptions } from '@testing-library/react'
+import { render, renderHook } from '@testing-library/react'
+import type { RenderOptions, RenderHookOptions } from '@testing-library/react'
 import { Provider } from 'react-redux'
 
 import { ThemeProvider } from '@/components/theme-provider'
@@ -61,4 +61,37 @@ export function renderWithProviders(
   }
 
   return { store, ...render(ui, { wrapper: Wrapper, ...renderOptions }) }
+}
+
+/**
+ * Render a hook wrapped in all required providers for testing.
+ * Creates a fresh Redux store per test to avoid state leaks.
+ *
+ * @param hook - Hook function to render
+ * @param options - Optional preloadedState and renderHook options
+ * @returns renderHook result + store reference
+ *
+ * @example
+ *   const { result } = renderHookWithProviders(() => useSidebarData())
+ *   await waitFor(() => expect(result.current.isLoading).toBe(false))
+ */
+export function renderHookWithProviders<Result, Props>(
+  hook: (props: Props) => Result,
+  options?: Omit<RenderHookOptions<Props>, 'wrapper'> & {
+    preloadedState?: Partial<RootState>
+  },
+) {
+  const { preloadedState, ...hookOptions } = options ?? {}
+  const store = configureStore({
+    reducer: rootReducer,
+    middleware: (getDefault) => getDefault().concat(api.middleware),
+    preloadedState,
+  })
+
+  // eslint-disable-next-line @laststance/react-next/all-memo
+  function Wrapper({ children }: { children: React.ReactNode }) {
+    return <Provider store={store}>{children}</Provider>
+  }
+
+  return { store, ...renderHook(hook, { wrapper: Wrapper, ...hookOptions }) }
 }

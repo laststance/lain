@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/electron'
+import { test, expect } from '../electron'
 
 /**
  * Auth bypass smoke tests.

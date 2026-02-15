@@ -7,7 +7,7 @@ describe('Redux Store', () => {
     const state = store.getState()
 
     expect(state.ui.viewMode).toBe('list')
-    expect(state.ui.selectedCollectionId).toBe('0')
+    expect(state.ui.selectedCollectionId).toBe('all')
     expect(state.ui.isDetailPanelOpen).toBe(false)
     expect(state.search.query).toBe('')
     expect(state.search.scope).toBe('all')

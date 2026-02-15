@@ -8,7 +8,10 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@test/*": ["./test/*"],
+      "@fixtures": ["./fixtures"],
+      "@fixtures/*": ["./fixtures/*"]
     }
   }
 }

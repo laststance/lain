@@ -1,99 +1,47 @@
 import { http, HttpResponse } from 'msw'
 
+import {
+  mockRaindrops,
+  mockCollections,
+  mockChildCollections,
+  mockUser,
+  mockTags,
+} from '@fixtures'
+
 const API_BASE = 'https://api.raindrop.io/rest/v1'
 
 /**
- * Mock raindrop data shared across tests.
- */
-const mockRaindrops = [
-  {
-    _id: 1,
-    title: 'React Documentation',
-    link: 'https://react.dev',
-    excerpt: 'The library for web and native user interfaces',
-    type: 'link' as const,
-    cover: '',
-    tags: ['react', 'frontend'],
-    important: false,
-    domain: 'react.dev',
-    created: '2024-01-15T00:00:00.000Z',
-    lastUpdate: '2024-01-15T00:00:00.000Z',
-    collection: { $id: 100 },
-    media: [],
-    note: '',
-    highlights: [],
-    removed: false,
-    sort: 0,
-  },
-  {
-    _id: 2,
-    title: 'TypeScript Handbook',
-    link: 'https://www.typescriptlang.org/docs/handbook',
-    excerpt: 'The TypeScript Handbook is a comprehensive guide',
-    type: 'article' as const,
-    cover: '',
-    tags: ['typescript', 'documentation'],
-    important: true,
-    domain: 'typescriptlang.org',
-    created: '2024-02-01T00:00:00.000Z',
-    lastUpdate: '2024-02-01T00:00:00.000Z',
-    collection: { $id: 100 },
-    media: [],
-    note: '',
-    highlights: [],
-    removed: false,
-    sort: 1,
-  },
-]
-
-/**
- * Mock collection data shared across tests.
- */
-const mockCollections = [
-  {
-    _id: 100,
-    title: 'Development',
-    parent: null,
-    color: null,
-    cover: [],
-    count: 45,
-    expanded: true,
-    sort: 0,
-    view: 'list' as const,
-    access: { level: 4, draggable: true },
-    creatorRef: { _id: 1 },
-  },
-  {
-    _id: 101,
-    title: 'Design',
-    parent: null,
-    color: '#ff6b6b',
-    cover: [],
-    count: 23,
-    expanded: true,
-    sort: 1,
-    view: 'grid' as const,
-    access: { level: 4, draggable: true },
-    creatorRef: { _id: 1 },
-  },
-]
-
-/**
  * MSW request handlers for Raindrop.io API mock.
- * Used by both unit tests (via setupServer) and E2E tests.
+ * Uses shared fixture data with pagination support.
+ *
+ * @example
+ *   // Override handler for specific test
+ *   server.use(
+ *     http.get(`${API_BASE}/user`, () =>
+ *       HttpResponse.json({ result: false }, { status: 401 })
+ *     )
+ *   )
  */
 export const handlers = [
-  // --- Raindrops ---
-  http.get(`${API_BASE}/raindrops/:collectionId`, ({ params }) => {
+  // --- Raindrops (with pagination) ---
+  http.get(`${API_BASE}/raindrops/:collectionId`, ({ params, request }) => {
     const collectionId = Number(params.collectionId)
-    const filtered =
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') ?? '0')
+    const perpage = Number(url.searchParams.get('perpage') ?? '25')
+
+    const all =
       collectionId === 0
         ? mockRaindrops
         : mockRaindrops.filter((r) => r.collection.$id === collectionId)
+
+    const start = page * perpage
+    const items = all.slice(start, start + perpage)
+
     return HttpResponse.json({
       result: true,
-      items: filtered,
-      count: filtered.length,
+      items,
+      count: all.length,
     })
   }),
 
@@ -141,7 +89,7 @@ export const handlers = [
   }),
 
   http.get(`${API_BASE}/collections/childrens`, () => {
-    return HttpResponse.json({ result: true, items: [] })
+    return HttpResponse.json({ result: true, items: mockChildCollections })
   }),
 
   http.post(`${API_BASE}/collection`, async ({ request }) => {
@@ -164,36 +112,24 @@ export const handlers = [
 
   // --- Tags ---
   http.get(`${API_BASE}/tags/:collectionId`, () => {
-    return HttpResponse.json({
-      result: true,
-      items: [
-        { _id: 'react', count: 15 },
-        { _id: 'typescript', count: 12 },
-        { _id: 'design', count: 8 },
-      ],
-    })
+    return HttpResponse.json({ result: true, items: mockTags })
   }),
 
-  http.put(`${API_BASE}/tags`, () => {
+  http.get(`${API_BASE}/tags`, () => {
+    return HttpResponse.json({ result: true, items: mockTags })
+  }),
+
+  http.put(`${API_BASE}/tags/:collectionId`, () => {
     return HttpResponse.json({ result: true })
   }),
 
-  http.delete(`${API_BASE}/tags`, () => {
+  http.delete(`${API_BASE}/tags/:collectionId`, () => {
     return HttpResponse.json({ result: true })
   }),
 
   // --- User ---
   http.get(`${API_BASE}/user`, () => {
-    return HttpResponse.json({
-      result: true,
-      user: {
-        _id: 1,
-        fullName: 'Test User',
-        email: 'test@example.com',
-        avatar: '',
-        pro: false,
-      },
-    })
+    return HttpResponse.json({ result: true, user: mockUser })
   }),
 
   // --- Filters ---
@@ -211,14 +147,12 @@ export const handlers = [
   }),
 
   // --- Suggest ---
-  http.get(`${API_BASE}/raindrop/suggest`, () => {
+  http.post(`${API_BASE}/raindrop/suggest`, () => {
     return HttpResponse.json({
       result: true,
       item: {
-        title: 'Suggested Title',
-        excerpt: 'Suggested description',
-        media: [{ link: 'https://example.com/favicon.ico', type: 'image' }],
-        meta: { icon: 'https://example.com/favicon.ico' },
+        collections: [{ $id: 100 }],
+        tags: ['suggested-tag'],
       },
     })
   }),

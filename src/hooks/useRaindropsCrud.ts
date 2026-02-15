@@ -1,0 +1,182 @@
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+
+import {
+  collectionIdToApi,
+  toApiRaindropCreate,
+  toApiRaindropUpdate,
+  toUiRaindrop,
+} from '@/lib/api-mappers'
+import type { CreateBookmarkData } from '@/lib/api-mappers'
+import type { Raindrop } from '@/lib/types'
+import {
+  useDeleteRaindropByIdMutation,
+  useGetRaindropsByCollectionIdQuery,
+  usePostRaindropMutation,
+  usePutRaindropByIdMutation,
+} from '@/store/api/raindropApi'
+import type { GetRaindropsByCollectionIdApiArg } from '@/store/api/raindropApi'
+
+/** Items per page for Raindrop.io API (max 50) */
+const PERPAGE = 50
+
+/** API sort values accepted by `GET /raindrops/:collectionId` */
+type ApiSort = GetRaindropsByCollectionIdApiArg['sort']
+
+/**
+ * Full CRUD + infinite scroll pagination for raindrops in a collection.
+ *
+ * Uses a `Map<page, Raindrop[]>` ref to accumulate pages and `useMemo`
+ * to derive the flat list — no effects, no cascading renders. Resets
+ * automatically on collection/sort/search changes and after create/delete.
+ *
+ * @param options - Collection ID (UI string), optional sort and search
+ * @returns Accumulated raindrops, pagination controls, and CRUD functions
+ *
+ * @example
+ *   const {
+ *     raindrops, isLoading, hasMore, loadMore,
+ *     createRaindrop, updateRaindrop, deleteRaindrop,
+ *   } = useRaindropsCrud({ collectionId: 'all' })
+ */
+export function useRaindropsCrud({
+  collectionId,
+  sort,
+  search,
+}: UseRaindropsCrudOptions): UseRaindropsCrudReturn {
+  const [page, setPage] = useState(0)
+  const [resetKey, setResetKey] = useState(0)
+
+  // Per-page data store — avoids effects for accumulation
+  const pagesRef = useRef<Map<number, Raindrop[]>>(new Map())
+
+  // Detect filter or reset-key changes → reset pagination during render
+  // (Official React pattern: conditional setState during render)
+  const [prevFilterKey, setPrevFilterKey] = useState('')
+  const filterKey = `${collectionId}-${sort ?? ''}-${search ?? ''}-${resetKey}`
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(0)
+    pagesRef.current = new Map()
+  }
+
+  const apiCollectionId = collectionIdToApi(collectionId)
+
+  const { data, isLoading, isFetching } = useGetRaindropsByCollectionIdQuery({
+    collectionId: apiCollectionId,
+    page,
+    perpage: PERPAGE,
+    sort,
+    search: search || undefined,
+  })
+
+  // Store current page data in ref (safe during render — idempotent)
+  if (data?.items) {
+    pagesRef.current.set(page, data.items.map(toUiRaindrop))
+  }
+
+  // Derive accumulated raindrops from all loaded pages
+  const raindrops = useMemo(() => {
+    const result: Raindrop[] = []
+    for (let p = 0; p <= page; p++) {
+      const pageData = pagesRef.current.get(p)
+      if (pageData) result.push(...pageData)
+    }
+    return result
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pagesRef is stable, data triggers recompute
+  }, [data, page, resetKey])
+
+  const totalCount = data?.count ?? 0
+  const hasMore = raindrops.length < totalCount
+
+  const loadMore = useCallback(() => {
+    if (hasMore && !isFetching) {
+      setPage((p) => p + 1)
+    }
+  }, [hasMore, isFetching])
+
+  // --- Mutations ---
+
+  const [postRaindrop] = usePostRaindropMutation()
+  const [putRaindrop] = usePutRaindropByIdMutation()
+  const [deleteRaindropMutation] = useDeleteRaindropByIdMutation()
+
+  const createRaindrop = useCallback(
+    async (formData: CreateBookmarkData) => {
+      const result = await postRaindrop({
+        raindropCreate: toApiRaindropCreate(formData),
+      })
+      if ('data' in result) {
+        toast.success('Bookmark created')
+        setResetKey((k) => k + 1)
+      }
+    },
+    [postRaindrop],
+  )
+
+  const updateRaindrop = useCallback(
+    async (id: string, updates: Partial<Raindrop>) => {
+      const result = await putRaindrop({
+        id: Number(id),
+        raindropUpdate: toApiRaindropUpdate(updates),
+      })
+      if ('data' in result) {
+        toast.success('Bookmark updated')
+      }
+    },
+    [putRaindrop],
+  )
+
+  const deleteRaindrop = useCallback(
+    async (id: string) => {
+      const result = await deleteRaindropMutation({ id: Number(id) })
+      if ('data' in result) {
+        toast.success('Bookmark deleted')
+        setResetKey((k) => k + 1)
+      }
+    },
+    [deleteRaindropMutation],
+  )
+
+  return {
+    raindrops,
+    totalCount,
+    isLoading,
+    isFetching,
+    hasMore,
+    loadMore,
+    createRaindrop,
+    updateRaindrop,
+    deleteRaindrop,
+  }
+}
+
+interface UseRaindropsCrudOptions {
+  /** UI collection ID ('all', 'unsorted', 'trash', or numeric string) */
+  collectionId: string
+  /** API sort field (e.g. '-created', 'title') */
+  sort?: ApiSort
+  /** Search query string */
+  search?: string
+}
+
+interface UseRaindropsCrudReturn {
+  /** Accumulated raindrops across all loaded pages (UI type) */
+  raindrops: Raindrop[]
+  /** Total count from API (for progress indicator) */
+  totalCount: number
+  /** True during initial load (no cached data) */
+  isLoading: boolean
+  /** True while fetching (including background refetch) */
+  isFetching: boolean
+  /** True if more pages are available */
+  hasMore: boolean
+  /** Load the next page of results */
+  loadMore: () => void
+  /** Create a new raindrop from form data */
+  createRaindrop: (data: CreateBookmarkData) => Promise<void>
+  /** Update a raindrop by ID with partial UI fields */
+  updateRaindrop: (id: string, data: Partial<Raindrop>) => Promise<void>
+  /** Delete a raindrop by ID */
+  deleteRaindrop: (id: string) => Promise<void>
+}

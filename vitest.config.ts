@@ -6,22 +6,20 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'happy-dom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
-      exclude: [
-        'src/test/**',
-        'src/**/*.test.*',
-        'src/store/api/raindropApi.ts',
-      ],
+      exclude: ['test/**', 'src/**/*.test.*', 'src/store/api/raindropApi.ts'],
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@test': path.resolve(__dirname, './test'),
+      '@fixtures': path.resolve(__dirname, './fixtures'),
     },
   },
 })

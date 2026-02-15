@@ -78,6 +78,8 @@ interface RaindropListItemProps {
   isSelected: boolean
   /** Click handler with mouse event for modifier key detection */
   onClick: (event: React.MouseEvent) => void
+  /** Toggle this item's selection state (used by checkbox) */
+  onToggleSelect: () => void
   /** Double-click handler to open the URL externally */
   onDoubleClick: () => void
 }
@@ -105,15 +107,14 @@ const RaindropListItem = React.memo(function RaindropListItem({
   raindrop,
   isSelected,
   onClick,
+  onToggleSelect,
   onDoubleClick,
 }: RaindropListItemProps) {
   const [isHovered, setIsHovered] = useState(false)
   const handleMouseEnter = () => setIsHovered(true)
   const handleMouseLeave = () => setIsHovered(false)
-  const handleCheckboxClick = useCallback(
-    (e: React.MouseEvent) => e.stopPropagation(),
-    [],
-  )
+  const handleCheckboxWrapperClick = (e: React.MouseEvent) =>
+    e.stopPropagation()
   const TypeIcon = useMemo(
     () => TYPE_ICON_MAP[raindrop.type] || Globe,
     [raindrop.type],
@@ -169,11 +170,13 @@ const RaindropListItem = React.memo(function RaindropListItem({
       {/* Checkbox / Type Icon */}
       <div className="flex w-5 flex-shrink-0 items-center justify-center">
         {isHovered || isSelected ? (
-          <Checkbox
-            checked={isSelected}
-            onClick={handleCheckboxClick}
-            className="h-4 w-4"
-          />
+          <div onClick={handleCheckboxWrapperClick}>
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onToggleSelect}
+              className="h-4 w-4"
+            />
+          </div>
         ) : (
           <TypeIcon className="text-muted-foreground h-4 w-4" />
         )}

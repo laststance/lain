@@ -7,9 +7,10 @@ import {
   FolderTree,
   SlidersHorizontal,
   BookmarkPlus,
+  Loader2,
   X,
 } from 'lucide-react'
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 
 import { RaindropCard } from '@/components/raindrop/raindrop-card'
 import { RaindropListItem } from '@/components/raindrop/raindrop-list-item'
@@ -49,6 +50,70 @@ import type {
 } from '@/lib/types'
 
 /**
+ * Infinite scroll hook using IntersectionObserver on a sentinel element.
+ * Returns a ref to attach to the sentinel div at the bottom of the list.
+ *
+ * @param options.hasMore - Whether more pages are available
+ * @param options.isFetching - Whether a fetch is currently in progress
+ * @param options.onLoadMore - Callback to load the next page
+ * @returns Ref to attach to the sentinel element
+ *
+ * @example
+ *   const sentinelRef = useInfiniteScroll({ hasMore, isFetching, onLoadMore })
+ *   // <div ref={sentinelRef} /> at the bottom of the list
+ */
+function useInfiniteScroll({
+  hasMore,
+  isFetching,
+  onLoadMore,
+  scrollContainerRef,
+}: {
+  hasMore: boolean
+  isFetching: boolean
+  onLoadMore?: () => void
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  // Store volatile values in refs to keep the observer stable.
+  // useEffect sync avoids "Cannot access refs during render" (React compiler).
+  const hasMoreRef = useRef(hasMore)
+  const isFetchingRef = useRef(isFetching)
+  const onLoadMoreRef = useRef(onLoadMore)
+  useEffect(() => {
+    hasMoreRef.current = hasMore
+    isFetchingRef.current = isFetching
+    onLoadMoreRef.current = onLoadMore
+  })
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    // ScrollArea renders a [data-slot="scroll-area-viewport"] as the scroll container
+    const root =
+      scrollContainerRef.current?.querySelector<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]',
+      ) ?? null
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMoreRef.current &&
+          !isFetchingRef.current
+        ) {
+          onLoadMoreRef.current?.()
+        }
+      },
+      { root, rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [scrollContainerRef]) // stable ref object — observer created once
+
+  return sentinelRef
+}
+
+/**
  * Props for the MainContent component.
  */
 interface MainContentProps {
@@ -56,6 +121,14 @@ interface MainContentProps {
   breadcrumbs: string[]
   /** Array of raindrops (bookmarks) to display */
   raindrops: Raindrop[]
+  /** True during initial load (no cached data) */
+  isLoading?: boolean
+  /** True while fetching (including background refetch / next page) */
+  isFetching?: boolean
+  /** True if more pages are available for infinite scroll */
+  hasMore?: boolean
+  /** Load the next page of results */
+  onLoadMore?: () => void
   /** Callback when a raindrop is selected */
   onSelectRaindrop: (raindrop: Raindrop) => void
   /** ID of the currently selected raindrop */
@@ -140,16 +213,22 @@ const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
   raindrop,
   isSelected,
   onRaindropClick,
+  onToggleSelect,
   onRaindropDoubleClick,
 }: {
   raindrop: Raindrop
   isSelected: boolean
   onRaindropClick: (raindrop: Raindrop, event: React.MouseEvent) => void
+  onToggleSelect: (raindropId: string) => void
   onRaindropDoubleClick: (raindrop: Raindrop) => void
 }) {
   const handleClick = useCallback(
     (e: React.MouseEvent) => onRaindropClick(raindrop, e),
     [onRaindropClick, raindrop],
+  )
+  const handleToggleSelect = useCallback(
+    () => onToggleSelect(raindrop.id),
+    [onToggleSelect, raindrop.id],
   )
   const handleDoubleClick = useCallback(
     () => onRaindropDoubleClick(raindrop),
@@ -160,6 +239,7 @@ const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
       raindrop={raindrop}
       isSelected={isSelected}
       onClick={handleClick}
+      onToggleSelect={handleToggleSelect}
       onDoubleClick={handleDoubleClick}
     />
   )
@@ -195,6 +275,10 @@ const SearchScopeButton = React.memo(function SearchScopeButton({
 const MainContent = React.memo(function MainContent({
   breadcrumbs,
   raindrops,
+  isLoading,
+  isFetching,
+  hasMore,
+  onLoadMore,
   onSelectRaindrop,
   selectedRaindropId,
   selectedRaindropIds,
@@ -348,12 +432,38 @@ const MainContent = React.memo(function MainContent({
   )
 
   /**
+   * Toggle a single raindrop's selection state (used by checkbox click).
+   * @param raindropId - The ID of the raindrop to toggle
+   */
+  const handleToggleSelect = useCallback(
+    (raindropId: string) => {
+      const next = new Set(selectedRaindropIds)
+      if (next.has(raindropId)) {
+        next.delete(raindropId)
+      } else {
+        next.add(raindropId)
+      }
+      onSelectedRaindropIdsChange(next)
+    },
+    [selectedRaindropIds, onSelectedRaindropIdsChange],
+  )
+
+  /**
    * Handle double-click to open URL in external browser.
    * @param raindrop - The double-clicked raindrop
    */
   const handleRaindropDoubleClick = useCallback((raindrop: Raindrop) => {
     window.shell.openExternal(raindrop.url)
   }, [])
+
+  // --- Infinite Scroll ---
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useInfiniteScroll({
+    hasMore: hasMore ?? false,
+    isFetching: isFetching ?? false,
+    onLoadMore,
+    scrollContainerRef: scrollAreaRef,
+  })
 
   return (
     <div className="flex h-full flex-col">
@@ -595,8 +705,16 @@ const MainContent = React.memo(function MainContent({
       </div>
 
       {/* Content Area */}
-      <ScrollArea className="flex-1">
-        {sortedRaindrops.length === 0 ? (
+      <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1">
+        {isLoading ? (
+          /* Loading skeleton */
+          <div className="flex flex-col items-center justify-center px-4 py-20">
+            <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
+            <p className="text-muted-foreground mt-2 text-sm">
+              Loading bookmarks...
+            </p>
+          </div>
+        ) : sortedRaindrops.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center px-4 py-20">
             <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
@@ -647,9 +765,22 @@ const MainContent = React.memo(function MainContent({
                   selectedRaindropIds.has(raindrop.id)
                 }
                 onRaindropClick={handleRaindropClick}
+                onToggleSelect={handleToggleSelect}
                 onRaindropDoubleClick={handleRaindropDoubleClick}
               />
             ))}
+          </div>
+        )}
+
+        {/* Infinite scroll sentinel + loading indicator */}
+        {hasMore && (
+          <div
+            ref={sentinelRef}
+            className="flex items-center justify-center py-4"
+          >
+            {isFetching && (
+              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+            )}
           </div>
         )}
       </ScrollArea>

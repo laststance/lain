@@ -22,7 +22,7 @@ interface UiState {
 
 const initialState: UiState = {
   viewMode: 'list',
-  selectedCollectionId: '0',
+  selectedCollectionId: 'all',
   isDetailPanelOpen: false,
   sidebarWidth: 260,
   selectedRaindropIds: [],

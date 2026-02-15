@@ -10,6 +10,7 @@ import { test, expect } from '../electron'
  */
 
 test.describe('Auth Bypass', () => {
+  // @spec:API.29 - GET /user (auth state check on startup)
   test('should skip login screen and show main app', async ({ page }) => {
     await expect(page.getByText('Login with Raindrop.io')).not.toBeVisible()
     // Use breadcrumb link to uniquely identify (sidebar also has "All Bookmarks")
@@ -18,6 +19,7 @@ test.describe('Auth Bypass', () => {
     )
   })
 
+  // @spec:API.1 - GET /raindrops/{collectionId} (initial data load)
   test('should not show loading state after initial render', async ({
     page,
   }) => {
@@ -27,6 +29,8 @@ test.describe('Auth Bypass', () => {
     await expect(page.getByText('Loading...')).not.toBeVisible()
   })
 
+  // @spec:API.14 - GET /collections (sidebar loads root collections)
+  // @spec:API.15 - GET /collections/childrens (sidebar loads nested)
   test('should have sidebar with system collections', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },

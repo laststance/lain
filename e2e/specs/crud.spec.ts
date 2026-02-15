@@ -10,6 +10,8 @@ import { test, expect } from '../electron'
  */
 
 test.describe('Sidebar Navigation', () => {
+  // @spec:API.14 - GET /collections (root collection tree)
+  // @spec:API.15 - GET /collections/childrens (nested collections)
   test('should render system collections in sidebar', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -18,6 +20,8 @@ test.describe('Sidebar Navigation', () => {
     await expect(page.getByText('Trash')).toBeVisible()
   })
 
+  // @spec:F7.3 - Breadcrumb shows full path: Group > Collection
+  // @spec:API.1 - GET /raindrops/{collectionId} (collection switch)
   test('should update breadcrumb on collection click', async ({ page }) => {
     // Wait for initial render
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
@@ -35,6 +39,7 @@ test.describe('Sidebar Navigation', () => {
 })
 
 test.describe('Add Bookmark Dialog', () => {
+  // @spec:API.3 - POST /raindrop (create bookmark dialog)
   test('should open dialog with form fields', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -53,6 +58,7 @@ test.describe('Add Bookmark Dialog', () => {
     await expect(page.getByLabel('URL')).toBeVisible()
   })
 
+  // @spec:KB.15 - Escape/Cancel closes active dialog
   test('should close dialog via Cancel button', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -75,6 +81,7 @@ test.describe('Add Bookmark Dialog', () => {
     ).not.toBeVisible()
   })
 
+  // @spec:KB.15 - Escape closes active panel/dialog
   test('should close dialog via Escape key', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -98,6 +105,7 @@ test.describe('Add Bookmark Dialog', () => {
 })
 
 test.describe('Bookmark List Rendering', () => {
+  // @spec:API.1 - GET /raindrops/{collectionId} (browse bookmarks)
   test('should render mocked bookmarks in list view', async ({ page }) => {
     // Wait for API-mocked data to load
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
@@ -113,6 +121,7 @@ test.describe('Bookmark List Rendering', () => {
     ).toBeVisible()
   })
 
+  // @spec:F7.4 - Bookmark counts visible on collections
   test('should show item count in toolbar', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -129,6 +138,7 @@ test.describe('Bookmark List Rendering', () => {
 })
 
 test.describe('Checkbox Selection', () => {
+  // @spec:API.12 - PUT /raindrops/{collectionId} (batch select precondition)
   test('should select raindrop via checkbox on hover', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -151,6 +161,7 @@ test.describe('Checkbox Selection', () => {
     await expect(page.getByText('1 selected')).toBeVisible()
   })
 
+  // @spec:API.12 - PUT /raindrops/{collectionId} (deselect flow)
   test('should deselect raindrop via checkbox click', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -176,6 +187,7 @@ test.describe('Checkbox Selection', () => {
 })
 
 test.describe('Content Scrolling', () => {
+  // @spec:API.1 - GET /raindrops/{collectionId} (paginated list renders)
   test('should render scroll area with bookmarks', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -195,6 +207,7 @@ test.describe('Content Scrolling', () => {
 })
 
 test.describe('View Mode Toggle', () => {
+  // @spec:F3.1 - All 4 view modes render correctly
   test('should show view mode dropdown trigger in toolbar', async ({
     page,
   }) => {
@@ -206,6 +219,7 @@ test.describe('View Mode Toggle', () => {
     await expect(page.getByLabel('View mode')).toBeVisible({ timeout: 5_000 })
   })
 
+  // @spec:F3.1 - All 4 view modes render correctly (dropdown options)
   test('should open dropdown with all 4 view mode options', async ({
     page,
   }) => {
@@ -231,6 +245,7 @@ test.describe('View Mode Toggle', () => {
     ).toBeVisible()
   })
 
+  // @spec:F3.1 - All 4 view modes render correctly (switch works)
   test('should switch view mode via dropdown selection', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -253,6 +268,7 @@ test.describe('View Mode Toggle', () => {
 })
 
 test.describe('Sort Dropdown', () => {
+  // @spec:API.1 - GET /raindrops/{collectionId} (sort parameter)
   test('should render sort dropdown with default "Newest First"', async ({
     page,
   }) => {
@@ -266,6 +282,7 @@ test.describe('Sort Dropdown', () => {
     })
   })
 
+  // @spec:API.1 - GET /raindrops/{collectionId} (sort change)
   test('should change sort option via dropdown', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -286,6 +303,7 @@ test.describe('Sort Dropdown', () => {
 })
 
 test.describe('Bulk Delete', () => {
+  // @spec:API.13 - DELETE /raindrops/{collectionId} (batch delete)
   test('should show Delete button in bulk bar and handle click', async ({
     page,
   }) => {
@@ -318,6 +336,7 @@ test.describe('Bulk Delete', () => {
     })
   })
 
+  // @spec:API.13 - DELETE /raindrops/{collectionId} (deselect all in bulk bar)
   test('should show Deselect All button in bulk bar', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
       { timeout: 10_000 },
@@ -342,6 +361,7 @@ test.describe('Bulk Delete', () => {
 })
 
 test.describe('Detail Panel Layout (addbaa1 regression)', () => {
+  // @spec:API.2 - GET /raindrop/{id} (view bookmark details)
   test('should open detail panel within viewport when raindrop is clicked', async ({
     page,
   }) => {
@@ -371,6 +391,7 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
     expect(box!.x + box!.width).toBeLessThanOrEqual(viewportWidth + 1) // Within viewport (1px tolerance)
   })
 
+  // @spec:API.2 - GET /raindrop/{id} (detail panel layout regression)
   test('should keep SidebarInset min-w-0 when detail panel is open', async ({
     page,
   }) => {
@@ -398,6 +419,7 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
     expect(insetBox!.x + insetBox!.width).toBeLessThanOrEqual(viewportWidth + 1)
   })
 
+  // @spec:API.2 - GET /raindrop/{id} (close detail panel)
   test('should close detail panel and keep content visible', async ({
     page,
   }) => {
@@ -438,6 +460,7 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
 })
 
 test.describe('Bulk Operations Bar', () => {
+  // @spec:API.12 - PUT /raindrops/{collectionId} (bulk ops bar UI)
   test('should show disabled Move to... and Add Tag... buttons', async ({
     page,
   }) => {

@@ -26,7 +26,7 @@ const config: KnipConfig = {
     'electron/test-auth.ts',
   ],
 
-  project: ['src/**/*.{ts,tsx}', 'electron/**/*.ts'],
+  project: ['src/**/*.{ts,tsx}', 'electron/**/*.ts', 'scripts/**/*.ts'],
 
   ignore: [
     // Build artifacts

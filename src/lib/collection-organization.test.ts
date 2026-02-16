@@ -5,6 +5,7 @@ import type { Collection, Group } from '@/lib/types'
 import {
   findRootCollectionLocation,
   moveRootCollection,
+  parseCollectionId,
   reorderRootCollectionInGroup,
   toUserGroupPayload,
   updateRootCollection,
@@ -121,5 +122,10 @@ describe('collection-organization', () => {
         collections: [101],
       },
     ])
+  })
+
+  it('returns null for empty collection ids', () => {
+    expect(parseCollectionId('')).toBeNull()
+    expect(parseCollectionId('   ')).toBeNull()
   })
 })

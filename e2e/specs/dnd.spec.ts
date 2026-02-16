@@ -170,7 +170,7 @@ test.describe('P4 Organization - DnD and Context Menu (F6)', () => {
     // Change color
     await openCollectionContextMenu(page, '100')
     await page.getByRole('menuitem', { name: 'Change Color' }).hover()
-    await page.getByRole('menuitem', { name: '#ef4444' }).last().click()
+    await page.getByRole('menuitem', { name: 'Red' }).last().click()
     await expect(page.getByTestId('collection-color-100')).toBeVisible()
 
     // Delete

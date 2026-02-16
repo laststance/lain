@@ -43,6 +43,7 @@ export interface RootCollectionLocation {
  * parseCollectionId('abc') // => null
  */
 export function parseCollectionId(collectionId: string): number | null {
+  if (collectionId.trim() === '') return null
   const parsed = Number(collectionId)
   return Number.isFinite(parsed) ? parsed : null
 }

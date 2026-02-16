@@ -158,7 +158,7 @@ export function useCollectionsCrud(): UseCollectionsCrudReturn {
     async (id: string, color: string) => {
       const result = await putCollection({
         id: collectionIdToApi(id),
-        collectionUpdate: { color } as CollectionUpdate & { color?: string },
+        collectionUpdate: { color },
       })
       if ('data' in result) {
         toast.success('Collection color updated')

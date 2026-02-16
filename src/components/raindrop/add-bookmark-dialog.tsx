@@ -150,17 +150,31 @@ function useDebouncedUrlParsing(url: string, parseUrl: (url: string) => void) {
 /**
  * Clear parsed favicon when auto icon mode is disabled.
  * @param autoIcon - Auto icon flag
+ * @param url - Current URL input value
  * @param setParsedFavicon - Parsed favicon setter
+ * @param parseUrl - Existing parse-and-resolve callback
  */
 function useParsedFaviconReset(
   autoIcon: boolean,
+  url: string,
   setParsedFavicon: React.Dispatch<React.SetStateAction<string>>,
+  parseUrl: (url: string) => Promise<void>,
 ) {
+  const previousAutoIconRef = useRef(autoIcon)
+
   useEffect(() => {
+    const wasAutoIcon = previousAutoIconRef.current
+    previousAutoIconRef.current = autoIcon
+
     if (!autoIcon) {
       setParsedFavicon('')
+      return
     }
-  }, [autoIcon, setParsedFavicon])
+
+    if (!wasAutoIcon && autoIcon && url) {
+      void parseUrl(url)
+    }
+  }, [autoIcon, parseUrl, setParsedFavicon, url])
 }
 
 /**
@@ -233,8 +247,6 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
     setAutoIcon,
   })
 
-  useParsedFaviconReset(autoIcon, setParsedFavicon)
-
   // Auto-parse URL metadata and icon.
   const parseUrl = useCallback(
     async (urlValue: string) => {
@@ -288,6 +300,8 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
     },
     [autoIcon, setValue, watch],
   )
+
+  useParsedFaviconReset(autoIcon, url, setParsedFavicon, parseUrl)
 
   useDebouncedUrlParsing(url, parseUrl)
 

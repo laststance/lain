@@ -739,6 +739,7 @@ export type CollectionUpdate = {
   view?: string
   title?: string
   sort?: number
+  color?: string
   public?: boolean
   parent?: {
     $id?: number

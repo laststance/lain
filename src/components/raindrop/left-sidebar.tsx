@@ -37,6 +37,7 @@ import {
 import React, {
   useCallback,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
 } from 'react'
@@ -104,14 +105,14 @@ import { cn } from '@/lib/utils'
  * Preset colors shown in collection context-menu.
  */
 const COLLECTION_COLOR_OPTIONS = [
-  '#ef4444',
-  '#f97316',
-  '#eab308',
-  '#22c55e',
-  '#06b6d4',
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
+  { value: '#ef4444', label: 'Red' },
+  { value: '#f97316', label: 'Orange' },
+  { value: '#eab308', label: 'Yellow' },
+  { value: '#22c55e', label: 'Green' },
+  { value: '#06b6d4', label: 'Cyan' },
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#8b5cf6', label: 'Purple' },
+  { value: '#ec4899', label: 'Pink' },
 ] as const
 
 /**
@@ -365,11 +366,11 @@ const CollectionRow = React.memo(function CollectionRow({
 
   const colorHandlers = useMemo(() => {
     return new Map(
-      COLLECTION_COLOR_OPTIONS.map((color) => {
+      COLLECTION_COLOR_OPTIONS.map(({ value }) => {
         const handler = () => {
-          void onChangeCollectionColor(collection.id, color)
+          void onChangeCollectionColor(collection.id, value)
         }
-        return [color, handler]
+        return [value, handler]
       }),
     )
   }, [collection.id, onChangeCollectionColor])
@@ -483,12 +484,15 @@ const CollectionRow = React.memo(function CollectionRow({
           <ContextMenuSubTrigger>Change Color</ContextMenuSubTrigger>
           <ContextMenuSubContent className="w-40">
             {COLLECTION_COLOR_OPTIONS.map((color) => (
-              <ContextMenuItem key={color} onClick={colorHandlers.get(color)}>
+              <ContextMenuItem
+                key={color.value}
+                onClick={colorHandlers.get(color.value)}
+              >
                 <span
                   className="mr-2 inline-block h-3 w-3 rounded-sm border"
-                  style={{ backgroundColor: color }}
+                  style={{ backgroundColor: color.value }}
                 />
-                {color}
+                {color.label}
               </ContextMenuItem>
             ))}
           </ContextMenuSubContent>
@@ -863,6 +867,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
     groupId: string
     index: number
   } | null>(null)
+  const inlineRenameCancelledRef = useRef(false)
 
   const displayedGroups = useMemo(() => {
     if (!optimisticGroups) return groups
@@ -948,6 +953,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
       setOptimisticGroups(nextGroups)
       try {
         await onPersistGroups(nextGroups)
+        setOptimisticGroups(null)
       } catch {
         setOptimisticGroups(previousGroups)
       }
@@ -987,6 +993,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
       setOptimisticGroups(nextGroups)
       try {
         await onDeleteCollection(collectionId)
+        setOptimisticGroups(null)
       } catch {
         setOptimisticGroups(previousGroups)
       }
@@ -995,6 +1002,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
   )
 
   const handleStartInlineRename = useCallback((collection: Collection) => {
+    inlineRenameCancelledRef.current = false
     setEditingCollectionId(collection.id)
     setEditingName(collection.name)
   }, [])
@@ -1004,12 +1012,18 @@ const LeftSidebar = React.memo(function LeftSidebar({
   }, [])
 
   const handleCancelInlineRename = useCallback(() => {
+    inlineRenameCancelledRef.current = true
     setEditingCollectionId(null)
     setEditingName('')
   }, [])
 
   const handleSubmitInlineRename = useCallback(
     async (collectionId: string, nextName: string) => {
+      if (inlineRenameCancelledRef.current) {
+        inlineRenameCancelledRef.current = false
+        return
+      }
+
       const trimmedName = nextName.trim()
       if (!trimmedName) {
         handleCancelInlineRename()
@@ -1032,6 +1046,8 @@ const LeftSidebar = React.memo(function LeftSidebar({
 
       try {
         await onRenameCollection(collectionId, trimmedName)
+        inlineRenameCancelledRef.current = false
+        setOptimisticGroups(null)
       } catch {
         setOptimisticGroups(previousGroups)
       }
@@ -1054,6 +1070,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
 
       try {
         await onChangeCollectionColor(collectionId, color)
+        setOptimisticGroups(null)
       } catch {
         setOptimisticGroups(previousGroups)
       }

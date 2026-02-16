@@ -47,12 +47,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { filterByScope } from '@/lib/search'
 import type {
   Raindrop,
   Group,
   Collection,
   ViewMode,
   SortOption,
+  SearchMode,
   SearchScope,
 } from '@/lib/types'
 
@@ -140,6 +142,8 @@ function useInfiniteScroll({
 interface MainContentProps {
   /** Breadcrumb path segments for current navigation */
   breadcrumbs: string[]
+  /** Currently selected collection ID in sidebar */
+  selectedCollectionId: string
   /** Array of raindrops (bookmarks) to display (already sorted by API) */
   raindrops: Raindrop[]
   /** True during initial load (no cached data) */
@@ -168,6 +172,18 @@ interface MainContentProps {
   sortOption: SortOption
   /** Callback when sort changes (lifts state to parent for API sort) */
   onSortChange: (sort: SortOption) => void
+  /** Current search query from Redux */
+  searchQuery: string
+  /** Current field scope from Redux */
+  searchScope: SearchScope
+  /** Current collection/global search mode from Redux */
+  searchMode: SearchMode
+  /** Update search query */
+  onSearchQueryChange: (query: string) => void
+  /** Update search field scope */
+  onSearchScopeChange: (scope: SearchScope) => void
+  /** Update search mode (scoped/global) */
+  onSearchModeChange: (mode: SearchMode) => void
   /** Batch move selected raindrops to a collection */
   onBatchMove?: (ids: string[], targetCollectionId: string) => Promise<void>
   /** Batch add tags to selected raindrops */
@@ -213,11 +229,15 @@ const RaindropCardWrapper = React.memo(function RaindropCardWrapper({
   isSelected,
   onRaindropClick,
   onRaindropDoubleClick,
+  searchQuery,
+  searchScope,
 }: {
   raindrop: Raindrop
   isSelected: boolean
   onRaindropClick: (raindrop: Raindrop, event: React.MouseEvent) => void
   onRaindropDoubleClick: (raindrop: Raindrop) => void
+  searchQuery?: string
+  searchScope?: SearchScope
 }) {
   const handleClick = useCallback(
     (e: React.MouseEvent) => onRaindropClick(raindrop, e),
@@ -233,6 +253,8 @@ const RaindropCardWrapper = React.memo(function RaindropCardWrapper({
       isSelected={isSelected}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      searchQuery={searchQuery}
+      searchScope={searchScope}
     />
   )
 })
@@ -246,12 +268,16 @@ const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
   onRaindropClick,
   onToggleSelect,
   onRaindropDoubleClick,
+  searchQuery,
+  searchScope,
 }: {
   raindrop: Raindrop
   isSelected: boolean
   onRaindropClick: (raindrop: Raindrop, event: React.MouseEvent) => void
   onToggleSelect: (raindropId: string) => void
   onRaindropDoubleClick: (raindrop: Raindrop) => void
+  searchQuery?: string
+  searchScope?: SearchScope
 }) {
   const handleClick = useCallback(
     (e: React.MouseEvent) => onRaindropClick(raindrop, e),
@@ -272,6 +298,8 @@ const RaindropListItemWrapper = React.memo(function RaindropListItemWrapper({
       onClick={handleClick}
       onToggleSelect={handleToggleSelect}
       onDoubleClick={handleDoubleClick}
+      searchQuery={searchQuery}
+      searchScope={searchScope}
     />
   )
 })
@@ -305,6 +333,7 @@ const SearchScopeButton = React.memo(function SearchScopeButton({
 
 const MainContent = React.memo(function MainContent({
   breadcrumbs,
+  selectedCollectionId,
   raindrops,
   isLoading,
   isFetching,
@@ -319,6 +348,12 @@ const MainContent = React.memo(function MainContent({
   onAddBookmark,
   sortOption,
   onSortChange,
+  searchQuery,
+  searchScope,
+  searchMode,
+  onSearchQueryChange,
+  onSearchScopeChange,
+  onSearchModeChange,
   onBatchMove,
   onBatchAddTag,
   onBatchDelete,
@@ -327,13 +362,16 @@ const MainContent = React.memo(function MainContent({
   void _groups
   void _collections
   const [viewMode, setViewMode] = useState<ViewMode>('list')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchScope, setSearchScope] = useState<SearchScope>('all')
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
+  const currentCollectionName =
+    breadcrumbs[breadcrumbs.length - 1] ?? 'Collection'
+  const canToggleGlobalSearch = selectedCollectionId !== 'all'
+  const isScopedSearch = canToggleGlobalSearch && searchMode === 'scoped'
 
   const handleSearchQueryChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
-    [],
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      onSearchQueryChange(e.target.value),
+    [onSearchQueryChange],
   )
   const handleAdvancedSearchToggle = useCallback(
     () => setIsAdvancedSearchOpen((prev) => !prev),
@@ -351,50 +389,39 @@ const MainContent = React.memo(function MainContent({
     [onSelectedRaindropIdsChange],
   )
   const handleSetSearchScope = useCallback(
-    (scope: SearchScope) => setSearchScope(scope),
-    [],
+    (scope: SearchScope) => onSearchScopeChange(scope),
+    [onSearchScopeChange],
   )
-  const clearSearch = useCallback(() => {
-    setSearchQuery('')
-    setSearchScope('all')
+  const handleToggleSearchMode = useCallback(() => {
+    if (!canToggleGlobalSearch) return
+    onSearchModeChange(isScopedSearch ? 'global' : 'scoped')
+  }, [canToggleGlobalSearch, isScopedSearch, onSearchModeChange])
+  const handleSearchInputClear = () => {
+    onSearchQueryChange('')
     setIsAdvancedSearchOpen(false)
-  }, [])
+  }
+  const handleSearchGlobally = useCallback(() => {
+    onSearchModeChange('global')
+  }, [onSearchModeChange])
+  const clearSearch = useCallback(() => {
+    onSearchQueryChange('')
+    setIsAdvancedSearchOpen(false)
+  }, [onSearchQueryChange])
+  const showScopedEmptyStateAction =
+    Boolean(searchQuery) && isScopedSearch && canToggleGlobalSearch
+  const emptyStateDescription = searchQuery
+    ? showScopedEmptyStateAction
+      ? `No results in ${currentCollectionName}. Try searching everywhere or adjust your filters.`
+      : `No results for "${searchQuery}". Try a different search term or clear filters.`
+    : 'This collection is empty. Add your first bookmark to get started.'
+
+  const filteredRaindrops = useMemo(() => {
+    return filterByScope(raindrops, searchQuery, searchScope)
+  }, [raindrops, searchQuery, searchScope])
 
   const handleBatchDelete = useCallback(async () => {
     await onBatchDelete?.([...selectedRaindropIds])
   }, [onBatchDelete, selectedRaindropIds])
-
-  /**
-   * Filter raindrops based on current search query and scope.
-   * @returns Filtered array of raindrops matching the search criteria
-   */
-  const filteredRaindrops = useMemo(() => {
-    if (!searchQuery.trim()) return raindrops
-
-    const query = searchQuery.toLowerCase()
-
-    return raindrops.filter((r) => {
-      switch (searchScope) {
-        case 'url':
-          return r.url.toLowerCase().includes(query)
-        case 'title':
-          return r.title.toLowerCase().includes(query)
-        case 'description':
-          return (r.description || '').toLowerCase().includes(query)
-        case 'all':
-        default:
-          return (
-            r.title.toLowerCase().includes(query) ||
-            r.url.toLowerCase().includes(query) ||
-            (r.description || '').toLowerCase().includes(query) ||
-            r.tags.some((t) => t.toLowerCase().includes(query))
-          )
-      }
-    })
-  }, [raindrops, searchQuery, searchScope])
-
-  // Sort is handled by the API via useRaindropsCrud({ sort: apiSort }).
-  // Client-side search filtering above is still needed (API search is P3 scope).
 
   /**
    * Handle click on a raindrop with multi-select support.
@@ -537,11 +564,7 @@ const MainContent = React.memo(function MainContent({
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSearchScope('all')
-                  setIsAdvancedSearchOpen(false)
-                }}
+                onClick={handleSearchInputClear}
                 className="hover:bg-accent absolute top-1/2 right-2 -translate-y-1/2 rounded p-0.5"
               >
                 <X className="text-muted-foreground h-3 w-3" />
@@ -549,13 +572,34 @@ const MainContent = React.memo(function MainContent({
             )}
           </div>
 
+          {/* Collection Scope Badge + Toggle */}
+          {canToggleGlobalSearch && (
+            <>
+              <Badge variant={isScopedSearch ? 'secondary' : 'outline'}>
+                {isScopedSearch
+                  ? `in ${currentCollectionName}`
+                  : 'searching everywhere'}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={handleToggleSearchMode}
+              >
+                {isScopedSearch
+                  ? 'Search everywhere'
+                  : `Search in ${currentCollectionName}`}
+              </Button>
+            </>
+          )}
+
           {/* Search Scope Badge */}
           {searchScope !== 'all' && (
             <Badge variant="secondary" className="gap-1 text-xs">
               {searchScope}
               <button
                 type="button"
-                onClick={() => setSearchScope('all')}
+                onClick={() => onSearchScopeChange('all')}
                 className="ml-0.5"
               >
                 <X className="h-2.5 w-2.5" />
@@ -724,14 +768,22 @@ const MainContent = React.memo(function MainContent({
             </div>
             <h3 className="mb-1 text-lg font-semibold">No bookmarks found</h3>
             <p className="text-muted-foreground mb-4 max-w-sm text-center text-sm">
-              {searchQuery
-                ? `No results for "${searchQuery}". Try a different search term or clear filters.`
-                : 'This collection is empty. Add your first bookmark to get started.'}
+              {emptyStateDescription}
             </p>
             {searchQuery ? (
-              <Button variant="outline" size="sm" onClick={clearSearch}>
-                Clear Search
-              </Button>
+              showScopedEmptyStateAction ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSearchGlobally}
+                >
+                  Search everywhere
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" onClick={clearSearch}>
+                  Clear Search
+                </Button>
+              )
             ) : (
               <Button size="sm" onClick={onAddBookmark}>
                 <Plus className="mr-1 h-3.5 w-3.5" />
@@ -752,6 +804,8 @@ const MainContent = React.memo(function MainContent({
                 }
                 onRaindropClick={handleRaindropClick}
                 onRaindropDoubleClick={handleRaindropDoubleClick}
+                searchQuery={searchQuery}
+                searchScope={searchScope}
               />
             ))}
           </div>
@@ -769,6 +823,8 @@ const MainContent = React.memo(function MainContent({
                 onRaindropClick={handleRaindropClick}
                 onToggleSelect={handleToggleSelect}
                 onRaindropDoubleClick={handleRaindropDoubleClick}
+                searchQuery={searchQuery}
+                searchScope={searchScope}
               />
             ))}
           </div>

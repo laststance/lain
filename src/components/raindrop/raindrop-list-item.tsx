@@ -28,7 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { Raindrop, ContentType } from '@/lib/types'
+import { buildSubstringHighlightSegments } from '@/lib/search'
+import type { Raindrop, ContentType, SearchScope } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 /**
@@ -69,6 +70,29 @@ function formatRelativeDate(dateStr: string): string {
 }
 
 /**
+ * Render highlighted text segments for matched search content.
+ * @param text - Original text to render
+ * @param query - Active search query
+ * @returns Text with matching segments wrapped in <mark>
+ */
+function renderHighlightedText(text: string, query: string): React.ReactNode {
+  return buildSubstringHighlightSegments(text, query).map((segment, index) =>
+    segment.matched ? (
+      <mark
+        key={`${segment.text}-${index}`}
+        className="bg-primary/20 text-foreground rounded-sm px-0.5"
+      >
+        {segment.text}
+      </mark>
+    ) : (
+      <React.Fragment key={`${segment.text}-${index}`}>
+        {segment.text}
+      </React.Fragment>
+    ),
+  )
+}
+
+/**
  * Props for the RaindropListItem component.
  */
 interface RaindropListItemProps {
@@ -82,6 +106,10 @@ interface RaindropListItemProps {
   onToggleSelect: () => void
   /** Double-click handler to open the URL externally */
   onDoubleClick: () => void
+  /** Current query used for field highlighting */
+  searchQuery?: string
+  /** Active field scope used for field highlighting */
+  searchScope?: SearchScope
 }
 
 /**
@@ -109,6 +137,8 @@ const RaindropListItem = React.memo(function RaindropListItem({
   onClick,
   onToggleSelect,
   onDoubleClick,
+  searchQuery,
+  searchScope = 'all',
 }: RaindropListItemProps) {
   const [isHovered, setIsHovered] = useState(false)
   const handleMouseEnter = () => setIsHovered(true)
@@ -145,6 +175,15 @@ const RaindropListItem = React.memo(function RaindropListItem({
 
   const visibleTags = raindrop.tags.slice(0, 3)
   const remainingTagCount = raindrop.tags.length - 3
+  const normalizedSearchQuery = searchQuery?.trim() ?? ''
+  const hasSearchQuery = normalizedSearchQuery.length > 0
+  const shouldHighlightTitle =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'title')
+  const shouldHighlightUrl =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'url')
+  const shouldHighlightDescription =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'description')
+  const domainText = raindrop.domain || new URL(raindrop.url).hostname
 
   // TODO: @dnd-kit migration — drag source setup
   // const dragRef = useRef(null)
@@ -193,20 +232,31 @@ const RaindropListItem = React.memo(function RaindropListItem({
       {/* Title + Domain + Description */}
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center gap-2">
-          <h3 className="truncate text-sm font-medium">{raindrop.title}</h3>
+          <h3 className="truncate text-sm font-medium">
+            {shouldHighlightTitle
+              ? renderHighlightedText(raindrop.title, normalizedSearchQuery)
+              : raindrop.title}
+          </h3>
           {raindrop.isImportant && (
             <Star className="h-3 w-3 flex-shrink-0 fill-yellow-400 text-yellow-400" />
           )}
         </div>
         <div className="flex min-w-0 items-center gap-2">
           <span className="text-muted-foreground truncate text-xs">
-            {raindrop.domain || new URL(raindrop.url).hostname}
+            {shouldHighlightUrl
+              ? renderHighlightedText(domainText, normalizedSearchQuery)
+              : domainText}
           </span>
           {raindrop.description && (
             <>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground flex-1 truncate text-xs">
-                {raindrop.description}
+                {shouldHighlightDescription
+                  ? renderHighlightedText(
+                      raindrop.description,
+                      normalizedSearchQuery,
+                    )
+                  : raindrop.description}
               </span>
             </>
           )}

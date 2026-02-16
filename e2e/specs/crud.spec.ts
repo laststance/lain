@@ -385,6 +385,12 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
 
     // Verify the detail panel is within viewport bounds
     const detailPanel = page.locator('.flex.h-screen.flex-col.border-l').last()
+    await expect
+      .poll(async () => (await detailPanel.boundingBox())?.width ?? 0, {
+        timeout: 5_000,
+      })
+      .toBeGreaterThan(0)
+
     const box = await detailPanel.boundingBox()
     expect(box).toBeTruthy()
     expect(box!.width).toBeGreaterThan(0) // Panel is expanded

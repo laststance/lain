@@ -10,7 +10,7 @@ import {
   X,
   ArrowRight,
 } from 'lucide-react'
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useEffect, useCallback, useMemo } from 'react'
 
 import { FaviconIcon } from '@/components/raindrop/favicon-icon'
 import { Badge } from '@/components/ui/badge'
@@ -30,10 +30,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { buildSubstringHighlightSegments, filterByScope } from '@/lib/search'
 import type {
   Raindrop,
   Collection,
   Group,
+  SearchMode,
   SearchScope,
   ContentType,
 } from '@/lib/types'
@@ -42,6 +44,9 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   addRecentSearch as addRecentSearchAction,
   clearRecentSearches as clearRecentSearchesAction,
+  setSearchMode as setSearchModeAction,
+  setSearchQuery as setSearchQueryAction,
+  setSearchScope as setSearchScopeAction,
 } from '@/store/slices/searchSlice'
 
 /**
@@ -93,6 +98,29 @@ const TypeIconDisplay = React.memo(function TypeIconDisplay({
 })
 
 /**
+ * Render highlighted text segments for matched search content.
+ * @param text - Original text to render
+ * @param query - Active search query
+ * @returns Text with matching segments wrapped in <mark>
+ */
+function renderHighlightedText(text: string, query: string): React.ReactNode {
+  return buildSubstringHighlightSegments(text, query).map((segment, index) =>
+    segment.matched ? (
+      <mark
+        key={`${segment.text}-${index}`}
+        className="bg-primary/20 text-foreground rounded-sm px-0.5"
+      >
+        {segment.text}
+      </mark>
+    ) : (
+      <React.Fragment key={`${segment.text}-${index}`}>
+        {segment.text}
+      </React.Fragment>
+    ),
+  )
+}
+
+/**
  * A single recent search item extracted for useCallback.
  */
 const RecentSearchItem = React.memo(function RecentSearchItem({
@@ -117,14 +145,28 @@ const RecentSearchItem = React.memo(function RecentSearchItem({
 const SearchResultItem = React.memo(function SearchResultItem({
   raindrop,
   onSelect,
+  searchQuery,
+  searchScope,
 }: {
   raindrop: Raindrop
   onSelect: (raindrop: Raindrop) => void
+  searchQuery: string
+  searchScope: SearchScope
 }) {
   const handleSelect = useCallback(
     () => onSelect(raindrop),
     [onSelect, raindrop],
   )
+  const normalizedSearchQuery = searchQuery.trim()
+  const hasSearchQuery = normalizedSearchQuery.length > 0
+  const shouldHighlightTitle =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'title')
+  const shouldHighlightUrl =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'url')
+  const shouldHighlightDescription =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'description')
+  const descriptionText = raindrop.description ?? raindrop.notes ?? ''
+  const domainText = raindrop.domain || raindrop.url
   return (
     <CommandItem
       value={raindrop.id}
@@ -139,7 +181,11 @@ const SearchResultItem = React.memo(function SearchResultItem({
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium">{raindrop.title}</span>
+          <span className="truncate text-sm font-medium">
+            {shouldHighlightTitle
+              ? renderHighlightedText(raindrop.title, normalizedSearchQuery)
+              : raindrop.title}
+          </span>
           {raindrop.isImportant && (
             <span className="flex-shrink-0 text-amber-500">★</span>
           )}
@@ -149,8 +195,17 @@ const SearchResultItem = React.memo(function SearchResultItem({
             type={raindrop.type}
             className="h-3 w-3 flex-shrink-0"
           />
-          <span className="truncate">{raindrop.domain || raindrop.url}</span>
+          <span className="truncate">
+            {shouldHighlightUrl
+              ? renderHighlightedText(domainText, normalizedSearchQuery)
+              : domainText}
+          </span>
         </div>
+        {descriptionText && shouldHighlightDescription && (
+          <div className="text-muted-foreground truncate text-xs">
+            {renderHighlightedText(descriptionText, normalizedSearchQuery)}
+          </div>
+        )}
         {raindrop.tags.length > 0 && (
           <div className="mt-0.5 flex items-center gap-1">
             {raindrop.tags.slice(0, 3).map((tag) => (
@@ -236,43 +291,17 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
   currentCollectionId,
 }: GlobalSearchCommandProps) {
   const dispatch = useAppDispatch()
+  const searchQuery = useAppSelector((s) => s.search.query)
+  const searchScope = useAppSelector((s) => s.search.scope)
+  const searchMode = useAppSelector((s) => s.search.mode)
   const recentSearches = useAppSelector((s) => s.search.recentSearches)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchScope, setSearchScope] = useState<SearchScope>('all')
 
   useGlobalSearchShortcut(open, onOpenChange)
 
-  const matchesSearch = useCallback(
-    (raindrop: Raindrop, query: string): boolean => {
-      const lower = query.toLowerCase()
-      switch (searchScope) {
-        case 'url':
-          return raindrop.url.toLowerCase().includes(lower)
-        case 'title':
-          return raindrop.title.toLowerCase().includes(lower)
-        case 'description':
-          return (
-            (raindrop.description?.toLowerCase().includes(lower) ?? false) ||
-            (raindrop.notes?.toLowerCase().includes(lower) ?? false)
-          )
-        case 'all':
-        default:
-          return (
-            raindrop.title.toLowerCase().includes(lower) ||
-            raindrop.url.toLowerCase().includes(lower) ||
-            (raindrop.description?.toLowerCase().includes(lower) ?? false) ||
-            raindrop.tags.some((t) => t.toLowerCase().includes(lower)) ||
-            (raindrop.domain?.toLowerCase().includes(lower) ?? false)
-          )
-      }
-    },
-    [searchScope],
-  )
-
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
-    return raindrops.filter((r) => matchesSearch(r, searchQuery)).slice(0, 20)
-  }, [raindrops, searchQuery, matchesSearch])
+    return filterByScope(raindrops, searchQuery, searchScope).slice(0, 20)
+  }, [raindrops, searchQuery, searchScope])
 
   const currentCollectionName = useMemo(() => {
     if (!currentCollectionId || !collections) return undefined
@@ -288,20 +317,36 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
     }
     return findName(collections)
   }, [currentCollectionId, collections])
+  const canToggleGlobalSearch = currentCollectionId !== 'all'
+  const isScopedSearch = canToggleGlobalSearch && searchMode === 'scoped'
+  const handleCommandQueryChange = useCallback(
+    (value: string) => {
+      dispatch(setSearchQueryAction(value))
+    },
+    [dispatch],
+  )
+  const toggleSearchMode = () => {
+    if (!canToggleGlobalSearch) return
+    const nextMode: SearchMode = isScopedSearch ? 'global' : 'scoped'
+    dispatch(setSearchModeAction(nextMode))
+  }
 
   const handleSelect = useCallback(
     (raindrop: Raindrop) => {
       dispatch(addRecentSearchAction(searchQuery))
       onSelectRaindrop?.(raindrop)
       onOpenChange(false)
-      setSearchQuery('')
+      dispatch(setSearchQueryAction(''))
     },
     [dispatch, searchQuery, onSelectRaindrop, onOpenChange],
   )
 
-  const handleRecentSearchClick = useCallback((query: string) => {
-    setSearchQuery(query)
-  }, [])
+  const handleRecentSearchClick = useCallback(
+    (query: string) => {
+      dispatch(setSearchQueryAction(query))
+    },
+    [dispatch],
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -318,24 +363,44 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
             <Search className="text-muted-foreground mr-2 h-4 w-4 shrink-0" />
             <CommandInput
               placeholder={
-                currentCollectionName
+                isScopedSearch && currentCollectionName
                   ? `Search in ${currentCollectionName}... (⌘K)`
                   : 'Search all bookmarks... (⌘K)'
               }
               value={searchQuery}
-              onValueChange={setSearchQuery}
+              onValueChange={handleCommandQueryChange}
               className="border-0 focus:ring-0"
             />
             {searchQuery && (
               <button
                 type="button"
                 className="hover:bg-muted rounded-sm p-1"
-                onClick={() => setSearchQuery('')}
+                onClick={() => dispatch(setSearchQueryAction(''))}
               >
                 <X className="text-muted-foreground h-4 w-4" />
               </button>
             )}
           </div>
+
+          {/* Collection scope toggle */}
+          {currentCollectionName && canToggleGlobalSearch && (
+            <div className="flex items-center justify-between border-b px-3 py-2">
+              <span className="text-muted-foreground text-xs">
+                {isScopedSearch
+                  ? `Searching in ${currentCollectionName}`
+                  : 'Searching everywhere'}
+              </span>
+              <button
+                type="button"
+                className="hover:bg-muted rounded-full px-2.5 py-0.5 text-xs font-medium"
+                onClick={toggleSearchMode}
+              >
+                {isScopedSearch
+                  ? 'Search everywhere'
+                  : `Search in ${currentCollectionName}`}
+              </button>
+            </div>
+          )}
 
           {/* Search scope selector */}
           <div className="flex items-center gap-1.5 border-b px-3 py-2">
@@ -351,7 +416,7 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-muted-foreground hover:bg-muted/80',
                   )}
-                  onClick={() => setSearchScope(scope)}
+                  onClick={() => dispatch(setSearchScopeAction(scope))}
                 >
                   {SEARCH_SCOPE_LABELS[scope]}
                 </button>
@@ -402,6 +467,8 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
                       key={raindrop.id}
                       raindrop={raindrop}
                       onSelect={handleSelect}
+                      searchQuery={searchQuery}
+                      searchScope={searchScope}
                     />
                   ))}
                 </CommandGroup>
@@ -431,7 +498,7 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
                 Close
               </span>
             </div>
-            {currentCollectionName && (
+            {currentCollectionName && isScopedSearch && (
               <span className="flex items-center gap-1">
                 Searching in:{' '}
                 <Badge variant="outline" className="h-4 px-1.5 text-[10px]">

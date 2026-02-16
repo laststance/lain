@@ -22,7 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { Raindrop, ContentType } from '@/lib/types'
+import { buildSubstringHighlightSegments } from '@/lib/search'
+import type { Raindrop, ContentType, SearchScope } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { getDomainColor } from '@/utils/favicon'
 
@@ -69,6 +70,29 @@ function formatRelativeDate(dateStr: string): string {
 }
 
 /**
+ * Render highlighted text segments for matched search content.
+ * @param text - Original text to render
+ * @param query - Active search query
+ * @returns Text with matching segments wrapped in <mark>
+ */
+function renderHighlightedText(text: string, query: string): React.ReactNode {
+  return buildSubstringHighlightSegments(text, query).map((segment, index) =>
+    segment.matched ? (
+      <mark
+        key={`${segment.text}-${index}`}
+        className="bg-primary/20 text-foreground rounded-sm px-0.5"
+      >
+        {segment.text}
+      </mark>
+    ) : (
+      <React.Fragment key={`${segment.text}-${index}`}>
+        {segment.text}
+      </React.Fragment>
+    ),
+  )
+}
+
+/**
  * Props for the RaindropCard component.
  */
 interface RaindropCardProps {
@@ -80,6 +104,10 @@ interface RaindropCardProps {
   onClick: (event: React.MouseEvent) => void
   /** Double-click handler to open the URL externally */
   onDoubleClick: () => void
+  /** Current query used for field highlighting */
+  searchQuery?: string
+  /** Active field scope used for field highlighting */
+  searchScope?: SearchScope
 }
 
 /**
@@ -106,6 +134,8 @@ const RaindropCard = React.memo(function RaindropCard({
   isSelected,
   onClick,
   onDoubleClick,
+  searchQuery,
+  searchScope = 'all',
 }: RaindropCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isChecked, setIsChecked] = useState(false)
@@ -151,6 +181,16 @@ const RaindropCard = React.memo(function RaindropCard({
   const domainColor = getDomainColor(raindrop.domain || '')
   const visibleTags = raindrop.tags.slice(0, 2)
   const remainingTagCount = raindrop.tags.length - 2
+  const normalizedSearchQuery = searchQuery?.trim() ?? ''
+  const hasSearchQuery = normalizedSearchQuery.length > 0
+  const shouldHighlightTitle =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'title')
+  const shouldHighlightUrl =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'url')
+  const shouldHighlightDescription =
+    hasSearchQuery && (searchScope === 'all' || searchScope === 'description')
+  const descriptionText = raindrop.description ?? raindrop.notes ?? ''
+  const domainText = raindrop.domain || new URL(raindrop.url).hostname
 
   return (
     <Card
@@ -281,13 +321,22 @@ const RaindropCard = React.memo(function RaindropCard({
       <CardContent className="space-y-1.5 p-3">
         {/* Title */}
         <h3 className="line-clamp-2 text-sm leading-snug font-medium">
-          {raindrop.title}
+          {shouldHighlightTitle
+            ? renderHighlightedText(raindrop.title, normalizedSearchQuery)
+            : raindrop.title}
         </h3>
 
         {/* Domain */}
         <p className="text-muted-foreground truncate text-xs">
-          {raindrop.domain || new URL(raindrop.url).hostname}
+          {shouldHighlightUrl
+            ? renderHighlightedText(domainText, normalizedSearchQuery)
+            : domainText}
         </p>
+        {descriptionText && shouldHighlightDescription && (
+          <p className="text-muted-foreground line-clamp-2 text-xs">
+            {renderHighlightedText(descriptionText, normalizedSearchQuery)}
+          </p>
+        )}
 
         {/* Tags + Date row */}
         <div className="flex items-center justify-between gap-2 pt-0.5">

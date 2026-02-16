@@ -14,6 +14,89 @@ type MockCollection = (typeof mockCollections)[number]
 type MockTag = (typeof mockTags)[number]
 
 /**
+ * Remove optional surrounding quotes from an operator term.
+ * @param value - Raw operator value (possibly quoted)
+ * @returns Normalized unquoted value
+ */
+function unquoteSearchTerm(value: string): string {
+  const trimmed = value.trim()
+  const quoted = trimmed.match(/^"(.*)"$/)
+  return (quoted ? quoted[1] : trimmed).replace(/\\"/g, '"')
+}
+
+/**
+ * Case-insensitive "contains" helper.
+ * @param value - Candidate text
+ * @param term - Lowercase search term
+ * @returns True if value contains term
+ */
+function includesTerm(value: string | undefined, term: string): boolean {
+  return (value ?? '').toLowerCase().includes(term)
+}
+
+/**
+ * Free-text fallback matcher across common bookmark fields.
+ * @param item - Candidate raindrop
+ * @param term - Lowercase search term
+ * @returns True when any field includes the term
+ */
+function matchesFreeText(item: MockRaindrop, term: string): boolean {
+  return (
+    includesTerm(item.title, term) ||
+    includesTerm(item.link, term) ||
+    includesTerm(item.excerpt, term) ||
+    includesTerm(item.note, term) ||
+    includesTerm(item.domain, term) ||
+    item.tags.some((tag) => includesTerm(tag, term))
+  )
+}
+
+/**
+ * Apply Raindrop-style search filtering for E2E API mocking.
+ * Supports basic operators (`link:`, `title:`, `excerpt:`, `note:`)
+ * plus free-text fallback.
+ *
+ * @param items - Candidate raindrops
+ * @param search - Raw `search` query param
+ * @returns Filtered raindrops
+ */
+function applySearchFilter(
+  items: MockRaindrop[],
+  search: string | null,
+): MockRaindrop[] {
+  const rawSearch = search?.trim() ?? ''
+  if (!rawSearch) return items
+
+  const operatorMatch = rawSearch.match(/^([a-z]+):(.*)$/i)
+  if (!operatorMatch) {
+    const term = unquoteSearchTerm(rawSearch).toLowerCase()
+    return items.filter((item) => matchesFreeText(item, term))
+  }
+
+  const operator = operatorMatch[1].toLowerCase()
+  const term = unquoteSearchTerm(operatorMatch[2]).toLowerCase()
+  if (!term) return items
+
+  switch (operator) {
+    case 'link':
+      return items.filter(
+        (item) =>
+          includesTerm(item.link, term) || includesTerm(item.domain, term),
+      )
+    case 'title':
+      return items.filter((item) => includesTerm(item.title, term))
+    case 'excerpt':
+      return items.filter((item) => includesTerm(item.excerpt, term))
+    case 'note':
+      return items.filter((item) => includesTerm(item.note, term))
+    default:
+      return items.filter((item) =>
+        matchesFreeText(item, rawSearch.toLowerCase()),
+      )
+  }
+}
+
+/**
  * Mutable in-memory store for E2E tests.
  * Each call to `mockRaindropApi()` creates a fresh store,
  * so mutations within a test are visible to subsequent reads.
@@ -65,11 +148,14 @@ export async function mockRaindropApi(page: Page): Promise<void> {
       const pageNum = Number(url.searchParams.get('page') ?? '0')
       const perpage = Number(url.searchParams.get('perpage') ?? '50')
       const sort = url.searchParams.get('sort') ?? undefined
+      const search = url.searchParams.get('search')
 
       let all =
         collectionId === 0
           ? store.raindrops
           : store.raindrops.filter((r) => r.collection.$id === collectionId)
+
+      all = applySearchFilter(all, search)
 
       // Apply sort
       if (sort) {

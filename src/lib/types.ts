@@ -101,6 +101,7 @@ export type SortOption =
   | 'relevance'
 
 export type SearchScope = 'all' | 'url' | 'title' | 'description'
+export type SearchMode = 'scoped' | 'global'
 
 /**
  * Raindrop bookmark entity from the UI prototype.

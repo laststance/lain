@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
-import type { SearchScope } from '@/lib/types'
+import type { SearchMode, SearchScope } from '@/lib/types'
 
 /**
  * Search state for query, scope, and recent searches.
@@ -14,6 +14,7 @@ import type { SearchScope } from '@/lib/types'
 interface SearchState {
   query: string
   scope: SearchScope
+  mode: SearchMode
   isSearchOpen: boolean
   recentSearches: string[]
 }
@@ -23,6 +24,7 @@ const MAX_RECENT_SEARCHES = 20
 const initialState: SearchState = {
   query: '',
   scope: 'all',
+  mode: 'scoped',
   isSearchOpen: false,
   recentSearches: [],
 }
@@ -36,6 +38,9 @@ export const searchSlice = createSlice({
     },
     setSearchScope(state, action: PayloadAction<SearchScope>) {
       state.scope = action.payload
+    },
+    setSearchMode(state, action: PayloadAction<SearchMode>) {
+      state.mode = action.payload
     },
     setSearchOpen(state, action: PayloadAction<boolean>) {
       state.isSearchOpen = action.payload
@@ -61,6 +66,7 @@ export const searchSlice = createSlice({
 export const {
   setSearchQuery,
   setSearchScope,
+  setSearchMode,
   setSearchOpen,
   addRecentSearch,
   clearRecentSearches,

@@ -3,6 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react'
 
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { buildIndexedHighlightSegments, fuzzySearchByName } from '@/lib/search'
 import type { Group, Collection } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,14 @@ interface FlatCollection {
   path: string[]
   /** Parent group name */
   groupName: string
+}
+
+/**
+ * Fuzzy search result for flattened collections.
+ */
+interface FlatCollectionSearchResult {
+  item: FlatCollection
+  indices: [number, number][]
 }
 
 /**
@@ -64,30 +73,31 @@ function flattenCollections(groups: Group[]): FlatCollection[] {
 }
 
 /**
- * Highlight matching characters in a string with bold spans.
+ * Highlight matching characters from Fuse.js index ranges.
  * @param text - The original text
- * @param query - The search query to highlight
+ * @param indices - Inclusive [start, end] ranges from Fuse.js
  * @returns JSX with matched portions wrapped in <strong>
- * @example
- *   highlightMatch("UI Inspiration", "ui ins")
- *   // => <><strong>UI</strong> <strong>Ins</strong>piration</>
  */
-function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query) return text
-
-  const lower = text.toLowerCase()
-  const queryLower = query.toLowerCase()
-  const index = lower.indexOf(queryLower)
-
-  if (index === -1) return text
-
+function highlightMatch(
+  text: string,
+  indices: [number, number][],
+): React.ReactNode {
   return (
     <>
-      {text.slice(0, index)}
-      <strong className="text-primary font-semibold">
-        {text.slice(index, index + query.length)}
-      </strong>
-      {text.slice(index + query.length)}
+      {buildIndexedHighlightSegments(text, indices).map((segment, index) =>
+        segment.matched ? (
+          <strong
+            key={`${segment.text}-${index}`}
+            className="text-primary font-semibold"
+          >
+            {segment.text}
+          </strong>
+        ) : (
+          <React.Fragment key={`${segment.text}-${index}`}>
+            {segment.text}
+          </React.Fragment>
+        ),
+      )}
     </>
   )
 }
@@ -134,13 +144,14 @@ const CollectionSearch = React.memo(function CollectionSearch({
   const allCollections = useMemo(() => flattenCollections(groups), [groups])
 
   /**
-   * Filter collections by fuzzy substring matching on name.
+   * Filter collections by fuzzy matching on name.
    */
   const filteredCollections = useMemo(() => {
-    if (!query.trim()) return []
-    const lower = query.toLowerCase()
-    return allCollections.filter((col) =>
-      col.name.toLowerCase().includes(lower),
+    return fuzzySearchByName(allCollections, query).map(
+      (result): FlatCollectionSearchResult => ({
+        item: result.item,
+        indices: result.indices,
+      }),
     )
   }, [allCollections, query])
 
@@ -157,21 +168,23 @@ const CollectionSearch = React.memo(function CollectionSearch({
    * @param e - Keyboard event
    */
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    const maxIndex = filteredCollections.length - 1
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setFocusedIndex((prev) =>
-          Math.min(prev + 1, filteredCollections.length - 1),
-        )
+        if (maxIndex < 0) return
+        setFocusedIndex((prev) => Math.min(prev + 1, maxIndex))
         break
       case 'ArrowUp':
         e.preventDefault()
+        if (maxIndex < 0) return
         setFocusedIndex((prev) => Math.max(prev - 1, 0))
         break
       case 'Enter':
         e.preventDefault()
         if (filteredCollections[focusedIndex]) {
-          onSelect(filteredCollections[focusedIndex].id)
+          onSelect(filteredCollections[focusedIndex].item.id)
         }
         break
       case 'Escape':
@@ -203,18 +216,21 @@ const CollectionSearch = React.memo(function CollectionSearch({
       </div>
 
       {/* Results */}
-      {query.trim() && (
-        <div className="bg-popover rounded-md border shadow-md">
-          {filteredCollections.length === 0 ? (
-            <div className="px-3 py-4 text-center">
-              <p className="text-muted-foreground text-xs">
-                No collections matching "{query}"
-              </p>
-            </div>
-          ) : (
-            <ScrollArea className="max-h-[240px]">
-              <div className="p-1">
-                {filteredCollections.map((col, index) => (
+      <div className="bg-popover rounded-md border shadow-md">
+        {filteredCollections.length === 0 ? (
+          <div className="px-3 py-4 text-center">
+            <p className="text-muted-foreground text-xs">
+              {query.trim()
+                ? `No collections matching "${query}"`
+                : 'No collections available'}
+            </p>
+          </div>
+        ) : (
+          <ScrollArea className="max-h-[240px]">
+            <div className="p-1">
+              {filteredCollections.map((result, index) => {
+                const col = result.item
+                return (
                   <button
                     key={col.id}
                     type="button"
@@ -237,7 +253,7 @@ const CollectionSearch = React.memo(function CollectionSearch({
                       {/* Collection name with highlight */}
                       <div className="flex items-center gap-1.5">
                         <span className="truncate text-xs font-medium">
-                          {highlightMatch(col.name, query)}
+                          {highlightMatch(col.name, result.indices)}
                         </span>
                         <span className="text-muted-foreground flex-shrink-0 text-[10px] tabular-nums">
                           {col.count}
@@ -260,12 +276,12 @@ const CollectionSearch = React.memo(function CollectionSearch({
                       </div>
                     </div>
                   </button>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </div>
-      )}
+                )
+              })}
+            </div>
+          </ScrollArea>
+        )}
+      </div>
     </div>
   )
 })

@@ -13,7 +13,7 @@ import {
   Plus,
   Sparkles,
 } from 'lucide-react'
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -45,7 +45,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import type { Group, ContentType } from '@/lib/types'
-import { extractDomain, getFaviconUrl } from '@/utils/favicon'
+import { extractDomain, resolveIcon } from '@/utils/favicon'
 
 const bookmarkSchema = z.object({
   url: z.string().url('Please enter a valid URL'),
@@ -58,6 +58,11 @@ const bookmarkSchema = z.object({
 })
 
 type BookmarkFormValues = z.infer<typeof bookmarkSchema>
+
+/**
+ * Debounce interval for URL parsing and icon resolution.
+ */
+const URL_PARSE_DEBOUNCE_MS = 500
 
 /**
  * Type icon mapping for the content type selector.
@@ -137,9 +142,25 @@ function useBookmarkFormReset(
 function useDebouncedUrlParsing(url: string, parseUrl: (url: string) => void) {
   useEffect(() => {
     if (!url) return
-    const debounce = setTimeout(() => parseUrl(url), 500)
+    const debounce = setTimeout(() => parseUrl(url), URL_PARSE_DEBOUNCE_MS)
     return () => clearTimeout(debounce)
   }, [url, parseUrl])
+}
+
+/**
+ * Clear parsed favicon when auto icon mode is disabled.
+ * @param autoIcon - Auto icon flag
+ * @param setParsedFavicon - Parsed favicon setter
+ */
+function useParsedFaviconReset(
+  autoIcon: boolean,
+  setParsedFavicon: React.Dispatch<React.SetStateAction<string>>,
+) {
+  useEffect(() => {
+    if (!autoIcon) {
+      setParsedFavicon('')
+    }
+  }, [autoIcon, setParsedFavicon])
 }
 
 /**
@@ -178,6 +199,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
   const [parsedFavicon, setParsedFavicon] = useState('')
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [autoIcon, setAutoIcon] = useState(true)
+  const parseRequestIdRef = useRef(0)
 
   const {
     register,
@@ -211,9 +233,11 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
     setAutoIcon,
   })
 
-  // Auto-parse URL (simulated - in real app would call Raindrop API)
+  useParsedFaviconReset(autoIcon, setParsedFavicon)
+
+  // Auto-parse URL metadata and icon.
   const parseUrl = useCallback(
-    (urlValue: string) => {
+    async (urlValue: string) => {
       if (!urlValue) return
       try {
         new URL(urlValue)
@@ -221,44 +245,46 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
         return
       }
 
+      const requestId = parseRequestIdRef.current + 1
+      parseRequestIdRef.current = requestId
       setIsParsing(true)
       const domain = extractDomain(urlValue)
 
-      // Simulate URL parsing delay
-      const timeout = setTimeout(() => {
-        if (autoIcon && domain) {
-          setParsedFavicon(getFaviconUrl(domain))
+      // Auto-detect type from URL.
+      if (urlValue.match(/youtube\.com|vimeo\.com|dailymotion\.com|\.mp4$/i)) {
+        setValue('type', 'video')
+      } else if (urlValue.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
+        setValue('type', 'image')
+      } else if (urlValue.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i)) {
+        setValue('type', 'document')
+      } else if (urlValue.match(/\.(mp3|wav|ogg|flac|aac)$/i)) {
+        setValue('type', 'audio')
+      } else if (
+        urlValue.match(
+          /medium\.com|dev\.to|hashnode\.dev|substack\.com|blog\./i,
+        )
+      ) {
+        setValue('type', 'article')
+      }
+
+      // Auto-fill title from domain if empty.
+      const currentTitle = watch('title')
+      if (!currentTitle) {
+        setValue('title', domain ? `${domain} - Untitled` : '')
+      }
+
+      try {
+        if (autoIcon) {
+          const resolvedIcon = await resolveIcon(urlValue)
+          if (parseRequestIdRef.current === requestId) {
+            setParsedFavicon(resolvedIcon ?? '')
+          }
         }
-
-        // Auto-detect type from URL
-        if (
-          urlValue.match(/youtube\.com|vimeo\.com|dailymotion\.com|\.mp4$/i)
-        ) {
-          setValue('type', 'video')
-        } else if (urlValue.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
-          setValue('type', 'image')
-        } else if (urlValue.match(/\.(pdf|doc|docx|xls|xlsx|ppt|pptx)$/i)) {
-          setValue('type', 'document')
-        } else if (urlValue.match(/\.(mp3|wav|ogg|flac|aac)$/i)) {
-          setValue('type', 'audio')
-        } else if (
-          urlValue.match(
-            /medium\.com|dev\.to|hashnode\.dev|substack\.com|blog\./i,
-          )
-        ) {
-          setValue('type', 'article')
+      } finally {
+        if (parseRequestIdRef.current === requestId) {
+          setIsParsing(false)
         }
-
-        // Auto-fill title from domain if empty
-        const currentTitle = watch('title')
-        if (!currentTitle) {
-          setValue('title', domain ? `${domain} - Untitled` : '')
-        }
-
-        setIsParsing(false)
-      }, 500)
-
-      return () => clearTimeout(timeout)
+      }
     },
     [autoIcon, setValue, watch],
   )
@@ -359,6 +385,7 @@ const AddBookmarkDialog = React.memo(function AddBookmarkDialog({
               <div className="flex items-center gap-2">
                 {parsedFavicon && (
                   <img
+                    data-testid="bookmark-favicon-preview"
                     src={parsedFavicon}
                     alt=""
                     className="h-5 w-5 shrink-0 rounded-sm"

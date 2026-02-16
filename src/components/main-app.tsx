@@ -19,6 +19,7 @@ import { mapSortOptionToApi } from '@/lib/api-mappers'
 import { buildSearchQuery } from '@/lib/search'
 import type {
   Collection,
+  Group,
   Raindrop,
   SearchMode,
   SearchScope,
@@ -133,6 +134,9 @@ export const MainApp = React.memo(function MainApp() {
     deleteCollection,
     merge,
     emptyTrash,
+    updateUserGroups,
+    renameCollection,
+    recolorCollection,
   } = useCollectionsCrud()
 
   // Bridge: string[] (Redux) → Set<string> (MainContent expects Set)
@@ -281,19 +285,46 @@ export const MainApp = React.memo(function MainApp() {
     [saveCollection, updateCollection, dispatch],
   )
 
-  const handleEditCollection = useCallback(
-    (collection: Collection) => {
-      setEditingCollection(collection)
-      dispatch(openCollectionDialog())
-    },
-    [dispatch],
-  )
-
   const handleDeleteCollection = useCallback(
     async (collectionId: string) => {
       await deleteCollection(collectionId)
     },
     [deleteCollection],
+  )
+
+  /**
+   * Persist sidebar group ordering and membership updates.
+   * @param nextGroups - Updated group structure from sidebar interactions
+   */
+  const handlePersistGroups = useCallback(
+    async (nextGroups: Group[]) => {
+      await updateUserGroups(nextGroups)
+    },
+    [updateUserGroups],
+  )
+
+  /**
+   * Rename a collection from inline sidebar editing.
+   * @param collectionId - Collection ID
+   * @param title - New collection title
+   */
+  const handleRenameCollection = useCallback(
+    async (collectionId: string, title: string) => {
+      await renameCollection(collectionId, title)
+    },
+    [renameCollection],
+  )
+
+  /**
+   * Update collection color from sidebar context menu.
+   * @param collectionId - Collection ID
+   * @param color - Selected color
+   */
+  const handleChangeCollectionColor = useCallback(
+    async (collectionId: string, color: string) => {
+      await recolorCollection(collectionId, color)
+    },
+    [recolorCollection],
   )
 
   const handleEmptyTrash = useCallback(async () => {
@@ -458,10 +489,12 @@ export const MainApp = React.memo(function MainApp() {
           onAddCollection={handleAddCollection}
           onAddGroup={handleAddGroup}
           onManageTags={handleManageTags}
-          onEditCollection={handleEditCollection}
           onDeleteCollection={handleDeleteCollection}
           onEmptyTrash={handleEmptyTrash}
           onMergeCollections={handleOpenMerge}
+          onPersistGroups={handlePersistGroups}
+          onRenameCollection={handleRenameCollection}
+          onChangeCollectionColor={handleChangeCollectionColor}
         />
 
         <SidebarInset className="min-w-0 flex-1">

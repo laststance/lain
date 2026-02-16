@@ -2,6 +2,7 @@ import { act } from '@testing-library/react'
 import { describe, it } from 'vitest'
 
 import { useCollectionsCrud } from '@/hooks/useCollectionsCrud'
+import type { Group } from '@/lib/types'
 import { renderHookWithProviders } from '@test/render-with-providers'
 
 describe('useCollectionsCrud', () => {
@@ -44,6 +45,45 @@ describe('useCollectionsCrud', () => {
 
     await act(async () => {
       await result.current.emptyTrash()
+    })
+  })
+
+  it('persists group ordering via putUser', async () => {
+    const { result } = renderHookWithProviders(() => useCollectionsCrud())
+    const groups: Group[] = [
+      {
+        id: 'group-0',
+        name: 'Development',
+        collections: [
+          {
+            id: '100',
+            name: 'Development',
+            icon: 'Folder',
+            count: 10,
+            groupId: 'group-0',
+          },
+        ],
+      },
+    ]
+
+    await act(async () => {
+      await result.current.updateUserGroups(groups)
+    })
+  })
+
+  it('renames collection via updateCollection wrapper', async () => {
+    const { result } = renderHookWithProviders(() => useCollectionsCrud())
+
+    await act(async () => {
+      await result.current.renameCollection('100', 'Renamed in Sidebar')
+    })
+  })
+
+  it('updates collection color via putCollection', async () => {
+    const { result } = renderHookWithProviders(() => useCollectionsCrud())
+
+    await act(async () => {
+      await result.current.recolorCollection('100', '#3b82f6')
     })
   })
 })

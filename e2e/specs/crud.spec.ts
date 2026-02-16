@@ -124,6 +124,146 @@ test.describe('Add Bookmark Dialog', () => {
   })
 })
 
+test.describe('P4 Auto Icon Assignment (F4)', () => {
+  // @spec:F4.1 - New bookmarks auto-fetch icon from suggest API
+  test('auto-fetches icon from suggest API in add bookmark dialog', async ({
+    page,
+  }) => {
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await page
+      .getByRole('button', { name: /Add Bookmark|^Add$/ })
+      .first()
+      .click()
+    await expect(
+      page.getByRole('heading', { name: 'Add Bookmark' }),
+    ).toBeVisible()
+
+    await page.getByLabel('URL').fill('https://react.dev')
+    const preview = page.getByTestId('bookmark-favicon-preview')
+    await expect(preview).toBeAttached({ timeout: 10_000 })
+    await expect(preview).toHaveAttribute('src', /react\.dev\/favicon\.ico/)
+  })
+
+  // @spec:F4.2 - Fallback to Google Favicon API when suggest returns no icon
+  test('falls back to Google favicon when suggest icon is unavailable', async ({
+    page,
+  }) => {
+    await page.route(
+      '**/api.raindrop.io/rest/v1/raindrop/suggest?*',
+      async (route) => {
+        await route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            result: true,
+            item: { meta: {} },
+          }),
+        })
+      },
+    )
+
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await page
+      .getByRole('button', { name: /Add Bookmark|^Add$/ })
+      .first()
+      .click()
+    await page.getByLabel('URL').fill('https://react.dev')
+
+    const preview = page.getByTestId('bookmark-favicon-preview')
+    await expect(preview).toBeAttached({ timeout: 10_000 })
+    await expect(preview).toHaveAttribute(
+      'src',
+      /google\.com\/s2\/favicons\?domain=react\.dev&sz=64/,
+    )
+  })
+
+  // @spec:F4.3 - Display domain first letter when no icon available
+  test('renders domain initial fallback when favicon image cannot load', async ({
+    page,
+  }) => {
+    await page.route('**/www.google.com/s2/favicons**', async (route) => {
+      await route.fulfill({ status: 404, body: '' })
+    })
+
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await expect
+      .poll(async () => {
+        return page
+          .getByTestId('favicon-1')
+          .evaluate((element) => element.tagName)
+      })
+      .toBe('DIV')
+
+    await expect
+      .poll(async () => {
+        return page
+          .getByTestId('favicon-1')
+          .evaluate((element) => (element.textContent ?? '').trim())
+      })
+      .toBe('R')
+  })
+
+  // @spec:F4.4 - Background icon resolution does not block UI
+  test('keeps add bookmark form interactive during icon resolution', async ({
+    page,
+  }) => {
+    await page.route(
+      '**/api.raindrop.io/rest/v1/raindrop/suggest?*',
+      async (route) => {
+        await page.waitForTimeout(1_000)
+        await route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            result: true,
+            item: { meta: { icon: 'https://react.dev/favicon.ico' } },
+          }),
+        })
+      },
+    )
+
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
+
+    await page
+      .getByRole('button', { name: /Add Bookmark|^Add$/ })
+      .first()
+      .click()
+    await expect(
+      page.getByRole('heading', { name: 'Add Bookmark' }),
+    ).toBeVisible()
+
+    await page.getByLabel('URL').fill('https://react.dev')
+
+    await page.getByLabel('Title').fill('Manual Title')
+    await expect(page.getByLabel('Title')).toHaveValue('Manual Title')
+  })
+})
+
 test.describe('Bookmark List Rendering', () => {
   // @spec:API.1 - GET /raindrops/{collectionId} (browse bookmarks)
   test('should render mocked bookmarks in list view', async ({ page }) => {

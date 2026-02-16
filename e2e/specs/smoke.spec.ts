@@ -14,7 +14,11 @@ test.describe('Auth Bypass', () => {
   test('should skip login screen and show main app', async ({ page }) => {
     await expect(page.getByText('Login with Raindrop.io')).not.toBeVisible()
     // Use breadcrumb link to uniquely identify (sidebar also has "All Bookmarks")
-    await expect(page.getByText('All Bookmarks').first()).toBeVisible({
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
       timeout: 10_000,
     })
   })
@@ -23,7 +27,11 @@ test.describe('Auth Bypass', () => {
   test('should not show loading state after initial render', async ({
     page,
   }) => {
-    await expect(page.getByText('All Bookmarks').first()).toBeVisible({
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
       timeout: 10_000,
     })
     await expect(page.getByText('Loading...')).not.toBeVisible()
@@ -32,7 +40,11 @@ test.describe('Auth Bypass', () => {
   // @spec:API.14 - GET /collections (sidebar loads root collections)
   // @spec:API.15 - GET /collections/childrens (sidebar loads nested)
   test('should have sidebar with system collections', async ({ page }) => {
-    await expect(page.getByText('All Bookmarks').first()).toBeVisible({
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
       timeout: 10_000,
     })
     await expect(page.getByText('Unsorted')).toBeVisible()

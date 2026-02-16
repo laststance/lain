@@ -25,7 +25,7 @@ import {
 import { buildSubstringHighlightSegments } from '@/lib/search'
 import type { Raindrop, ContentType, SearchScope } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { getDomainColor } from '@/utils/favicon'
+import { getDomainColor, extractDomain } from '@/utils/favicon'
 
 /**
  * Map content type to a display label.
@@ -190,7 +190,8 @@ const RaindropCard = React.memo(function RaindropCard({
   const shouldHighlightDescription =
     hasSearchQuery && (searchScope === 'all' || searchScope === 'description')
   const descriptionText = raindrop.description ?? raindrop.notes ?? ''
-  const domainText = raindrop.domain || new URL(raindrop.url).hostname
+  const domainText =
+    raindrop.domain || extractDomain(raindrop.url) || raindrop.url
 
   return (
     <Card

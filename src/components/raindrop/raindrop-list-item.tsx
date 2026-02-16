@@ -31,6 +31,7 @@ import {
 import { buildSubstringHighlightSegments } from '@/lib/search'
 import type { Raindrop, ContentType, SearchScope } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { extractDomain } from '@/utils/favicon'
 
 /**
  * Static map of content type to lucide icon component.
@@ -183,7 +184,8 @@ const RaindropListItem = React.memo(function RaindropListItem({
     hasSearchQuery && (searchScope === 'all' || searchScope === 'url')
   const shouldHighlightDescription =
     hasSearchQuery && (searchScope === 'all' || searchScope === 'description')
-  const domainText = raindrop.domain || new URL(raindrop.url).hostname
+  const domainText =
+    raindrop.domain || extractDomain(raindrop.url) || raindrop.url
 
   // TODO: @dnd-kit migration — drag source setup
   // const dragRef = useRef(null)

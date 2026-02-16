@@ -7,11 +7,12 @@ import { expect, test } from '../electron'
  * @param page - Playwright page
  */
 async function waitForSidebarReady(page: Page) {
-  await expect(
-    page.locator('[data-slot="breadcrumb-page"]', {
-      hasText: 'All Bookmarks',
-    }),
-  ).toBeVisible({ timeout: 10_000 })
+  const allBookmarksButton = page
+    .getByRole('button', { name: 'All Bookmarks' })
+    .first()
+  await expect(allBookmarksButton).toBeVisible({ timeout: 10_000 })
+  await allBookmarksButton.click({ force: true })
+  await expect(page.getByRole('button', { name: 'Unsorted' })).toBeVisible()
 }
 
 /**

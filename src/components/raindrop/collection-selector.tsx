@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { buildIndexedHighlightSegments, fuzzySearchByName } from '@/lib/search'
 import type { Group, Collection } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +27,88 @@ interface CollectionSelectorProps {
   placeholder?: string
   /** Whether to allow selecting "None" (root level) */
   allowNone?: boolean
+}
+
+/**
+ * Flattened collection entry with full parent path and group metadata.
+ */
+interface FlatCollectionOption {
+  id: string
+  name: string
+  color?: string
+  count: number
+  path: string[]
+  groupName: string
+}
+
+/**
+ * Fuzzy search result shape for flattened collections.
+ */
+interface FlatCollectionSearchResult {
+  item: FlatCollectionOption
+  indices: [number, number][]
+}
+
+/**
+ * Flatten nested collection trees into searchable rows.
+ * @param groups - Source groups with nested collections
+ * @returns Flat collection options with path metadata
+ */
+function flattenCollections(groups: Group[]): FlatCollectionOption[] {
+  const result: FlatCollectionOption[] = []
+
+  const walk = (
+    collections: Collection[],
+    groupName: string,
+    parentPath: string[],
+  ) => {
+    for (const collection of collections) {
+      const currentPath = [...parentPath, collection.name]
+      result.push({
+        id: collection.id,
+        name: collection.name,
+        color: collection.color,
+        count: collection.count,
+        path: currentPath,
+        groupName,
+      })
+      if (collection.children) {
+        walk(collection.children, groupName, currentPath)
+      }
+    }
+  }
+
+  for (const group of groups) {
+    walk(group.collections, group.name, [])
+  }
+
+  return result
+}
+
+/**
+ * Render highlighted collection name from Fuse.js index matches.
+ * @param name - Collection name text
+ * @param indices - Inclusive [start, end] ranges from Fuse.js
+ * @returns Highlighted React node
+ */
+function renderHighlightedName(
+  name: string,
+  indices: [number, number][],
+): React.ReactNode {
+  return buildIndexedHighlightSegments(name, indices).map((segment, index) =>
+    segment.matched ? (
+      <strong
+        key={`${segment.text}-${index}`}
+        className="text-primary font-semibold"
+      >
+        {segment.text}
+      </strong>
+    ) : (
+      <React.Fragment key={`${segment.text}-${index}`}>
+        {segment.text}
+      </React.Fragment>
+    ),
+  )
 }
 
 /**
@@ -83,28 +166,17 @@ const CollectionSelector = React.memo(function CollectionSelector({
     }
     return undefined
   }, [groups, value])
-
-  const filterCollections = (
-    collections: Collection[],
-    query: string,
-  ): Collection[] => {
-    if (!query) return collections
-    const lower = query.toLowerCase()
-    return collections.reduce<Collection[]>((acc, col) => {
-      const nameMatch = col.name.toLowerCase().includes(lower)
-      const filteredChildren = col.children
-        ? filterCollections(col.children, query)
-        : []
-      if (nameMatch || filteredChildren.length > 0) {
-        acc.push({
-          ...col,
-          children:
-            filteredChildren.length > 0 ? filteredChildren : col.children,
-        })
-      }
-      return acc
-    }, [])
-  }
+  const flatCollections = useMemo(() => flattenCollections(groups), [groups])
+  const hasSearchQuery = searchQuery.trim().length > 0
+  const fuzzyCollections = useMemo(() => {
+    if (!hasSearchQuery) return []
+    return fuzzySearchByName(flatCollections, searchQuery).map(
+      (result): FlatCollectionSearchResult => ({
+        item: result.item,
+        indices: result.indices,
+      }),
+    )
+  }, [flatCollections, hasSearchQuery, searchQuery])
 
   const renderCollection = (collection: Collection, depth: number = 0) => {
     const isSelected = value === collection.id
@@ -143,6 +215,59 @@ const CollectionSelector = React.memo(function CollectionSelector({
       </div>
     )
   }
+  const renderFuzzyCollection = useCallback(
+    (result: FlatCollectionSearchResult) => {
+      const collection = result.item
+      const isSelected = value === collection.id
+      const parentPath = collection.path.slice(0, -1).join(' / ')
+
+      return (
+        <button
+          key={collection.id}
+          type="button"
+          className={cn(
+            'hover:bg-accent flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-sm',
+            isSelected && 'bg-accent',
+          )}
+          onClick={() => {
+            onChange(collection.id)
+            setOpen(false)
+            setSearchQuery('')
+          }}
+        >
+          <div
+            className="mt-0.5 h-3 w-3 flex-shrink-0 rounded-sm"
+            style={{ backgroundColor: collection.color || '#8b5cf6' }}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-left font-medium">
+                {renderHighlightedName(collection.name, result.indices)}
+              </span>
+              <span className="text-muted-foreground flex-shrink-0 text-xs tabular-nums">
+                {collection.count}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-0.5">
+              <span className="text-muted-foreground text-[10px]">
+                {collection.groupName}
+              </span>
+              {parentPath && (
+                <>
+                  <ChevronRight className="text-muted-foreground h-2.5 w-2.5" />
+                  <span className="text-muted-foreground truncate text-[10px]">
+                    {parentPath}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          {isSelected && <Check className="text-primary ml-auto h-4 w-4" />}
+        </button>
+      )
+    },
+    [onChange, value],
+  )
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -198,24 +323,26 @@ const CollectionSelector = React.memo(function CollectionSelector({
                 {!value && <Check className="text-primary ml-auto h-4 w-4" />}
               </button>
             )}
-            {groups.map((group) => {
-              const filteredCollections = filterCollections(
-                group.collections,
-                searchQuery,
+            {hasSearchQuery ? (
+              fuzzyCollections.length === 0 ? (
+                <div className="px-2 py-4 text-center">
+                  <span className="text-muted-foreground text-xs">
+                    No collections matching "{searchQuery}"
+                  </span>
+                </div>
+              ) : (
+                fuzzyCollections.map((result) => renderFuzzyCollection(result))
               )
-              if (searchQuery && filteredCollections.length === 0) return null
-
-              return (
+            ) : (
+              groups.map((group) => (
                 <div key={group.id} className="mb-1">
                   <div className="text-muted-foreground px-2 py-1.5 text-xs font-medium tracking-wider uppercase">
                     {group.name}
                   </div>
-                  {(searchQuery ? filteredCollections : group.collections).map(
-                    (col) => renderCollection(col),
-                  )}
+                  {group.collections.map((col) => renderCollection(col))}
                 </div>
-              )
-            })}
+              ))
+            )}
           </div>
         </ScrollArea>
       </PopoverContent>

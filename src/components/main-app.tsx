@@ -16,7 +16,14 @@ import { useRaindropsCrud } from '@/hooks/useRaindropsCrud'
 import { useSidebarData } from '@/hooks/useSidebarData'
 import { useTagsCrud } from '@/hooks/useTagsCrud'
 import { mapSortOptionToApi } from '@/lib/api-mappers'
-import type { Collection, Raindrop, SortOption } from '@/lib/types'
+import { buildSearchQuery } from '@/lib/search'
+import type {
+  Collection,
+  Raindrop,
+  SearchMode,
+  SearchScope,
+  SortOption,
+} from '@/lib/types'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
   closeAddBookmark,
@@ -30,7 +37,12 @@ import {
   openMergeDialog,
   openTagManagement,
 } from '@/store/slices/dialogSlice'
-import { setSearchOpen } from '@/store/slices/searchSlice'
+import {
+  setSearchMode,
+  setSearchOpen,
+  setSearchQuery,
+  setSearchScope,
+} from '@/store/slices/searchSlice'
 import {
   clearSelection,
   setDetailPanelOpen,
@@ -55,6 +67,9 @@ export const MainApp = React.memo(function MainApp() {
   const isDetailPanelOpen = useAppSelector((s) => s.ui.isDetailPanelOpen)
   const selectedRaindropIds = useAppSelector((s) => s.ui.selectedRaindropIds)
   const isSearchOpen = useAppSelector((s) => s.search.isSearchOpen)
+  const searchQuery = useAppSelector((s) => s.search.query)
+  const searchScope = useAppSelector((s) => s.search.scope)
+  const searchMode = useAppSelector((s) => s.search.mode)
   const isAddBookmarkOpen = useAppSelector((s) => s.dialog.addBookmark.open)
   const isCollectionDialogOpen = useAppSelector(
     (s) => s.dialog.collectionDialog.open,
@@ -80,6 +95,19 @@ export const MainApp = React.memo(function MainApp() {
   } = useSidebarData()
 
   const apiSort = mapSortOptionToApi(sortOption)
+  const normalizedSearchQuery = useMemo(() => searchQuery.trim(), [searchQuery])
+  const shouldSearchGlobally =
+    normalizedSearchQuery.length > 0 &&
+    searchMode === 'global' &&
+    selectedCollectionId !== 'all'
+  const effectiveSearchCollectionId = shouldSearchGlobally
+    ? 'all'
+    : selectedCollectionId
+  const apiSearchQuery = useMemo(() => {
+    if (normalizedSearchQuery.length === 0) return undefined
+    return buildSearchQuery(normalizedSearchQuery, searchScope)
+  }, [normalizedSearchQuery, searchScope])
+
   const {
     raindrops,
     isLoading: isRaindropsLoading,
@@ -92,7 +120,11 @@ export const MainApp = React.memo(function MainApp() {
     batchMoveToCollection,
     batchAddTag,
     batchDeleteRaindrops,
-  } = useRaindropsCrud({ collectionId: selectedCollectionId, sort: apiSort })
+  } = useRaindropsCrud({
+    collectionId: effectiveSearchCollectionId,
+    sort: apiSort,
+    search: apiSearchQuery,
+  })
 
   const { tags: allTags, renameTag, deleteTag } = useTagsCrud()
   const {
@@ -172,6 +204,18 @@ export const MainApp = React.memo(function MainApp() {
 
   const handleSearchOpenChange = useCallback(
     (open: boolean) => dispatch(setSearchOpen(open)),
+    [dispatch],
+  )
+  const handleSearchQueryChange = useCallback(
+    (query: string) => dispatch(setSearchQuery(query)),
+    [dispatch],
+  )
+  const handleSearchScopeChange = useCallback(
+    (scope: SearchScope) => dispatch(setSearchScope(scope)),
+    [dispatch],
+  )
+  const handleSearchModeChange = useCallback(
+    (mode: SearchMode) => dispatch(setSearchMode(mode)),
     [dispatch],
   )
 
@@ -423,6 +467,7 @@ export const MainApp = React.memo(function MainApp() {
         <SidebarInset className="min-w-0 flex-1">
           <MainContent
             breadcrumbs={breadcrumbs}
+            selectedCollectionId={selectedCollectionId}
             raindrops={raindrops}
             isLoading={isRaindropsLoading}
             isFetching={isRaindropsFetching}
@@ -437,6 +482,12 @@ export const MainApp = React.memo(function MainApp() {
             onAddBookmark={handleAddBookmark}
             sortOption={sortOption}
             onSortChange={handleSortChange}
+            searchQuery={searchQuery}
+            searchScope={searchScope}
+            searchMode={searchMode}
+            onSearchQueryChange={handleSearchQueryChange}
+            onSearchScopeChange={handleSearchScopeChange}
+            onSearchModeChange={handleSearchModeChange}
             onBatchMove={handleBatchMove}
             onBatchAddTag={handleBatchAddTag}
             onBatchDelete={handleBatchDelete}

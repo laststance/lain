@@ -13,9 +13,13 @@ test.describe('Sidebar Navigation', () => {
   // @spec:API.14 - GET /collections (root collection tree)
   // @spec:API.15 - GET /collections/childrens (nested collections)
   test('should render system collections in sidebar', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText('Unsorted')).toBeVisible()
     await expect(page.getByText('Trash')).toBeVisible()
   })
@@ -24,9 +28,13 @@ test.describe('Sidebar Navigation', () => {
   // @spec:API.1 - GET /raindrops/{collectionId} (collection switch)
   test('should update breadcrumb on collection click', async ({ page }) => {
     // Wait for initial render
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Click Unsorted in sidebar
     await page.getByRole('button', { name: 'Unsorted' }).click()
@@ -41,9 +49,13 @@ test.describe('Sidebar Navigation', () => {
 test.describe('Add Bookmark Dialog', () => {
   // @spec:API.3 - POST /raindrop (create bookmark dialog)
   test('should open dialog with form fields', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Click "Add Bookmark" button — could be in toolbar ("Add") or empty state ("Add Bookmark")
     await page
@@ -60,9 +72,13 @@ test.describe('Add Bookmark Dialog', () => {
 
   // @spec:KB.15 - Escape/Cancel closes active dialog
   test('should close dialog via Cancel button', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await page
       .getByRole('button', { name: /Add Bookmark|^Add$/ })
@@ -83,9 +99,13 @@ test.describe('Add Bookmark Dialog', () => {
 
   // @spec:KB.15 - Escape closes active panel/dialog
   test('should close dialog via Escape key', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await page
       .getByRole('button', { name: /Add Bookmark|^Add$/ })
@@ -108,9 +128,13 @@ test.describe('Bookmark List Rendering', () => {
   // @spec:API.1 - GET /raindrops/{collectionId} (browse bookmarks)
   test('should render mocked bookmarks in list view', async ({ page }) => {
     // Wait for API-mocked data to load
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Bookmark titles from mock data should appear (use heading role for exact match)
     await expect(
@@ -123,9 +147,13 @@ test.describe('Bookmark List Rendering', () => {
 
   // @spec:F7.4 - Bookmark counts visible on collections
   test('should show item count in toolbar', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for list items to render
     await expect(
@@ -140,9 +168,13 @@ test.describe('Bookmark List Rendering', () => {
 test.describe('Checkbox Selection', () => {
   // @spec:API.12 - PUT /raindrops/{collectionId} (batch select precondition)
   test('should select raindrop via checkbox on hover', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for list items to appear
     await expect(
@@ -163,9 +195,13 @@ test.describe('Checkbox Selection', () => {
 
   // @spec:API.12 - PUT /raindrops/{collectionId} (deselect flow)
   test('should deselect raindrop via checkbox click', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await expect(
       page.getByRole('heading', { name: 'React Documentation' }),
@@ -189,9 +225,13 @@ test.describe('Checkbox Selection', () => {
 test.describe('Content Scrolling', () => {
   // @spec:API.1 - GET /raindrops/{collectionId} (paginated list renders)
   test('should render scroll area with bookmarks', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for mocked data to render in the list
     await expect(
@@ -211,9 +251,13 @@ test.describe('View Mode Toggle', () => {
   test('should show view mode dropdown trigger in toolbar', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // View mode dropdown trigger button should be visible
     await expect(page.getByLabel('View mode')).toBeVisible({ timeout: 5_000 })
@@ -223,9 +267,13 @@ test.describe('View Mode Toggle', () => {
   test('should open dropdown with all 4 view mode options', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Open the view mode dropdown
     await page.getByLabel('View mode').click()
@@ -247,9 +295,13 @@ test.describe('View Mode Toggle', () => {
 
   // @spec:F3.1 - All 4 view modes render correctly (switch works)
   test('should switch view mode via dropdown selection', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for bookmarks to render in default list view
     await expect(
@@ -272,9 +324,13 @@ test.describe('Sort Dropdown', () => {
   test('should render sort dropdown with default "Newest First"', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Sort dropdown should show current value
     await expect(page.getByText('Newest First')).toBeVisible({
@@ -284,9 +340,13 @@ test.describe('Sort Dropdown', () => {
 
   // @spec:API.1 - GET /raindrops/{collectionId} (sort change)
   test('should change sort option via dropdown', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for data to load
     await expect(
@@ -307,9 +367,13 @@ test.describe('Bulk Delete', () => {
   test('should show Delete button in bulk bar and handle click', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for list items
     await expect(
@@ -338,9 +402,13 @@ test.describe('Bulk Delete', () => {
 
   // @spec:API.13 - DELETE /raindrops/{collectionId} (deselect all in bulk bar)
   test('should show Deselect All button in bulk bar', async ({ page }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await expect(
       page.getByRole('heading', { name: 'React Documentation' }),
@@ -365,9 +433,13 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
   test('should open detail panel within viewport when raindrop is clicked', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     // Wait for bookmarks to render
     await expect(
@@ -385,6 +457,12 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
 
     // Verify the detail panel is within viewport bounds
     const detailPanel = page.locator('.flex.h-screen.flex-col.border-l').last()
+    await expect
+      .poll(async () => (await detailPanel.boundingBox())?.width ?? 0, {
+        timeout: 5_000,
+      })
+      .toBeGreaterThan(0)
+
     const box = await detailPanel.boundingBox()
     expect(box).toBeTruthy()
     expect(box!.width).toBeGreaterThan(0) // Panel is expanded
@@ -395,9 +473,13 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
   test('should keep SidebarInset min-w-0 when detail panel is open', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await expect(
       page.getByRole('heading', { name: 'React Documentation' }),
@@ -423,9 +505,13 @@ test.describe('Detail Panel Layout (addbaa1 regression)', () => {
   test('should close detail panel and keep content visible', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await expect(
       page.getByRole('heading', { name: 'React Documentation' }),
@@ -464,9 +550,13 @@ test.describe('Bulk Operations Bar', () => {
   test('should show disabled Move to... and Add Tag... buttons', async ({
     page,
   }) => {
-    await expect(page.getByRole('link', { name: 'All Bookmarks' })).toBeVisible(
-      { timeout: 10_000 },
-    )
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', {
+        hasText: 'All Bookmarks',
+      }),
+    ).toBeVisible({
+      timeout: 10_000,
+    })
 
     await expect(
       page.getByRole('heading', { name: 'React Documentation' }),

@@ -364,6 +364,18 @@ export async function mockRaindropApi(page: Page): Promise<void> {
       return route.fulfill({ json: { result: true, user: store.user } })
     }
 
+    // PUT /user
+    if (method === 'PUT' && path === '/user') {
+      const body = JSON.parse(
+        (await route.request().postData()) ?? '{}',
+      ) as Record<string, unknown>
+      store.user = {
+        ...store.user,
+        ...body,
+      }
+      return route.fulfill({ json: { result: true, user: store.user } })
+    }
+
     // GET /tags (with or without collectionId)
     if (method === 'GET' && /^\/tags(\/(-?\d+))?$/.test(path)) {
       return route.fulfill({ json: { result: true, items: store.tags } })
@@ -391,6 +403,26 @@ export async function mockRaindropApi(page: Page): Promise<void> {
         json: {
           result: true,
           item: { collections: [{ $id: 100 }], tags: ['suggested-tag'] },
+        },
+      })
+    }
+
+    // GET /raindrop/suggest?url=...
+    if (method === 'GET' && path === '/raindrop/suggest') {
+      const targetUrl = url.searchParams.get('url') ?? ''
+      let domain = ''
+      try {
+        domain = new URL(targetUrl).hostname
+      } catch {
+        /* ignore invalid URL */
+      }
+
+      return route.fulfill({
+        json: {
+          result: true,
+          item: {
+            meta: domain ? { icon: `https://${domain}/favicon.ico` } : {},
+          },
         },
       })
     }

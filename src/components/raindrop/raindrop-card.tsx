@@ -230,6 +230,7 @@ const RaindropCard = React.memo(function RaindropCard({
             type={raindrop.type}
             size={24}
             className="shadow-sm ring-1 ring-black/10"
+            data-testid={`favicon-${raindrop.id}`}
           />
         </div>
 

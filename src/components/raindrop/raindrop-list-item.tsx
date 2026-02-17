@@ -229,6 +229,7 @@ const RaindropListItem = React.memo(function RaindropListItem({
         type={raindrop.type}
         size={32}
         className="flex-shrink-0"
+        data-testid={`favicon-${raindrop.id}`}
       />
 
       {/* Title + Domain + Description */}

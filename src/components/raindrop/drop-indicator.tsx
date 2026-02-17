@@ -1,22 +1,50 @@
+import React from 'react'
+
+import { cn } from '@/lib/utils'
+
 /**
- * Placeholder component for drop zone indicator lines.
- * Original implementation used react-dnd's useDrop hook.
- *
- * // TODO: @dnd-kit migration
- * This component will be reimplemented with @dnd-kit to show
- * insertion lines and highlight valid drop zones during drag operations.
- *
- * @example
- *   <DropIndicator position="after" isActive={false} />
+ * Props for the drop indicator line.
  */
-export function DropIndicator(_props: {
-  /** Position relative to the sibling element */
+interface DropIndicatorProps {
+  /** Position relative to a sibling row. */
   position?: 'before' | 'after' | 'inside'
-  /** Whether the indicator is currently active (item hovering over) */
+  /** Whether the indicator is active. */
   isActive?: boolean
-}) {
-  // TODO: @dnd-kit migration
-  // Will render a thin primary-color line with dot endpoints
-  // at the insertion point when a draggable item hovers nearby.
-  return null
+  /** Optional test selector for E2E. */
+  'data-testid'?: string
 }
+
+/**
+ * Visual insertion marker shown while dragging collections.
+ * @param position - Drop position around the row
+ * @param isActive - Indicator visibility flag
+ * @returns Indicator line when active, otherwise null
+ * @example
+ *   <DropIndicator position="before" isActive />
+ */
+const DropIndicator = React.memo(function DropIndicator({
+  position = 'before',
+  isActive = false,
+  'data-testid': dataTestId,
+}: DropIndicatorProps) {
+  if (!isActive) return null
+
+  return (
+    <div
+      data-testid={dataTestId}
+      className={cn(
+        'pointer-events-none relative h-2',
+        position === 'before' && '-mt-1 mb-0.5',
+        position === 'after' && 'mt-0.5 mb-0',
+        position === 'inside' && 'my-0.5',
+      )}
+      aria-hidden
+    >
+      <span className="bg-primary absolute top-1/2 right-2 left-5 h-0.5 -translate-y-1/2 rounded-full" />
+      <span className="bg-primary absolute top-1/2 left-3 h-1.5 w-1.5 -translate-y-1/2 rounded-full" />
+    </div>
+  )
+})
+
+export { DropIndicator }
+export default DropIndicator

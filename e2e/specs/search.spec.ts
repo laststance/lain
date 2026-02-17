@@ -47,9 +47,16 @@ async function resetToAllBookmarks(page: Page) {
     await page.waitForTimeout(100)
   }
 
-  const allBookmarksControl = page.getByText('All Bookmarks').first()
+  const allBookmarksControl = page
+    .getByRole('button', { name: 'All Bookmarks' })
+    .first()
   await expect(allBookmarksControl).toBeVisible({ timeout: 10_000 })
   await allBookmarksControl.click({ force: true })
+  await expect(
+    page.locator('[data-slot="breadcrumb-page"]', {
+      hasText: 'All Bookmarks',
+    }),
+  ).toBeVisible({ timeout: 10_000 })
 
   const mainSearchInput = page.getByPlaceholder('Search bookmarks... (Cmd+K)')
   await expect(mainSearchInput).toBeVisible()
@@ -155,6 +162,16 @@ test.describe('P3 Search - Field-Specific Search (F2)', () => {
     const commandDialog = page.getByRole('dialog')
     const commandInput = page.getByPlaceholder(/⌘K/)
     await expect(commandInput).toBeVisible()
+
+    const searchEverywhereButton = commandDialog.getByRole('button', {
+      name: 'Search everywhere',
+    })
+    if (
+      (await searchEverywhereButton.count()) > 0 &&
+      (await searchEverywhereButton.first().isVisible())
+    ) {
+      await searchEverywhereButton.first().click()
+    }
 
     // URL scope
     await commandDialog.getByRole('button', { name: 'URL Only' }).click()

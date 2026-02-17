@@ -175,6 +175,12 @@ export const handlers = [
     return HttpResponse.json({ result: true, user: mockStore.user })
   }),
 
+  http.put(`${API_BASE}/user`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>
+    const user = mockStore.updateUser(body)
+    return HttpResponse.json({ result: true, user })
+  }),
+
   // --- Filters ---
   http.get(`${API_BASE}/filters/:collectionId`, ({ params }) => {
     const collectionId = Number(params.collectionId)
@@ -203,6 +209,23 @@ export const handlers = [
   }),
 
   // --- Suggest ---
+  http.get(`${API_BASE}/raindrop/suggest`, ({ request }) => {
+    const requestUrl = new URL(request.url)
+    const targetUrl = requestUrl.searchParams.get('url') ?? ''
+    let domain = ''
+    try {
+      domain = new URL(targetUrl).hostname
+    } catch {
+      /* ignore invalid URL */
+    }
+    return HttpResponse.json({
+      result: true,
+      item: {
+        meta: domain ? { icon: `https://${domain}/favicon.ico` } : {},
+      },
+    })
+  }),
+
   http.post(`${API_BASE}/raindrop/suggest`, () => {
     return HttpResponse.json({
       result: true,

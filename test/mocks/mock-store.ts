@@ -306,6 +306,21 @@ class MockStore {
     this.tags = this.tags.filter((t) => !tagNames.includes(t._id))
     return true
   }
+
+  // --- User ---
+
+  /**
+   * Update user object with partial payload fields.
+   * @param data - Partial user update payload
+   * @returns Updated user object
+   */
+  updateUser(data: Record<string, unknown>): MockUser {
+    this.user = {
+      ...this.user,
+      ...data,
+    } as MockUser
+    return this.user
+  }
 }
 
 export const mockStore = new MockStore()

@@ -22,6 +22,8 @@ interface FaviconIconProps {
   size?: number
   /** Additional CSS classes */
   className?: string
+  /** Optional selector for tests */
+  'data-testid'?: string
 }
 
 /**
@@ -55,6 +57,7 @@ const FaviconIcon = React.memo(function FaviconIcon({
   type = 'link',
   size = 32,
   className,
+  'data-testid': dataTestId,
 }: FaviconIconProps) {
   const [imgError, setImgError] = useState(false)
   const domain = extractDomain(url)
@@ -67,53 +70,56 @@ const FaviconIcon = React.memo(function FaviconIcon({
     [size],
   )
 
-  if (!domain || imgError) {
-    if (domain && !imgError) {
-      return (
-        <div
-          className={cn(
-            'flex flex-shrink-0 items-center justify-center rounded-sm',
-            className,
-          )}
-          style={{
-            width: size,
-            height: size,
-            backgroundColor: color,
-          }}
-        >
-          <span
-            className="font-semibold text-white"
-            style={{ fontSize: size * 0.5 }}
-          >
-            {initial}
-          </span>
-        </div>
-      )
-    }
+  if (domain && !imgError) {
+    return (
+      <img
+        data-testid={dataTestId}
+        src={faviconUrl}
+        alt={`${domain} favicon`}
+        width={size}
+        height={size}
+        className={cn('flex-shrink-0 rounded-sm object-cover', className)}
+        onError={() => setImgError(true)}
+        loading="lazy"
+      />
+    )
+  }
 
+  if (domain) {
     return (
       <div
+        data-testid={dataTestId}
         className={cn(
-          'bg-muted flex flex-shrink-0 items-center justify-center rounded-sm',
+          'flex flex-shrink-0 items-center justify-center rounded-sm',
           className,
         )}
-        style={{ width: size, height: size }}
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: color,
+        }}
       >
-        <TypeIcon className="text-muted-foreground" style={typeIconStyle} />
+        <span
+          className="font-semibold text-white"
+          style={{ fontSize: size * 0.5 }}
+        >
+          {initial}
+        </span>
       </div>
     )
   }
 
   return (
-    <img
-      src={faviconUrl}
-      alt={`${domain} favicon`}
-      width={size}
-      height={size}
-      className={cn('flex-shrink-0 rounded-sm object-cover', className)}
-      onError={() => setImgError(true)}
-      loading="lazy"
-    />
+    <div
+      data-testid={dataTestId}
+      className={cn(
+        'bg-muted flex flex-shrink-0 items-center justify-center rounded-sm',
+        className,
+      )}
+      style={{ width: size, height: size }}
+    >
+      <TypeIcon className="text-muted-foreground" style={typeIconStyle} />
+    </div>
   )
 })
 export { FaviconIcon }

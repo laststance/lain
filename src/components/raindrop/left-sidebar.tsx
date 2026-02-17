@@ -420,6 +420,7 @@ const CollectionRow = React.memo(function CollectionRow({
 
             {isEditing ? (
               <input
+                aria-label={`Rename collection ${collection.name}`}
                 value={editingName}
                 onChange={(event) => onEditingNameChange(event.target.value)}
                 onClick={stopPropagation}

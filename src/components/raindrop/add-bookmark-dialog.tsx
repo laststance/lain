@@ -139,10 +139,16 @@ function useBookmarkFormReset(
  * @param url - The URL value to parse
  * @param parseUrl - URL parsing callback
  */
-function useDebouncedUrlParsing(url: string, parseUrl: (url: string) => void) {
+function useDebouncedUrlParsing(
+  url: string,
+  parseUrl: (url: string) => Promise<void>,
+) {
   useEffect(() => {
     if (!url) return
-    const debounce = setTimeout(() => parseUrl(url), URL_PARSE_DEBOUNCE_MS)
+    const debounce = setTimeout(
+      () => void parseUrl(url).catch(() => undefined),
+      URL_PARSE_DEBOUNCE_MS,
+    )
     return () => clearTimeout(debounce)
   }, [url, parseUrl])
 }

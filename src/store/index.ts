@@ -10,7 +10,7 @@ import {
 import { authSlice } from './slices/authSlice'
 import { dialogSlice } from './slices/dialogSlice'
 import { searchSlice } from './slices/searchSlice'
-import { settingsSlice } from './slices/settingsSlice'
+import { hydrateShortcuts, settingsSlice } from './slices/settingsSlice'
 import { uiSlice } from './slices/uiSlice'
 
 /**
@@ -68,6 +68,18 @@ export const store = configureStore({
 // Initialize side effects after store creation (synchronous for theme, async for auth)
 setupThemeListeners(store)
 setupAuthListeners(store)
+
+// Merge persisted shortcuts with defaults so new shortcuts from code updates appear.
+// Must run AFTER storage middleware finishes hydrating from localStorage,
+// otherwise HYDRATE_COMPLETE overwrites our merged map via microtask.
+storageApi.onFinishHydration(() => {
+  store.dispatch(hydrateShortcuts())
+})
+
+// Expose store for E2E testing (allows verifying Redux state in Playwright tests)
+if (typeof window !== 'undefined') {
+  ;(window as unknown as Record<string, unknown>).__STORE__ = store
+}
 
 export type AppDispatch = typeof store.dispatch
 export { storageApi }

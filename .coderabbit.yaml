@@ -6,6 +6,7 @@
 # =============================================================================
 
 language: 'ja-JP'
+early_access: true
 
 tone_instructions: |
   Be concise and focus on critical issues.
@@ -17,7 +18,7 @@ tone_instructions: |
 # =============================================================================
 
 reviews:
-  profile: 'chill'
+  profile: 'assertive'
 
   high_level_summary: true
   sequence_diagrams: true
@@ -159,3 +160,4 @@ knowledge_base:
 
 chat:
   auto_reply: true
+  art: false

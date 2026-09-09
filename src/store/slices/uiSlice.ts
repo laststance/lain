@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSelector, createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 import type { ViewMode } from '@/lib/types'
@@ -85,3 +85,18 @@ export const {
   clearSelection,
   setCollectionViewMode,
 } = uiSlice.actions
+
+/**
+ * Select the effective view mode: per-collection override > global default.
+ * @example
+ *   const viewMode = useAppSelector(getEffectiveViewMode) // 'grid' | 'list' | ...
+ */
+export const getEffectiveViewMode = createSelector(
+  [
+    (state: { ui: UiState }) => state.ui.collectionViewModes,
+    (state: { ui: UiState }) => state.ui.selectedCollectionId,
+    (state: { ui: UiState }) => state.ui.viewMode,
+  ],
+  (collectionViewModes, selectedCollectionId, viewMode) =>
+    collectionViewModes[selectedCollectionId] ?? viewMode,
+)

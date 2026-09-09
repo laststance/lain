@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 import type { Raindrop } from '@/lib/types'
 
@@ -42,31 +42,31 @@ const mockRaindrops: Raindrop[] = [
 ]
 
 describe('extractSearchDomain', () => {
-  it('extracts host from full URL', () => {
+  test('extracts host from full URL', () => {
     expect(extractSearchDomain('https://www.react.dev/learn')).toBe('react.dev')
   })
 
-  it('extracts host from bare domain', () => {
+  test('extracts host from bare domain', () => {
     expect(extractSearchDomain('typescriptlang.org')).toBe('typescriptlang.org')
   })
 
-  it('returns empty string for non-domain text', () => {
+  test('returns empty string for non-domain text', () => {
     expect(extractSearchDomain('react hooks')).toBe('')
   })
 })
 
 describe('buildSearchQuery', () => {
-  it('builds url-scope query with link: operator from domain', () => {
+  test('builds url-scope query with link: operator from domain', () => {
     expect(buildSearchQuery('https://react.dev/learn', 'url')).toBe(
       'link:react.dev',
     )
   })
 
-  it('builds url-scope query with quoted phrase when needed', () => {
+  test('builds url-scope query with quoted phrase when needed', () => {
     expect(buildSearchQuery('crunch base', 'url')).toBe('link:"crunch base"')
   })
 
-  it('returns raw query for all/title/description scopes', () => {
+  test('returns raw query for all/title/description scopes', () => {
     expect(buildSearchQuery('react hooks', 'all')).toBe('react hooks')
     expect(buildSearchQuery('react hooks', 'title')).toBe('react hooks')
     expect(buildSearchQuery('react hooks', 'description')).toBe('react hooks')
@@ -74,17 +74,17 @@ describe('buildSearchQuery', () => {
 })
 
 describe('filterByScope', () => {
-  it('filters by url or domain when scope is url', () => {
+  test('filters by url or domain when scope is url', () => {
     const filtered = filterByScope(mockRaindrops, 'react.dev', 'url')
     expect(filtered.map((item) => item.id)).toEqual(['1'])
   })
 
-  it('filters by title when scope is title', () => {
+  test('filters by title when scope is title', () => {
     const filtered = filterByScope(mockRaindrops, 'typescript', 'title')
     expect(filtered.map((item) => item.id)).toEqual(['2'])
   })
 
-  it('filters by description and notes when scope is description', () => {
+  test('filters by description and notes when scope is description', () => {
     const byDescription = filterByScope(
       mockRaindrops,
       'typed javascript',
@@ -96,14 +96,14 @@ describe('filterByScope', () => {
     expect(byNotes.map((item) => item.id)).toEqual(['1'])
   })
 
-  it('does not narrow when scope is all', () => {
+  test('does not narrow when scope is all', () => {
     const filtered = filterByScope(mockRaindrops, 'react', 'all')
     expect(filtered).toHaveLength(2)
   })
 })
 
 describe('buildSubstringHighlightSegments', () => {
-  it('builds matched and unmatched segments', () => {
+  test('builds matched and unmatched segments', () => {
     const segments = buildSubstringHighlightSegments(
       'React Documentation',
       'doc',
@@ -117,7 +117,7 @@ describe('buildSubstringHighlightSegments', () => {
 })
 
 describe('buildIndexedHighlightSegments', () => {
-  it('builds segments from inclusive indices', () => {
+  test('builds segments from inclusive indices', () => {
     const segments = buildIndexedHighlightSegments('React', [
       [0, 1],
       [4, 4],
@@ -137,22 +137,22 @@ describe('fuzzySearchByName', () => {
     { id: 'c', name: '日本語リソース' },
   ]
 
-  it('uses configured threshold for typo tolerance', () => {
+  test('uses configured threshold for typo tolerance', () => {
     expect(COLLECTION_FUZZY_THRESHOLD).toBe(0.4)
   })
 
-  it('finds approximate latin query and returns indices', () => {
+  test('finds approximate latin query and returns indices', () => {
     const results = fuzzySearchByName(collections, 'rct')
     expect(results[0]?.item.name).toBe('React Resources')
     expect(results[0]?.indices.length).toBeGreaterThan(0)
   })
 
-  it('supports japanese text search', () => {
+  test('supports japanese text search', () => {
     const results = fuzzySearchByName(collections, '日本語')
     expect(results[0]?.item.name).toBe('日本語リソース')
   })
 
-  it('returns all collections on empty query', () => {
+  test('returns all collections on empty query', () => {
     const results = fuzzySearchByName(collections, '')
     expect(results).toHaveLength(collections.length)
     expect(results[0]?.indices).toEqual([])

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import type {
   Raindrop as ApiRaindrop,
@@ -18,33 +18,33 @@ import {
 } from './api-mappers'
 
 describe('collectionIdToApi', () => {
-  it('maps special UI IDs to API numeric IDs', () => {
+  test('maps special UI IDs to API numeric IDs', () => {
     expect(collectionIdToApi('all')).toBe(0)
     expect(collectionIdToApi('unsorted')).toBe(-1)
     expect(collectionIdToApi('trash')).toBe(-99)
   })
 
-  it('converts numeric string IDs', () => {
+  test('converts numeric string IDs', () => {
     expect(collectionIdToApi('42')).toBe(42)
     expect(collectionIdToApi('100')).toBe(100)
   })
 })
 
 describe('collectionIdToUi', () => {
-  it('maps special API numeric IDs to UI strings', () => {
+  test('maps special API numeric IDs to UI strings', () => {
     expect(collectionIdToUi(0)).toBe('all')
     expect(collectionIdToUi(-1)).toBe('unsorted')
     expect(collectionIdToUi(-99)).toBe('trash')
   })
 
-  it('converts numeric IDs to strings', () => {
+  test('converts numeric IDs to strings', () => {
     expect(collectionIdToUi(42)).toBe('42')
     expect(collectionIdToUi(100)).toBe('100')
   })
 })
 
 describe('mapSortOptionToApi', () => {
-  it('maps all UI sort options to API sort params', () => {
+  test('maps all UI sort options to API sort params', () => {
     expect(mapSortOptionToApi('newest')).toBe('-created')
     expect(mapSortOptionToApi('oldest')).toBe('created')
     expect(mapSortOptionToApi('title-asc')).toBe('title')
@@ -70,7 +70,7 @@ describe('toUiRaindrop', () => {
     highlights: [{ _id: 'h1', text: 'highlighted text', note: '', color: '' }],
   }
 
-  it('maps all fields correctly', () => {
+  test('maps all fields correctly', () => {
     const result = toUiRaindrop(fullApiRaindrop)
 
     expect(result.id).toBe('1')
@@ -89,7 +89,7 @@ describe('toUiRaindrop', () => {
     expect(result.highlights).toEqual(['highlighted text'])
   })
 
-  it('handles missing optional fields gracefully', () => {
+  test('handles missing optional fields gracefully', () => {
     const minimal: ApiRaindrop = { _id: 2 }
     const result = toUiRaindrop(minimal)
 
@@ -106,7 +106,7 @@ describe('toUiRaindrop', () => {
     expect(result.highlights).toEqual([])
   })
 
-  it('maps important flag correctly', () => {
+  test('maps important flag correctly', () => {
     const important: ApiRaindrop = {
       ...fullApiRaindrop,
       important: true,
@@ -115,7 +115,7 @@ describe('toUiRaindrop', () => {
     expect(result.isImportant).toBe(true)
   })
 
-  it('extracts domain from various URL formats', () => {
+  test('extracts domain from various URL formats', () => {
     expect(
       toUiRaindrop({ ...fullApiRaindrop, link: 'https://docs.github.com/en' })
         .domain,
@@ -128,7 +128,7 @@ describe('toUiRaindrop', () => {
 })
 
 describe('toApiRaindropCreate', () => {
-  it('maps form data to API create shape', () => {
+  test('maps form data to API create shape', () => {
     const result = toApiRaindropCreate({
       url: 'https://react.dev',
       title: 'React',
@@ -150,7 +150,7 @@ describe('toApiRaindropCreate', () => {
     expect(result.note).toBe('Check this out')
   })
 
-  it('handles minimal form data (URL only)', () => {
+  test('handles minimal form data (URL only)', () => {
     const result = toApiRaindropCreate({ url: 'https://example.com' })
 
     expect(result.link).toBe('https://example.com')
@@ -158,7 +158,7 @@ describe('toApiRaindropCreate', () => {
     expect(result.collection).toBeUndefined()
   })
 
-  it('maps special collection IDs correctly', () => {
+  test('maps special collection IDs correctly', () => {
     const result = toApiRaindropCreate({
       url: 'https://example.com',
       collectionId: 'unsorted',
@@ -168,7 +168,7 @@ describe('toApiRaindropCreate', () => {
 })
 
 describe('toApiRaindropUpdate', () => {
-  it('includes only defined fields', () => {
+  test('includes only defined fields', () => {
     const result = toApiRaindropUpdate({
       title: 'Updated Title',
       isImportant: true,
@@ -181,17 +181,17 @@ describe('toApiRaindropUpdate', () => {
     expect(result.tags).toBeUndefined()
   })
 
-  it('maps url to link', () => {
+  test('maps url to link', () => {
     const result = toApiRaindropUpdate({ url: 'https://new-url.com' })
     expect(result.link).toBe('https://new-url.com')
   })
 
-  it('maps collectionId to collection.$id', () => {
+  test('maps collectionId to collection.$id', () => {
     const result = toApiRaindropUpdate({ collectionId: '42' })
     expect(result.collection).toEqual({ $id: 42 })
   })
 
-  it('returns empty object when no fields provided', () => {
+  test('returns empty object when no fields provided', () => {
     const result = toApiRaindropUpdate({})
     expect(result).toEqual({})
   })
@@ -229,7 +229,7 @@ describe('toUiGroups', () => {
     },
   ]
 
-  it('reconstructs group tree with nested collections', () => {
+  test('reconstructs group tree with nested collections', () => {
     const groups = toUiGroups(user, rootCollections, childCollections)
 
     expect(groups).toHaveLength(2)
@@ -239,7 +239,7 @@ describe('toUiGroups', () => {
     expect(groups[1].collections).toHaveLength(1)
   })
 
-  it('nests child collections under parents', () => {
+  test('nests child collections under parents', () => {
     const groups = toUiGroups(user, rootCollections, childCollections)
     const devCollection = groups[0].collections[0]
 
@@ -249,7 +249,7 @@ describe('toUiGroups', () => {
     expect(devCollection.children![1].name).toBe('TypeScript')
   })
 
-  it('preserves collection metadata', () => {
+  test('preserves collection metadata', () => {
     const groups = toUiGroups(user, rootCollections, childCollections)
     const designCollection = groups[0].collections[1]
 
@@ -259,7 +259,7 @@ describe('toUiGroups', () => {
     expect(designCollection.children).toBeUndefined()
   })
 
-  it('handles empty groups', () => {
+  test('handles empty groups', () => {
     const emptyUser: ApiUser = {
       _id: 1,
       groups: [{ title: 'Empty', collections: [] }],
@@ -270,7 +270,7 @@ describe('toUiGroups', () => {
     expect(groups[0].collections).toHaveLength(0)
   })
 
-  it('skips hidden groups', () => {
+  test('skips hidden groups', () => {
     const userWithHidden: ApiUser = {
       _id: 1,
       groups: [
@@ -283,7 +283,7 @@ describe('toUiGroups', () => {
     expect(groups[0].name).toBe('Visible')
   })
 
-  it('handles missing collections gracefully', () => {
+  test('handles missing collections gracefully', () => {
     const userWithMissing: ApiUser = {
       _id: 1,
       groups: [{ title: 'Group', collections: [100, 999] }],
@@ -298,13 +298,13 @@ describe('toUiGroups', () => {
     expect(groups[0].collections[0].name).toBe('Development')
   })
 
-  it('handles user with no groups', () => {
+  test('handles user with no groups', () => {
     const noGroupsUser: ApiUser = { _id: 1 }
     const groups = toUiGroups(noGroupsUser, rootCollections, childCollections)
     expect(groups).toHaveLength(0)
   })
 
-  it('sorts groups by sort field', () => {
+  test('sorts groups by sort field', () => {
     const unsortedUser: ApiUser = {
       _id: 1,
       groups: [
@@ -319,7 +319,7 @@ describe('toUiGroups', () => {
 })
 
 describe('toUiSystemCollections', () => {
-  it('aggregates total count from all root collections', () => {
+  test('aggregates total count from all root collections', () => {
     const collections: ApiCollection[] = [
       { _id: 100, count: 45 },
       { _id: 101, count: 23 },
@@ -347,7 +347,7 @@ describe('toUiSystemCollections', () => {
     })
   })
 
-  it('handles empty collections', () => {
+  test('handles empty collections', () => {
     const result = toUiSystemCollections([])
     expect(result[0].count).toBe(0)
   })

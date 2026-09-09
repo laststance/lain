@@ -1,6 +1,6 @@
 import { waitFor, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { renderWithProviders } from '@test/render-with-providers'
 
@@ -15,7 +15,7 @@ import { MainApp } from './main-app'
  */
 
 describe('MainApp Layout', () => {
-  it('renders SidebarInset with min-w-0 to prevent overflow', async () => {
+  test('renders SidebarInset with min-w-0 to prevent overflow', async () => {
     renderWithProviders(<MainApp />)
 
     // Wait for initial data load
@@ -33,7 +33,7 @@ describe('MainApp Layout', () => {
     expect(sidebarInset!.className).toContain('flex-1')
   })
 
-  it('renders detail panel collapsed by default (w-0)', async () => {
+  test('renders detail panel collapsed by default (w-0)', async () => {
     renderWithProviders(<MainApp />)
 
     await waitFor(
@@ -50,7 +50,7 @@ describe('MainApp Layout', () => {
     expect(detailPanel!.className).toContain('overflow-hidden')
   })
 
-  it('opens detail panel when a raindrop is clicked', async () => {
+  test('opens detail panel when a raindrop is clicked', async () => {
     const user = userEvent.setup()
     renderWithProviders(<MainApp />)
 

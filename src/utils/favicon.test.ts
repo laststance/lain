@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { resolveIcon } from './favicon'
 
@@ -17,7 +17,7 @@ describe('resolveIcon', () => {
     mockGet.mockReset()
   })
 
-  it('returns suggest API icon when available', async () => {
+  test('returns suggest API icon when available', async () => {
     mockGet.mockResolvedValueOnce({
       data: {
         item: {
@@ -31,7 +31,7 @@ describe('resolveIcon', () => {
     )
   })
 
-  it('falls back to Google favicon when suggest has no icon', async () => {
+  test('falls back to Google favicon when suggest has no icon', async () => {
     mockGet.mockResolvedValueOnce({
       data: {
         item: {
@@ -45,7 +45,7 @@ describe('resolveIcon', () => {
     )
   })
 
-  it('falls back to Google favicon when suggest request fails', async () => {
+  test('falls back to Google favicon when suggest request fails', async () => {
     mockGet.mockRejectedValueOnce(new Error('network'))
 
     await expect(resolveIcon('https://react.dev')).resolves.toBe(
@@ -53,7 +53,7 @@ describe('resolveIcon', () => {
     )
   })
 
-  it('returns null for invalid URL input', async () => {
+  test('returns null for invalid URL input', async () => {
     await expect(resolveIcon('invalid-url')).resolves.toBeNull()
     expect(mockGet).not.toHaveBeenCalled()
   })

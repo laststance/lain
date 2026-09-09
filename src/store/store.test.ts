@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { store } from '@/store'
 
 describe('Redux Store', () => {
-  it('initializes with correct default state', () => {
+  test('initializes with correct default state', () => {
     const state = store.getState()
 
     expect(state.ui.viewMode).toBe('list')
@@ -16,7 +16,7 @@ describe('Redux Store', () => {
     expect(state.settings.defaultViewMode).toBe('list')
   })
 
-  it('has RTK Query API reducer registered', () => {
+  test('has RTK Query API reducer registered', () => {
     const state = store.getState()
     expect(state).toHaveProperty('raindropApi')
   })

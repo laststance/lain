@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 import type { Collection, Group } from '@/lib/types'
 
@@ -55,7 +55,7 @@ function buildGroups(): Group[] {
 }
 
 describe('collection-organization', () => {
-  it('finds root collection location by id', () => {
+  test('finds root collection location by id', () => {
     const groups = buildGroups()
     expect(findRootCollectionLocation(groups, '102')).toEqual({
       groupId: 'group-0',
@@ -64,7 +64,7 @@ describe('collection-organization', () => {
     expect(findRootCollectionLocation(groups, '999')).toBeNull()
   })
 
-  it('moves root collection between groups', () => {
+  test('moves root collection between groups', () => {
     const groups = buildGroups()
     const next = moveRootCollection(groups, '102', 'group-1', 1)
 
@@ -78,7 +78,7 @@ describe('collection-organization', () => {
     expect(next[1].collections[1].groupId).toBe('group-1')
   })
 
-  it('reorders root collections within one group', () => {
+  test('reorders root collections within one group', () => {
     const groups = buildGroups()
     const next = reorderRootCollectionInGroup(groups, 'group-0', 0, 1)
 
@@ -91,7 +91,7 @@ describe('collection-organization', () => {
     ])
   })
 
-  it('updates a root collection immutably', () => {
+  test('updates a root collection immutably', () => {
     const groups = buildGroups()
     const next = updateRootCollection(groups, '101', (collection) => ({
       ...collection,
@@ -104,7 +104,7 @@ describe('collection-organization', () => {
     expect(groups[1].collections[0].name).toBe('Design')
   })
 
-  it('builds ordered user group payload for persistence', () => {
+  test('builds ordered user group payload for persistence', () => {
     const groups = buildGroups()
     const payload = toUserGroupPayload(groups)
 
@@ -124,7 +124,7 @@ describe('collection-organization', () => {
     ])
   })
 
-  it('returns null for empty collection ids', () => {
+  test('returns null for empty collection ids', () => {
     expect(parseCollectionId('')).toBeNull()
     expect(parseCollectionId('   ')).toBeNull()
   })

@@ -1,11 +1,11 @@
 import { waitFor, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { useTagsCrud } from '@/hooks/useTagsCrud'
 import { renderHookWithProviders } from '@test/render-with-providers'
 
 describe('useTagsCrud', () => {
-  it('fetches and maps tags from API', async () => {
+  test('fetches and maps tags from API', async () => {
     const { result } = renderHookWithProviders(() => useTagsCrud())
 
     await waitFor(() => {
@@ -18,7 +18,7 @@ describe('useTagsCrud', () => {
     expect(result.current.tags[2]).toEqual({ name: 'design', count: 12 })
   })
 
-  it('renames a tag via mutation', async () => {
+  test('renames a tag via mutation', async () => {
     const { result } = renderHookWithProviders(() => useTagsCrud())
 
     await waitFor(() => {
@@ -30,7 +30,7 @@ describe('useTagsCrud', () => {
     })
   })
 
-  it('deletes tags via mutation', async () => {
+  test('deletes tags via mutation', async () => {
     const { result } = renderHookWithProviders(() => useTagsCrud())
 
     await waitFor(() => {

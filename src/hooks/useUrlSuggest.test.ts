@@ -1,5 +1,5 @@
 import { waitFor, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { useUrlSuggest } from '@/hooks/useUrlSuggest'
 import { renderHookWithProviders } from '@test/render-with-providers'
@@ -13,14 +13,14 @@ type Suggestion = {
 } | null
 
 describe('useUrlSuggest', () => {
-  it('returns a fetchSuggestion function and isFetching state', () => {
+  test('returns a fetchSuggestion function and isFetching state', () => {
     const { result } = renderHookWithProviders(() => useUrlSuggest())
 
     expect(typeof result.current.fetchSuggestion).toBe('function')
     expect(result.current.isFetching).toBe(false)
   })
 
-  it('fetches URL metadata from API', async () => {
+  test('fetches URL metadata from API', async () => {
     const { result } = renderHookWithProviders(() => useUrlSuggest())
 
     // Use a mutable container to capture the value inside act()
@@ -39,7 +39,7 @@ describe('useUrlSuggest', () => {
     expect(box.value?.title).toBeDefined()
   })
 
-  it('returns null for failed requests', async () => {
+  test('returns null for failed requests', async () => {
     // Override MSW handler to simulate a server error
     const { server } = await import('@test/mocks/server')
     const { http, HttpResponse } = await import('msw')

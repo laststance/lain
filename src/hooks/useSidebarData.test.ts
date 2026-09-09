@@ -1,11 +1,11 @@
 import { waitFor } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { useSidebarData } from '@/hooks/useSidebarData'
 import { renderHookWithProviders } from '@test/render-with-providers'
 
 describe('useSidebarData', () => {
-  it('loads and reconstructs sidebar groups from API', async () => {
+  test('loads and reconstructs sidebar groups from API', async () => {
     const { result } = renderHookWithProviders(() => useSidebarData())
 
     // Initially loading
@@ -22,7 +22,7 @@ describe('useSidebarData', () => {
     expect(result.current.groups[0].collections[0].name).toBe('Development')
   })
 
-  it('builds system collections with correct structure', async () => {
+  test('builds system collections with correct structure', async () => {
     const { result } = renderHookWithProviders(() => useSidebarData())
 
     await waitFor(() => {
@@ -37,7 +37,7 @@ describe('useSidebarData', () => {
     expect(systemCollections[2].id).toBe('trash')
   })
 
-  it('aggregates total count for All Bookmarks', async () => {
+  test('aggregates total count for All Bookmarks', async () => {
     const { result } = renderHookWithProviders(() => useSidebarData())
 
     await waitFor(() => {

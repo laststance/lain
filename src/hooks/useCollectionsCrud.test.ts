@@ -1,12 +1,12 @@
 import { act } from '@testing-library/react'
-import { describe, it } from 'vitest'
+import { describe, test } from 'vitest'
 
 import { useCollectionsCrud } from '@/hooks/useCollectionsCrud'
 import type { Group } from '@/lib/types'
 import { renderHookWithProviders } from '@test/render-with-providers'
 
 describe('useCollectionsCrud', () => {
-  it('creates a collection via mutation', async () => {
+  test('creates a collection via mutation', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {
@@ -16,7 +16,7 @@ describe('useCollectionsCrud', () => {
     // Should not throw — MSW handles the POST
   })
 
-  it('updates a collection via mutation', async () => {
+  test('updates a collection via mutation', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {
@@ -24,7 +24,7 @@ describe('useCollectionsCrud', () => {
     })
   })
 
-  it('deletes a collection via mutation', async () => {
+  test('deletes a collection via mutation', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {
@@ -32,7 +32,7 @@ describe('useCollectionsCrud', () => {
     })
   })
 
-  it('merges collections via mutation', async () => {
+  test('merges collections via mutation', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {
@@ -40,7 +40,7 @@ describe('useCollectionsCrud', () => {
     })
   })
 
-  it('empties trash via deleteCollection99', async () => {
+  test('empties trash via deleteCollection99', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {
@@ -48,7 +48,7 @@ describe('useCollectionsCrud', () => {
     })
   })
 
-  it('persists group ordering via putUser', async () => {
+  test('persists group ordering via putUser', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
     const groups: Group[] = [
       {
@@ -71,7 +71,7 @@ describe('useCollectionsCrud', () => {
     })
   })
 
-  it('renames collection via updateCollection wrapper', async () => {
+  test('renames collection via updateCollection wrapper', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {
@@ -79,7 +79,7 @@ describe('useCollectionsCrud', () => {
     })
   })
 
-  it('updates collection color via putCollection', async () => {
+  test('updates collection color via putCollection', async () => {
     const { result } = renderHookWithProviders(() => useCollectionsCrud())
 
     await act(async () => {

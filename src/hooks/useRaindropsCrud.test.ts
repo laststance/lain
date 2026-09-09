@@ -1,11 +1,11 @@
 import { waitFor, act } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 
 import { useRaindropsCrud } from '@/hooks/useRaindropsCrud'
 import { renderHookWithProviders } from '@test/render-with-providers'
 
 describe('useRaindropsCrud', () => {
-  it('fetches and maps raindrops from API', async () => {
+  test('fetches and maps raindrops from API', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -29,7 +29,7 @@ describe('useRaindropsCrud', () => {
     expect(first.collectionId).toBe('100') // collection.$id → string
   })
 
-  it('maps important flag correctly', async () => {
+  test('maps important flag correctly', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -42,7 +42,7 @@ describe('useRaindropsCrud', () => {
     expect(result.current.raindrops[1].isImportant).toBe(true)
   })
 
-  it('creates a raindrop via mutation', async () => {
+  test('creates a raindrop via mutation', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -60,7 +60,7 @@ describe('useRaindropsCrud', () => {
     })
   })
 
-  it('updates a raindrop via mutation', async () => {
+  test('updates a raindrop via mutation', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -74,7 +74,7 @@ describe('useRaindropsCrud', () => {
     })
   })
 
-  it('deletes a raindrop via mutation', async () => {
+  test('deletes a raindrop via mutation', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -88,7 +88,7 @@ describe('useRaindropsCrud', () => {
     })
   })
 
-  it('reports hasMore based on count vs loaded items', async () => {
+  test('reports hasMore based on count vs loaded items', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -101,7 +101,7 @@ describe('useRaindropsCrud', () => {
     expect(result.current.hasMore).toBe(true)
   })
 
-  it('batch moves raindrops to another collection', async () => {
+  test('batch moves raindrops to another collection', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -115,7 +115,7 @@ describe('useRaindropsCrud', () => {
     })
   })
 
-  it('batch adds tags to raindrops', async () => {
+  test('batch adds tags to raindrops', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -129,7 +129,7 @@ describe('useRaindropsCrud', () => {
     })
   })
 
-  it('batch deletes raindrops', async () => {
+  test('batch deletes raindrops', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all' }),
     )
@@ -143,7 +143,7 @@ describe('useRaindropsCrud', () => {
     })
   })
 
-  it('accepts sort parameter for API-driven sorting', async () => {
+  test('accepts sort parameter for API-driven sorting', async () => {
     const { result } = renderHookWithProviders(() =>
       useRaindropsCrud({ collectionId: 'all', sort: 'title' }),
     )

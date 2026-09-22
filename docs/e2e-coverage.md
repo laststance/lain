@@ -53,13 +53,13 @@ Generated: 2026-09-22
 
 ### F6: Group ↔ Collection Editing (7/7)
 
-- [x] **F6.1** — Drag collection between groups updates API — `e2e/specs/dnd.spec.ts:71`, `e2e/specs/dnd.spec.ts:290`, `e2e/specs/dnd.spec.ts:315`
-- [x] **F6.2** — Reorder within group works and persists — `e2e/specs/dnd.spec.ts:106`, `e2e/specs/dnd.spec.ts:370`
+- [x] **F6.1** — Drag collection between groups updates API — `e2e/specs/dnd.spec.ts:71`, `e2e/specs/dnd.spec.ts:298`, `e2e/specs/dnd.spec.ts:325`
+- [x] **F6.2** — Reorder within group works and persists — `e2e/specs/dnd.spec.ts:106`, `e2e/specs/dnd.spec.ts:385`
 - [x] **F6.3** — Double-click enables inline rename — `e2e/specs/dnd.spec.ts:133`
 - [x] **F6.4** — Right-click context menu with all options — `e2e/specs/dnd.spec.ts:148`
-- [x] **F6.5** — Drag preview shows collection icon + name — `e2e/specs/dnd.spec.ts:72`, `e2e/specs/dnd.spec.ts:291`
+- [x] **F6.5** — Drag preview shows collection icon + name — `e2e/specs/dnd.spec.ts:72`, `e2e/specs/dnd.spec.ts:299`
 - [x] **F6.6** — Drop indicator shows insertion point — `e2e/specs/dnd.spec.ts:73`
-- [x] **F6.7** — Optimistic updates: UI updates immediately, reverts on error — `e2e/specs/dnd.spec.ts:183`, `e2e/specs/dnd.spec.ts:337`
+- [x] **F6.7** — Optimistic updates: UI updates immediately, reverts on error — `e2e/specs/dnd.spec.ts:183`, `e2e/specs/dnd.spec.ts:349`
 
 ### F7: Enhanced Readability (3/6)
 

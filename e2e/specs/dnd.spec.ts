@@ -219,6 +219,8 @@ test.describe('P4 Organization - DnD and Context Menu (F6)', () => {
 
 /** "Development" (collection 100) lists bookmark 1 first in the default newest-first order. */
 const DEV_BOOKMARK_ID = '1'
+/** Bookmarks in "Development" — the toolbar shows "20 items" once its page has loaded. */
+const DEV_ITEM_COUNT = 20
 const DESIGN_COLLECTION_ID = '101'
 /** In manual (`-sort`) order the two Development bookmarks with the highest `sort` lead. */
 const DEV_MANUAL_ORDER_TOP = ['20', '19']
@@ -229,15 +231,21 @@ const DEV_MANUAL_ORDER_TOP = ['20', '19']
 const POST_DROP_CLICK_GUARD_MS = 100
 
 /**
- * Select a sidebar collection and wait for its breadcrumb.
+ * Select a sidebar collection and wait for its breadcrumb (and, when given, its item
+ * count: RTK Query keeps the previous collection's rows on screen until the new page
+ * arrives, so on slow runners the list can still belong to the old collection).
  * @param page - Playwright page
  * @param name - Collection name as shown in the sidebar
+ * @param itemCount - Expected "N items" toolbar count once the collection has loaded
  */
-async function openCollection(page: Page, name: string) {
+async function openCollection(page: Page, name: string, itemCount?: number) {
   await page.getByRole('button', { name }).first().click()
   await expect(
     page.locator('[data-slot="breadcrumb-page"]', { hasText: name }),
   ).toBeVisible()
+  if (itemCount !== undefined) {
+    await expect(page.getByText(`${itemCount} items`)).toBeVisible()
+  }
 }
 
 /**
@@ -293,7 +301,7 @@ test.describe('P4 Organization - Bookmark DnD (F6)', () => {
     page,
   }) => {
     await waitForSidebarReady(page)
-    await openCollection(page, 'Development')
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
     const row = page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`)
     await expect(row).toBeVisible()
     const target = page.getByTestId(
@@ -319,7 +327,7 @@ test.describe('P4 Organization - Bookmark DnD (F6)', () => {
     page,
   }) => {
     await waitForSidebarReady(page)
-    await openCollection(page, 'Development')
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
     await expect(
       page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`),
     ).toBeVisible()
@@ -341,7 +349,7 @@ test.describe('P4 Organization - Bookmark DnD (F6)', () => {
   // @spec:F6.7 - Optimistic updates: UI updates immediately, reverts on error
   test('puts the bookmark back when the move is rejected', async ({ page }) => {
     await waitForSidebarReady(page)
-    await openCollection(page, 'Development')
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
     const row = page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`)
     await expect(row).toBeVisible()
 
@@ -379,7 +387,7 @@ test.describe('P4 Organization - Bookmark DnD (F6)', () => {
     page,
   }) => {
     await waitForSidebarReady(page)
-    await openCollection(page, 'Development')
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
     await switchToManualOrder(page)
     await expect
       .poll(async () => (await getListedRaindropIds(page)).slice(0, 2))
@@ -396,7 +404,7 @@ test.describe('P4 Organization - Bookmark DnD (F6)', () => {
 
     await page.reload()
     await waitForSidebarReady(page)
-    await openCollection(page, 'Development')
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
     await switchToManualOrder(page)
     await expect
       .poll(async () => (await getListedRaindropIds(page)).slice(0, 2))

@@ -58,7 +58,7 @@ async function resetToAllBookmarks(page: Page) {
     }),
   ).toBeVisible({ timeout: 10_000 })
 
-  const mainSearchInput = page.getByPlaceholder('Search bookmarks... (Cmd+K)')
+  const mainSearchInput = page.getByPlaceholder('Search bookmarks... (⌘K)')
   await expect(mainSearchInput).toBeVisible()
   await mainSearchInput.fill('')
 }
@@ -90,7 +90,7 @@ test.describe('P3 Search - Scoped Search (F1)', () => {
       await searchInDesignButton.first().click()
     }
 
-    const mainSearchInput = page.getByPlaceholder('Search bookmarks... (Cmd+K)')
+    const mainSearchInput = page.getByPlaceholder('Search bookmarks... (⌘K)')
     await mainSearchInput.fill('React Documentation')
 
     await expect(
@@ -120,12 +120,13 @@ test.describe('P3 Search - Scoped Search (F1)', () => {
       page.locator('[data-slot="breadcrumb-page"]', { hasText: 'Design' }),
     ).toBeVisible()
 
-    await page.keyboard.press('Control+k')
-    const commandInput = page.getByPlaceholder(/⌘K/)
+    await page.keyboard.press('Meta+k')
+    // Scope to the palette: the main toolbar input also carries a "(⌘K)" hint
+    const commandDialog = page.getByRole('dialog')
+    const commandInput = commandDialog.getByPlaceholder(/⌘K/)
     await expect(commandInput).toBeVisible()
 
     // Ensure scoped mode inside command as well
-    const commandDialog = page.getByRole('dialog')
     const commandSearchInDesign = commandDialog.getByRole('button', {
       name: 'Search in Design',
     })
@@ -158,9 +159,9 @@ test.describe('P3 Search - Field-Specific Search (F2)', () => {
   }) => {
     await resetToAllBookmarks(page)
 
-    await page.keyboard.press('Control+k')
+    await page.keyboard.press('Meta+k')
     const commandDialog = page.getByRole('dialog')
-    const commandInput = page.getByPlaceholder(/⌘K/)
+    const commandInput = commandDialog.getByPlaceholder(/⌘K/)
     await expect(commandInput).toBeVisible()
 
     const searchEverywhereButton = commandDialog.getByRole('button', {
@@ -200,7 +201,7 @@ test.describe('P3 Search - Field-Specific Search (F2)', () => {
 
     // Close palette; scope should persist in main content
     await page.keyboard.press('Escape')
-    const mainSearchInput = page.getByPlaceholder('Search bookmarks... (Cmd+K)')
+    const mainSearchInput = page.getByPlaceholder('Search bookmarks... (⌘K)')
     const descriptionBadge = page
       .locator('[data-slot="badge"]', { hasText: /^description$/ })
       .first()

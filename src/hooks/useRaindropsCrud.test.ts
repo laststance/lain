@@ -155,4 +155,80 @@ describe('useRaindropsCrud', () => {
     // Verify data loaded (sorting is handled by API/MSW)
     expect(result.current.raindrops.length).toBeGreaterThan(0)
   })
+
+  test('hides moved bookmarks at once and shows them again when the move fails', async () => {
+    // Arrange — the batch update endpoint rejects the move
+    const { server } = await import('@test/mocks/server')
+    const { http, HttpResponse } = await import('msw')
+    server.use(
+      http.put('https://api.raindrop.io/rest/v1/raindrops/0', () =>
+        HttpResponse.json({ result: false }, { status: 500 }),
+      ),
+    )
+    const { result } = renderHookWithProviders(() =>
+      useRaindropsCrud({ collectionId: 'all' }),
+    )
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    expect(result.current.raindrops.some((r) => r.id === '1')).toBe(true)
+
+    // Act — start the move without awaiting it
+    let move: Promise<void> = Promise.resolve()
+    act(() => {
+      move = result.current.batchMoveToCollection(['1'], '101')
+    })
+
+    // Assert — gone immediately, back after the API refused
+    expect(result.current.raindrops.some((r) => r.id === '1')).toBe(false)
+    await act(async () => {
+      await move
+    })
+    expect(result.current.raindrops.some((r) => r.id === '1')).toBe(true)
+  })
+
+  test('reorders optimistically and sends the bookmark its new position', async () => {
+    // Arrange — capture the manual-order update
+    const { server } = await import('@test/mocks/server')
+    const { http, HttpResponse } = await import('msw')
+    const updates: Array<{ id: string; body: unknown }> = []
+    server.use(
+      http.put(
+        'https://api.raindrop.io/rest/v1/raindrop/:id',
+        async ({ request, params }) => {
+          updates.push({ id: String(params.id), body: await request.json() })
+          return HttpResponse.json({
+            result: true,
+            item: { _id: Number(params.id) },
+          })
+        },
+      ),
+    )
+    const { result } = renderHookWithProviders(() =>
+      useRaindropsCrud({ collectionId: '100', sort: '-sort' }),
+    )
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+    expect(result.current.raindrops.slice(0, 2).map((r) => r.id)).toEqual([
+      '1',
+      '2',
+    ])
+
+    // Act — drop bookmark 2 onto bookmark 1
+    let reorder: Promise<void> = Promise.resolve()
+    act(() => {
+      reorder = result.current.reorderRaindrop('2', '1')
+    })
+
+    // Assert — the list flips immediately; the API receives position 0 for bookmark 2
+    expect(result.current.raindrops.slice(0, 2).map((r) => r.id)).toEqual([
+      '2',
+      '1',
+    ])
+    await act(async () => {
+      await reorder
+    })
+    expect(updates).toEqual([{ id: '2', body: { order: 0 } }])
+  })
 })

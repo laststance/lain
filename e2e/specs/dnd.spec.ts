@@ -216,3 +216,198 @@ test.describe('P4 Organization - DnD and Context Menu (F6)', () => {
       .toContain('100')
   })
 })
+
+/** "Development" (collection 100) lists bookmark 1 first in the default newest-first order. */
+const DEV_BOOKMARK_ID = '1'
+/** Bookmarks in "Development" — the toolbar shows "20 items" once its page has loaded. */
+const DEV_ITEM_COUNT = 20
+const DESIGN_COLLECTION_ID = '101'
+/** In manual (`-sort`) order the two Development bookmarks with the highest `sort` lead. */
+const DEV_MANUAL_ORDER_TOP = ['20', '19']
+/**
+ * dnd-kit's PointerSensor swallows click events on the document for 50ms after a drop
+ * (so the click that ends a drag never reaches a handler); clicks issued sooner are lost.
+ */
+const POST_DROP_CLICK_GUARD_MS = 100
+
+/**
+ * Select a sidebar collection and wait for its breadcrumb (and, when given, its item
+ * count: RTK Query keeps the previous collection's rows on screen until the new page
+ * arrives, so on slow runners the list can still belong to the old collection).
+ * @param page - Playwright page
+ * @param name - Collection name as shown in the sidebar
+ * @param itemCount - Expected "N items" toolbar count once the collection has loaded
+ */
+async function openCollection(page: Page, name: string, itemCount?: number) {
+  await page.getByRole('button', { name }).first().click()
+  await expect(
+    page.locator('[data-slot="breadcrumb-page"]', { hasText: name }),
+  ).toBeVisible()
+  if (itemCount !== undefined) {
+    await expect(page.getByText(`${itemCount} items`)).toBeVisible()
+  }
+}
+
+/**
+ * IDs of the bookmarks currently listed, top to bottom.
+ * @param page - Playwright page
+ * @returns Ordered bookmark IDs
+ */
+async function getListedRaindropIds(page: Page): Promise<string[]> {
+  return page
+    .locator('[data-testid="list-view"] [data-raindrop-id]')
+    .evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-raindrop-id') ?? ''),
+    )
+}
+
+/**
+ * Drag a bookmark row onto a target (double hover so dnd-kit sees a move after
+ * activation), run optional assertions while it hovers, then drop and wait for
+ * dnd-kit's post-drop click guard to lift.
+ * @param page - Playwright page
+ * @param raindropId - Bookmark to drag
+ * @param target - Drop target locator
+ * @param whileDragging - Assertions to run before the drop (preview, highlight)
+ */
+async function dragBookmarkTo(
+  page: Page,
+  raindropId: string,
+  target: Locator,
+  whileDragging?: () => Promise<void>,
+) {
+  await page.getByTestId(`raindrop-drag-${raindropId}`).hover()
+  await page.mouse.down()
+  await target.hover()
+  await target.hover()
+  await whileDragging?.()
+  await page.mouse.up()
+  await page.waitForTimeout(POST_DROP_CLICK_GUARD_MS)
+}
+
+/**
+ * Switch the toolbar sort to manual order.
+ * @param page - Playwright page
+ */
+async function switchToManualOrder(page: Page) {
+  await page.getByText('Newest First').click()
+  await page.getByRole('option', { name: 'Manual Order' }).click()
+}
+
+test.describe('P4 Organization - Bookmark DnD (F6)', () => {
+  // @spec:F6.1 - Drag collection between groups updates API
+  // @spec:F6.5 - Drag preview shows collection icon + name
+  test('drags a bookmark onto a sidebar collection and it moves there', async ({
+    page,
+  }) => {
+    await waitForSidebarReady(page)
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
+    const row = page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`)
+    await expect(row).toBeVisible()
+    const target = page.getByTestId(
+      `sidebar-collection-${DESIGN_COLLECTION_ID}`,
+    )
+
+    await dragBookmarkTo(page, DEV_BOOKMARK_ID, target, async () => {
+      await expect(page.getByTestId('drag-preview')).toContainText(
+        'React Documentation',
+      )
+      await expect(target).toHaveAttribute('data-drop-target', 'true')
+    })
+
+    await expect(row).toHaveCount(0)
+    await openCollection(page, 'Design')
+    await expect(
+      page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`),
+    ).toBeVisible()
+  })
+
+  // @spec:F6.1 - Drag collection between groups updates API
+  test('drags the whole selection when the grabbed bookmark is selected', async ({
+    page,
+  }) => {
+    await waitForSidebarReady(page)
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
+    await expect(
+      page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`),
+    ).toBeVisible()
+    await page.keyboard.press('Meta+a')
+    await expect(page.getByText('20 selected')).toBeVisible()
+
+    await dragBookmarkTo(
+      page,
+      DEV_BOOKMARK_ID,
+      page.getByTestId(`sidebar-collection-${DESIGN_COLLECTION_ID}`),
+      async () => {
+        await expect(page.getByTestId('drag-preview-count')).toHaveText('20')
+      },
+    )
+
+    await expect(page.getByText('No bookmarks found')).toBeVisible()
+  })
+
+  // @spec:F6.7 - Optimistic updates: UI updates immediately, reverts on error
+  test('puts the bookmark back when the move is rejected', async ({ page }) => {
+    await waitForSidebarReady(page)
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
+    const row = page.getByTestId(`raindrop-drag-${DEV_BOOKMARK_ID}`)
+    await expect(row).toBeVisible()
+
+    let failedOnce = false
+    await page.route(
+      '**/api.raindrop.io/rest/v1/raindrops/100',
+      async (route) => {
+        if (route.request().method() === 'PUT' && !failedOnce) {
+          failedOnce = true
+          await page.waitForTimeout(600)
+          await route.fulfill({
+            status: 500,
+            contentType: 'application/json',
+            body: JSON.stringify({ result: false }),
+          })
+          return
+        }
+        await route.fallback()
+      },
+    )
+
+    await dragBookmarkTo(
+      page,
+      DEV_BOOKMARK_ID,
+      page.getByTestId(`sidebar-collection-${DESIGN_COLLECTION_ID}`),
+    )
+
+    // Gone at once, back once the API refused
+    await expect(row).toHaveCount(0)
+    await expect(row).toBeVisible()
+  })
+
+  // @spec:F6.2 - Reorder within group works and persists
+  test('reorders bookmarks by drag in manual order and keeps it after reload', async ({
+    page,
+  }) => {
+    await waitForSidebarReady(page)
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
+    await switchToManualOrder(page)
+    await expect
+      .poll(async () => (await getListedRaindropIds(page)).slice(0, 2))
+      .toEqual(DEV_MANUAL_ORDER_TOP)
+
+    await dragBookmarkTo(
+      page,
+      DEV_MANUAL_ORDER_TOP[1],
+      page.getByTestId(`raindrop-drag-${DEV_MANUAL_ORDER_TOP[0]}`),
+    )
+    await expect
+      .poll(async () => (await getListedRaindropIds(page)).slice(0, 2))
+      .toEqual(['19', '20'])
+
+    await page.reload()
+    await waitForSidebarReady(page)
+    await openCollection(page, 'Development', DEV_ITEM_COUNT)
+    await switchToManualOrder(page)
+    await expect
+      .poll(async () => (await getListedRaindropIds(page)).slice(0, 2))
+      .toEqual(['19', '20'])
+  })
+})

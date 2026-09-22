@@ -13,7 +13,7 @@ import {
   Video,
   File,
   Music,
-  // TODO: @dnd-kit migration — GripVertical for drag handle
+  GripVertical,
 } from 'lucide-react'
 import React, { useState, useMemo, useCallback } from 'react'
 
@@ -187,9 +187,6 @@ const RaindropListItem = React.memo(function RaindropListItem({
   const domainText =
     raindrop.domain || extractDomain(raindrop.url) || raindrop.url
 
-  // TODO: @dnd-kit migration — drag source setup
-  // const dragRef = useRef(null)
-
   return (
     <div
       data-raindrop-id={raindrop.id}
@@ -204,11 +201,11 @@ const RaindropListItem = React.memo(function RaindropListItem({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
     >
-      {/* TODO: @dnd-kit migration — drag handle
-      <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
-      */}
+      {/* Drag affordance — the whole row is the drag source (see DraggableRaindrop) */}
+      <GripVertical
+        aria-hidden
+        className="text-muted-foreground h-4 w-4 flex-shrink-0 cursor-grab opacity-0 transition-opacity group-hover:opacity-100"
+      />
 
       {/* Checkbox / Type Icon */}
       <div className="flex w-5 flex-shrink-0 items-center justify-center">

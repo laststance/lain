@@ -129,6 +129,12 @@ export const MainApp = React.memo(function MainApp() {
     return buildSearchQuery(normalizedSearchQuery, searchScope)
   }, [normalizedSearchQuery, searchScope])
 
+  // Manual reorder only makes sense inside one collection, sorted manually, unfiltered
+  const canReorderRaindrops =
+    sortOption === 'manual' &&
+    normalizedSearchQuery.length === 0 &&
+    selectedCollectionId !== 'all'
+
   const {
     raindrops,
     isLoading: isRaindropsLoading,
@@ -141,6 +147,7 @@ export const MainApp = React.memo(function MainApp() {
     batchMoveToCollection,
     batchAddTag,
     batchDeleteRaindrops,
+    reorderRaindrop,
   } = useRaindropsCrud({
     collectionId: effectiveSearchCollectionId,
     sort: apiSort,
@@ -637,57 +644,59 @@ export const MainApp = React.memo(function MainApp() {
           onPersistGroups={handlePersistGroups}
           onRenameCollection={handleRenameCollection}
           onChangeCollectionColor={handleChangeCollectionColor}
-        />
+        >
+          <SidebarInset className="min-w-0 flex-1">
+            <MainContent
+              breadcrumbs={breadcrumbs}
+              selectedCollectionId={selectedCollectionId}
+              raindrops={raindrops}
+              isLoading={isRaindropsLoading}
+              isFetching={isRaindropsFetching}
+              hasMore={hasMore}
+              onLoadMore={loadMore}
+              onSelectRaindrop={handleSelectRaindrop}
+              onFocusRaindrop={handleFocusRaindrop}
+              onTogglePreview={handleTogglePreview}
+              selectedRaindropId={selectedRaindrop?.id}
+              selectedRaindropIds={selectedRaindropIdsSet}
+              onSelectedRaindropIdsChange={handleSelectedIdsChange}
+              groups={groups}
+              collections={groups.flatMap((g) => g.collections)}
+              onAddBookmark={handleAddBookmark}
+              sortOption={sortOption}
+              onSortChange={handleSortChange}
+              searchQuery={searchQuery}
+              searchScope={searchScope}
+              searchMode={searchMode}
+              onSearchQueryChange={handleSearchQueryChange}
+              onSearchScopeChange={handleSearchScopeChange}
+              onSearchModeChange={handleSearchModeChange}
+              onBatchMove={handleBatchMove}
+              onBatchAddTag={handleBatchAddTag}
+              onBatchDelete={handleBatchDelete}
+              viewMode={effectiveViewMode}
+              onViewModeChange={handleViewModeChange}
+              hasCollectionViewModeOverride={hasCollectionViewModeOverride}
+              onCollectionViewModeOverrideChange={
+                handleCollectionViewModeOverrideChange
+              }
+              onToggleImportant={handleToggleImportant}
+              canReorderRaindrops={canReorderRaindrops}
+              onReorderRaindrop={reorderRaindrop}
+              searchInputRef={searchInputRef}
+            />
+          </SidebarInset>
 
-        <SidebarInset className="min-w-0 flex-1">
-          <MainContent
-            breadcrumbs={breadcrumbs}
-            selectedCollectionId={selectedCollectionId}
-            raindrops={raindrops}
-            isLoading={isRaindropsLoading}
-            isFetching={isRaindropsFetching}
-            hasMore={hasMore}
-            onLoadMore={loadMore}
-            onSelectRaindrop={handleSelectRaindrop}
-            onFocusRaindrop={handleFocusRaindrop}
-            onTogglePreview={handleTogglePreview}
-            selectedRaindropId={selectedRaindrop?.id}
-            selectedRaindropIds={selectedRaindropIdsSet}
-            onSelectedRaindropIdsChange={handleSelectedIdsChange}
+          <RightDetailPanel
+            raindrop={selectedRaindrop}
+            isOpen={isDetailPanelOpen}
+            onClose={handleCloseDetailPanel}
             groups={groups}
-            collections={groups.flatMap((g) => g.collections)}
-            onAddBookmark={handleAddBookmark}
-            sortOption={sortOption}
-            onSortChange={handleSortChange}
-            searchQuery={searchQuery}
-            searchScope={searchScope}
-            searchMode={searchMode}
-            onSearchQueryChange={handleSearchQueryChange}
-            onSearchScopeChange={handleSearchScopeChange}
-            onSearchModeChange={handleSearchModeChange}
-            onBatchMove={handleBatchMove}
-            onBatchAddTag={handleBatchAddTag}
-            onBatchDelete={handleBatchDelete}
-            viewMode={effectiveViewMode}
-            onViewModeChange={handleViewModeChange}
-            hasCollectionViewModeOverride={hasCollectionViewModeOverride}
-            onCollectionViewModeOverrideChange={
-              handleCollectionViewModeOverrideChange
-            }
-            onToggleImportant={handleToggleImportant}
-            searchInputRef={searchInputRef}
+            existingTags={allTags.map((t) => t.name)}
+            onSave={handleSaveRaindrop}
+            onDelete={handleDeleteRaindrop}
           />
-        </SidebarInset>
-
-        <RightDetailPanel
-          raindrop={selectedRaindrop}
-          isOpen={isDetailPanelOpen}
-          onClose={handleCloseDetailPanel}
-          groups={groups}
-          existingTags={allTags.map((t) => t.name)}
-          onSave={handleSaveRaindrop}
-          onDelete={handleDeleteRaindrop}
-        />
+        </LeftSidebar>
 
         <GlobalSearchCommand
           open={isSearchOpen}

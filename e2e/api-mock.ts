@@ -175,6 +175,8 @@ export async function mockRaindropApi(page: Page): Promise<void> {
               return b.title.localeCompare(a.title)
             case 'domain':
               return a.domain.localeCompare(b.domain)
+            case '-sort':
+              return b.sort - a.sort
             default:
               return 0
           }
@@ -239,7 +241,22 @@ export async function mockRaindropApi(page: Page): Promise<void> {
       ) as Record<string, unknown>
       const existing = store.raindrops.find((r) => r._id === id)
       if (existing) {
-        Object.assign(existing, body)
+        const { order, ...fields } = body
+        Object.assign(existing, fields)
+        // Manual order: `order` is the new position among the collection's bookmarks;
+        // renumber `sort` (highest first) so `sort=-sort` reads the new order back
+        if (typeof order === 'number') {
+          const siblings = store.raindrops
+            .filter(
+              (r) =>
+                r.collection.$id === existing.collection.$id && r._id !== id,
+            )
+            .sort((a, b) => b.sort - a.sort)
+          siblings.splice(order, 0, existing)
+          siblings.forEach((raindrop, index) => {
+            raindrop.sort = siblings.length - 1 - index
+          })
+        }
         return route.fulfill({ json: { result: true, item: existing } })
       }
       return route.fulfill({ status: 404, json: { result: false } })

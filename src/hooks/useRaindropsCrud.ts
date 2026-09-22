@@ -8,6 +8,7 @@ import {
   toUiRaindrop,
 } from '@/lib/api-mappers'
 import type { CreateBookmarkData } from '@/lib/api-mappers'
+import { reorderRaindrops } from '@/lib/raindrop-organization'
 import type { Raindrop } from '@/lib/types'
 import {
   useDeleteRaindropByIdMutation,
@@ -21,6 +22,9 @@ import type { GetRaindropsByCollectionIdApiArg } from '@/store/api/raindropApi'
 
 /** Items per page for Raindrop.io API (max 50) */
 const PERPAGE = 50
+
+/** Shared empty set so "nothing hidden" never allocates */
+const EMPTY_ID_SET: ReadonlySet<string> = new Set()
 
 /** API sort values accepted by `GET /raindrops/:collectionId` */
 type ApiSort = GetRaindropsByCollectionIdApiArg['sort']
@@ -49,6 +53,11 @@ export function useRaindropsCrud({
   const [page, setPage] = useState(0)
   const [resetKey, setResetKey] = useState(0)
 
+  // Optimistic views laid over the fetched pages: rows hidden by an in-flight move and
+  // the manual order of an in-flight reorder. Both drop as soon as fresh data arrives.
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(EMPTY_ID_SET)
+  const [manualOrderIds, setManualOrderIds] = useState<string[] | null>(null)
+
   // Per-page data store — avoids effects for accumulation
   const pagesRef = useRef<Map<number, Raindrop[]>>(new Map())
 
@@ -60,6 +69,15 @@ export function useRaindropsCrud({
     setPrevFilterKey(filterKey)
     setPage(0)
     pagesRef.current = new Map()
+  }
+
+  // Leaving the collection / sort / search scope discards optimistic views too
+  const [prevScopeKey, setPrevScopeKey] = useState('')
+  const scopeKey = `${collectionId}-${sort ?? ''}-${search ?? ''}`
+  if (prevScopeKey !== scopeKey) {
+    setPrevScopeKey(scopeKey)
+    setHiddenIds(EMPTY_ID_SET)
+    setManualOrderIds(null)
   }
 
   const apiCollectionId = collectionIdToApi(collectionId)
@@ -77,8 +95,16 @@ export function useRaindropsCrud({
     pagesRef.current.set(page, data.items.map(toUiRaindrop))
   }
 
+  // Fresh data (refetch after a mutation, next page) supersedes any optimistic view
+  const [prevData, setPrevData] = useState(data)
+  if (prevData !== data) {
+    setPrevData(data)
+    if (hiddenIds.size > 0) setHiddenIds(EMPTY_ID_SET)
+    if (manualOrderIds) setManualOrderIds(null)
+  }
+
   // Derive accumulated raindrops from all loaded pages
-  const raindrops = useMemo(() => {
+  const fetchedRaindrops = useMemo(() => {
     const result: Raindrop[] = []
     for (let p = 0; p <= page; p++) {
       const pageData = pagesRef.current.get(p)
@@ -88,8 +114,21 @@ export function useRaindropsCrud({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- pagesRef is stable, data triggers recompute
   }, [data, page, resetKey])
 
+  // Lay the optimistic views over the fetched pages
+  const raindrops = useMemo(() => {
+    const visible =
+      hiddenIds.size > 0
+        ? fetchedRaindrops.filter((raindrop) => !hiddenIds.has(raindrop.id))
+        : fetchedRaindrops
+    if (!manualOrderIds) return visible
+    const position = new Map(manualOrderIds.map((id, index) => [id, index]))
+    const positionOf = (raindrop: Raindrop) =>
+      position.get(raindrop.id) ?? Number.MAX_SAFE_INTEGER
+    return [...visible].sort((a, b) => positionOf(a) - positionOf(b))
+  }, [fetchedRaindrops, hiddenIds, manualOrderIds])
+
   const totalCount = data?.count ?? 0
-  const hasMore = raindrops.length < totalCount
+  const hasMore = fetchedRaindrops.length < totalCount
 
   const loadMore = useCallback(() => {
     if (hasMore && !isFetching) {
@@ -144,6 +183,8 @@ export function useRaindropsCrud({
 
   const batchMoveToCollection = useCallback(
     async (ids: string[], targetCollectionId: string) => {
+      // Optimistic: the rows leave the list at once and only return if the API refuses
+      setHiddenIds(new Set(ids))
       const result = await batchUpdateMutation({
         collectionId: apiCollectionId,
         raindropsBatchUpdateRequest: {
@@ -154,9 +195,31 @@ export function useRaindropsCrud({
       if ('data' in result) {
         toast.success(`Moved ${ids.length} bookmarks`)
         setResetKey((k) => k + 1)
+      } else {
+        setHiddenIds(EMPTY_ID_SET)
       }
     },
     [batchUpdateMutation, apiCollectionId],
+  )
+
+  const reorderRaindrop = useCallback(
+    async (activeRaindropId: string, overRaindropId: string) => {
+      const nextOrder = reorderRaindrops(
+        raindrops,
+        activeRaindropId,
+        overRaindropId,
+      )
+      if (nextOrder === raindrops) return
+      const nextIds = nextOrder.map((raindrop) => raindrop.id)
+      // Optimistic: show the new order now; the API gets the bookmark's new position
+      setManualOrderIds(nextIds)
+      const result = await putRaindrop({
+        id: Number(activeRaindropId),
+        raindropUpdate: { order: nextIds.indexOf(activeRaindropId) },
+      })
+      if (!('data' in result)) setManualOrderIds(null)
+    },
+    [putRaindrop, raindrops],
   )
 
   const batchAddTag = useCallback(
@@ -203,6 +266,7 @@ export function useRaindropsCrud({
     batchMoveToCollection,
     batchAddTag,
     batchDeleteRaindrops,
+    reorderRaindrop,
   }
 }
 
@@ -243,4 +307,9 @@ interface UseRaindropsCrudReturn {
   batchAddTag: (ids: string[], tags: string[]) => Promise<void>
   /** Delete selected raindrops */
   batchDeleteRaindrops: (ids: string[]) => Promise<void>
+  /** Manual sort only: drop `activeRaindropId` onto `overRaindropId` (optimistic, persists `order`) */
+  reorderRaindrop: (
+    activeRaindropId: string,
+    overRaindropId: string,
+  ) => Promise<void>
 }

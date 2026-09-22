@@ -131,15 +131,16 @@ if (!isTestMode) {
 }
 
 app.whenReady().then(async () => {
-  registerShellIPC()
-
   if (isTestMode) {
-    // Headless E2E: no Dock icon, no focus stealing while the suite runs
+    // Headless E2E: no Dock icon, no focus stealing, no browser opened for links
     if (isHeadless) app.dock?.hide()
-    const { registerTestAuthIPC } = await import('./test-auth.ts')
+    const { registerTestAuthIPC, registerTestShellIPC } =
+      await import('./test-auth.ts')
     registerTestAuthIPC(() => mainWindow)
+    registerTestShellIPC()
   } else {
     if (!auth) throw new Error('auth must be initialized in non-test mode')
+    registerShellIPC()
     registerAuthIPC(auth)
   }
 

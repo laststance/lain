@@ -50,3 +50,25 @@ export function registerTestAuthIPC(
 
   ipcMain.handle('auth:get-token', async () => MOCK_TOKEN)
 }
+
+/** Global key under which test mode exposes recorded external URLs (read via app.evaluate in E2E). */
+const OPENED_EXTERNAL_URLS_GLOBAL_KEY = '__LAIN_OPENED_EXTERNAL_URLS__'
+
+/**
+ * Replace the real `shell:open-external` handler in test mode: record the URL on
+ * `globalThis` instead of opening the user's browser, so E2E tests (KB.13 Enter)
+ * can assert what would have opened without windows popping up.
+ * @example
+ *   // In main.ts (test mode branch)
+ *   registerTestShellIPC()
+ *   // In an E2E test
+ *   await app.evaluate(() => Reflect.get(globalThis, '__LAIN_OPENED_EXTERNAL_URLS__')) // => ['https://react.dev']
+ */
+export function registerTestShellIPC(): void {
+  const openedExternalUrls: string[] = []
+  Reflect.set(globalThis, OPENED_EXTERNAL_URLS_GLOBAL_KEY, openedExternalUrls)
+
+  ipcMain.handle('shell:open-external', async (_event, url: string) => {
+    openedExternalUrls.push(url)
+  })
+}

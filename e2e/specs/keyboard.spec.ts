@@ -4,6 +4,7 @@ import path from 'path'
 
 import {
   expect,
+  getOpenedExternalUrls,
   launchElectronApp,
   prepareFirstWindow,
   test,
@@ -262,5 +263,162 @@ test.describe('Keyboard Shortcut Editor (F8)', () => {
     } finally {
       fs.rmSync(userDataDir, { recursive: true, force: true })
     }
+  })
+})
+
+/**
+ * Rows of every view in the default "newest" order: fixture #1 was created one day
+ * before the snapshot date, #2 two days before, so they are always the first two.
+ */
+const FIRST_BOOKMARK = { id: '1', url: 'https://react.dev' }
+const SECOND_BOOKMARK = { id: '2', title: 'TypeScript Handbook' }
+
+/** The navigable row of a bookmark in whichever view is active. */
+function bookmarkRow(
+  page: import('@playwright/test').Page,
+  raindropId: string,
+) {
+  return page.locator(`[data-raindrop-id="${raindropId}"]`)
+}
+
+const VIEW_MODES = [
+  { mode: 'grid', shortcut: 'Meta+1', testId: 'grid-view' },
+  { mode: 'list', shortcut: 'Meta+2', testId: 'list-view' },
+  { mode: 'table', shortcut: 'Meta+3', testId: 'table-view' },
+  { mode: 'directory', shortcut: 'Meta+4', testId: 'directory-view' },
+] as const
+
+test.describe('View Navigation (F7)', () => {
+  // @spec:KB.12 - Arrow Down moves selection down
+  test('Arrow Down focuses the first bookmark, then the next one', async ({
+    page,
+  }) => {
+    await waitForApp(page)
+    await page.keyboard.press('ArrowDown')
+    await expect(bookmarkRow(page, FIRST_BOOKMARK.id)).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+    await expect(bookmarkRow(page, SECOND_BOOKMARK.id)).toBeFocused()
+  })
+
+  // @spec:KB.11 - Arrow Up moves selection up
+  test('Arrow Up moves back to the previous bookmark', async ({ page }) => {
+    await waitForApp(page)
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await expect(bookmarkRow(page, SECOND_BOOKMARK.id)).toBeFocused()
+    await page.keyboard.press('ArrowUp')
+    await expect(bookmarkRow(page, FIRST_BOOKMARK.id)).toBeFocused()
+  })
+
+  // @spec:KB.13 - Enter opens selected bookmark in browser
+  test('Enter opens the focused bookmark in the system browser', async ({
+    page,
+    electronApp,
+  }) => {
+    await waitForApp(page)
+    await page.keyboard.press('ArrowDown')
+    await expect(bookmarkRow(page, FIRST_BOOKMARK.id)).toBeFocused()
+    await page.keyboard.press('Enter')
+    // Test mode records the URL instead of launching a browser
+    await expect
+      .poll(() => getOpenedExternalUrls(electronApp))
+      .toEqual([FIRST_BOOKMARK.url])
+  })
+
+  // @spec:KB.14 - Space toggles detail panel for selected
+  test('Space opens the detail panel for the focused bookmark and closes it again', async ({
+    page,
+  }) => {
+    await waitForApp(page)
+    const detailPanel = page.getByTestId('detail-panel')
+    await expect(detailPanel).toHaveClass(/w-0/)
+
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await expect(bookmarkRow(page, SECOND_BOOKMARK.id)).toBeFocused()
+
+    await page.keyboard.press('Space')
+    await expect(detailPanel).toHaveClass(/w-\[360px\]/)
+    await expect(detailPanel.getByLabel('Title')).toHaveValue(
+      SECOND_BOOKMARK.title,
+    )
+
+    await page.keyboard.press('Space')
+    await expect(detailPanel).toHaveClass(/w-0/)
+  })
+
+  for (const { mode, shortcut, testId } of VIEW_MODES) {
+    // @spec:F7.6 - Arrow key navigation works in all view modes
+    test(`arrow keys walk the bookmarks in ${mode} view`, async ({ page }) => {
+      await waitForApp(page)
+      await page.keyboard.press(shortcut)
+      const view = page.getByTestId(testId)
+      await expect(view).toBeVisible()
+
+      await page.keyboard.press('ArrowDown')
+      await expect(
+        view.locator(`[data-raindrop-id="${FIRST_BOOKMARK.id}"]`),
+      ).toBeFocused()
+      await page.keyboard.press('ArrowDown')
+      await expect(
+        view.locator(`[data-raindrop-id="${SECOND_BOOKMARK.id}"]`),
+      ).toBeFocused()
+      await page.keyboard.press('ArrowUp')
+      await expect(
+        view.locator(`[data-raindrop-id="${FIRST_BOOKMARK.id}"]`),
+      ).toBeFocused()
+    })
+  }
+
+  // @spec:KB.19 - Cmd+D toggles important flag on selected
+  test('Cmd+D marks the focused bookmark as important', async ({ page }) => {
+    await waitForApp(page)
+    await page.keyboard.press('ArrowDown')
+    const firstRow = bookmarkRow(page, FIRST_BOOKMARK.id)
+    await expect(firstRow).toBeFocused()
+    await expect(firstRow.getByTestId('important-indicator')).toBeHidden()
+
+    await pressShortcut(page, { key: 'd', metaKey: true })
+    await expect(firstRow.getByTestId('important-indicator')).toBeVisible()
+  })
+
+  // @spec:KB.9 - Cmd+Backspace deletes selected bookmark(s)
+  test('Cmd+Backspace removes the focused bookmark from the view', async ({
+    page,
+  }) => {
+    await waitForApp(page)
+    await page.keyboard.press('ArrowDown')
+    await expect(bookmarkRow(page, FIRST_BOOKMARK.id)).toBeFocused()
+
+    await pressShortcut(page, { key: 'Backspace', metaKey: true })
+    await expect(bookmarkRow(page, FIRST_BOOKMARK.id)).toHaveCount(0)
+    await expect(bookmarkRow(page, SECOND_BOOKMARK.id)).toBeVisible()
+  })
+
+  // @spec:KB.17 - Cmd+F focuses search bar (scoped to current collection)
+  test('Cmd+F focuses the search bar of the current view', async ({ page }) => {
+    await waitForApp(page)
+    await pressShortcut(page, { key: 'f', metaKey: true })
+    await expect(
+      page.getByPlaceholder('Search bookmarks... (⌘K)'),
+    ).toBeFocused()
+  })
+
+  // @spec:KB.18 - Cmd+Shift+F opens global search across all collections
+  test('Cmd+Shift+F opens the search palette searching everywhere', async ({
+    page,
+  }) => {
+    await waitForApp(page)
+    // Inside a collection the palette would normally be scoped to it
+    await page.getByRole('button', { name: 'Design' }).click()
+    await expect(
+      page.locator('[data-slot="breadcrumb-page"]', { hasText: 'Design' }),
+    ).toBeVisible()
+
+    await pressShortcut(page, { key: 'f', metaKey: true, shiftKey: true })
+    // Scope to the dialog: the toolbar behind it also says "searching everywhere"
+    const palette = page.getByRole('dialog', { name: 'Search bookmarks' })
+    await expect(palette).toBeVisible()
+    await expect(palette.getByText('Searching everywhere')).toBeVisible()
   })
 })

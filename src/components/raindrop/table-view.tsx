@@ -265,8 +265,10 @@ const TableRowItem = React.memo(function TableRowItem({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <TableRow
+          data-raindrop-id={raindrop.id}
+          tabIndex={-1}
           className={cn(
-            'h-10 cursor-pointer transition-colors',
+            'focus-visible:bg-accent h-10 cursor-pointer transition-colors focus-visible:outline-none',
             isSelected && 'bg-accent',
             index % 2 === 1 && !isSelected && 'bg-muted/30',
           )}

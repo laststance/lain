@@ -195,9 +195,11 @@ const RaindropCard = React.memo(function RaindropCard({
 
   return (
     <Card
+      data-raindrop-id={raindrop.id}
+      tabIndex={-1}
       className={cn(
         'group relative cursor-pointer overflow-hidden transition-all duration-150',
-        'hover:scale-[1.01] hover:shadow-md',
+        'focus-visible:ring-primary hover:scale-[1.01] hover:shadow-md focus-visible:ring-2 focus-visible:outline-none',
         isSelected && 'ring-primary shadow-md ring-2',
       )}
       onMouseEnter={handleMouseEnter}

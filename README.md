@@ -4,7 +4,7 @@
 
 **Lain** is a macOS-native [Raindrop.io](https://raindrop.io) desktop client for power users who manage 1,000+ bookmarks. It focuses on fast, keyboard-driven search and organization that goes beyond the Raindrop.io web app.
 
-> Status: **Pre-Alpha** — under active development, not yet released.
+> Status: **Alpha** — [v0.1.0](https://github.com/laststance/lain/releases/tag/v0.1.0) is available for macOS 12+ (Developer ID signed, not yet notarized); under active development.
 
 Landing page: [lain-web.vercel.app](https://lain-web.vercel.app) ([source](https://github.com/laststance/lain-web)).
 

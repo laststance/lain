@@ -79,17 +79,14 @@ const config: KnipConfig = {
     // CLI-only tool (npx shadcn add ...)
     'shadcn',
 
-    // Future-phase runtime dependencies (P3-P5, listed in SPEC.md)
-    '@base-ui/react',
-    '@dnd-kit/core',
-    '@dnd-kit/sortable',
-    '@dnd-kit/utilities',
+    // Future-phase runtime dependencies (listed in SPEC.md, not imported yet)
     'date-fns',
-    'fuse.js',
     'motion',
     'react-day-picker',
+
+    // Imported only by knip-ignored shadcn primitives (ui/resizable, ui/combobox)
+    '@base-ui/react',
     'react-resizable-panels',
-    'ts-pattern',
 
     // DevDeps: CLI/build tools not imported in source
     '@faker-js/faker',
@@ -99,9 +96,6 @@ const config: KnipConfig = {
     // DevDeps: peer deps of eslint-config-ts-prefixer
     'globals',
     'typescript-eslint',
-
-    // Used in test/mocks but knip can't trace vitest setupFiles → msw
-    'msw',
   ],
 }
 

@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import React, { useEffect, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
@@ -96,7 +96,7 @@ const GroupDialog = React.memo(function GroupDialog({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<GroupFormValues>({
     resolver: zodResolver(groupSchema),
@@ -106,7 +106,8 @@ const GroupDialog = React.memo(function GroupDialog({
     },
   })
 
-  const collapsed = watch('collapsed')
+  // useWatch (not watch()) keeps the component eligible for React Compiler memoization
+  const collapsed = useWatch({ control, name: 'collapsed' })
 
   useGroupFormReset(open, group, reset)
 

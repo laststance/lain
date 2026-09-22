@@ -21,7 +21,7 @@ import {
   Highlighter,
 } from 'lucide-react'
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Badge } from '@/components/ui/badge'
@@ -169,7 +169,7 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isDirty },
   } = useForm<RaindropFormValues>({
     resolver: zodResolver(raindropSchema),
@@ -183,9 +183,10 @@ const RightDetailPanel = React.memo(function RightDetailPanel({
     },
   })
 
-  const selectedType = watch('type')
-  const isImportant = watch('isImportant')
-  const currentUrl = watch('url')
+  // useWatch (not watch()) keeps the component eligible for React Compiler memoization
+  const selectedType = useWatch({ control, name: 'type' })
+  const isImportant = useWatch({ control, name: 'isImportant' })
+  const currentUrl = useWatch({ control, name: 'url' })
 
   useRaindropFormSync(raindrop, reset, setTags, setFaviconError)
 

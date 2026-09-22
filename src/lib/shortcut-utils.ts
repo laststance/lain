@@ -1,5 +1,40 @@
 import type { ShortcutBinding, ShortcutMap } from '@/store/slices/settingsSlice'
 
+/** Subset of KeyboardEvent the shortcut helpers read — React synthetic events and test doubles qualify. */
+export type KeyboardEventLike = Pick<
+  KeyboardEvent,
+  'key' | 'metaKey' | 'shiftKey' | 'altKey' | 'ctrlKey'
+>
+
+/** `event.key` values that can never form a shortcut: held modifiers, dead keys, unknown keys. */
+const IGNORED_CAPTURE_KEYS: ReadonlySet<string> = new Set([
+  'Meta',
+  'Shift',
+  'Alt',
+  'Control',
+  'CapsLock',
+  'Fn',
+  'Dead',
+  'Unidentified',
+])
+
+/** Keys used by the default navigation shortcuts — bindable without ⌘/⌃/⌥. */
+const BARE_BINDABLE_KEYS: ReadonlySet<string> = new Set([
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Enter',
+  ' ',
+  'Backspace',
+  'Delete',
+  'Tab',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+])
+
 /**
  * Check if a keyboard event matches a shortcut binding.
  *
@@ -38,6 +73,23 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   if (tagName === 'INPUT' || tagName === 'TEXTAREA') return true
   if (target.isContentEditable) return true
   return false
+}
+
+/**
+ * Whether `target` is the shortcut editor's key-capture field, which is marked with
+ * `data-shortcut-capture="true"`. {@link SettingsDialog} uses it to keep Radix from
+ * closing on Escape mid-capture (the field itself turns Escape into "cancel").
+ *
+ * @param target - Event target of a keydown (e.g. Radix `onEscapeKeyDown`)
+ * @returns true only for the capture field
+ * @example
+ *   isShortcutCaptureTarget(document.querySelector('[data-shortcut-capture]')) // => true
+ *   isShortcutCaptureTarget(document.body)                                     // => false
+ */
+export function isShortcutCaptureTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement && target.dataset.shortcutCapture === 'true'
+  )
 }
 
 const SYMBOL_MAP: Record<string, string> = {
@@ -100,15 +152,60 @@ export function findConflict(
 ): string | null {
   for (const [actionId, existing] of Object.entries(map)) {
     if (actionId === excludeId) continue
-    if (
-      existing.key.toLowerCase() === binding.key.toLowerCase() &&
-      existing.meta === binding.meta &&
-      existing.shift === binding.shift &&
-      existing.alt === binding.alt &&
-      existing.ctrl === binding.ctrl
-    ) {
-      return actionId
-    }
+    if (isSameBinding(existing, binding)) return actionId
   }
   return null
+}
+
+/**
+ * Whether two bindings describe the same key combo (key compared case-insensitively).
+ * Backs conflict detection and the "Custom" badge in the shortcut editor.
+ *
+ * @param a - First binding
+ * @param b - Second binding
+ * @returns true when key and all four modifiers match
+ * @example
+ *   isSameBinding({ key: 'k', meta: true, ... }, { key: 'K', meta: true, ... }) // => true
+ *   isSameBinding({ key: 'k', meta: true, ... }, { key: 'k', meta: true, shift: true, ... }) // => false
+ */
+export function isSameBinding(a: ShortcutBinding, b: ShortcutBinding): boolean {
+  return (
+    a.key.toLowerCase() === b.key.toLowerCase() &&
+    a.meta === b.meta &&
+    a.shift === b.shift &&
+    a.alt === b.alt &&
+    a.ctrl === b.ctrl
+  )
+}
+
+/**
+ * Turn a keydown captured by the shortcut editor into a binding, or null when the press
+ * must be ignored: held modifiers / dead keys, and printable keys without ⌘/⌃/⌥ (plain
+ * typing may never become a shortcut). Single characters are stored lower-case so
+ * ⇧ combos match {@link matchesBinding} regardless of the reported case.
+ *
+ * @param event - Keydown from the capture field
+ * @returns
+ * - Binding for a valid combo
+ * - null when the press should be ignored
+ * @example
+ *   bindingFromKeyboardEvent({ key: 'N', metaKey: true, shiftKey: true, altKey: false, ctrlKey: false })
+ *   // => { key: 'n', meta: true, shift: true, alt: false, ctrl: false }
+ *   bindingFromKeyboardEvent({ key: 'Meta', metaKey: true, ... }) // => null (still holding ⌘)
+ *   bindingFromKeyboardEvent({ key: 'n', ...no modifiers })       // => null (plain typing)
+ *   bindingFromKeyboardEvent({ key: 'ArrowUp', ...no modifiers }) // => { key: 'ArrowUp', ... }
+ */
+export function bindingFromKeyboardEvent(
+  event: KeyboardEventLike,
+): ShortcutBinding | null {
+  if (IGNORED_CAPTURE_KEYS.has(event.key)) return null
+  const hasCommandModifier = event.metaKey || event.ctrlKey || event.altKey
+  if (!hasCommandModifier && !BARE_BINDABLE_KEYS.has(event.key)) return null
+  return {
+    key: event.key.length === 1 ? event.key.toLowerCase() : event.key,
+    meta: event.metaKey,
+    shift: event.shiftKey,
+    alt: event.altKey,
+    ctrl: event.ctrlKey,
+  }
 }

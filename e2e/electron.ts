@@ -31,34 +31,62 @@ type ElectronFixtures = {
   page: Page
 }
 
+/**
+ * Launch the built Electron app in test mode against `userDataDir`.
+ * Backs the `electronApp` fixture and restart tests that relaunch into the same profile.
+ *
+ * @param userDataDir - Directory the app uses for userData/sessionData (localStorage lives here)
+ * @returns Running Electron application
+ * @example
+ *   const app = await launchElectronApp(fs.mkdtempSync(path.join(os.tmpdir(), 'lain-e2e-')))
+ */
+export async function launchElectronApp(
+  userDataDir: string,
+): Promise<ElectronApplication> {
+  return electron.launch({
+    args: [path.join(__dirname, '../dist-electron/main.js')],
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      LAIN_TEST_MODE: '1',
+      LAIN_USER_DATA_DIR: userDataDir,
+    },
+  })
+}
+
+/**
+ * First window of `app` with the Raindrop API mocked and the page reloaded, so
+ * RTK Query never fires before the `page.route()` intercepts exist (CI runners
+ * load the app faster than Playwright registers route handlers).
+ *
+ * @param app - Application returned by {@link launchElectronApp}
+ * @returns Page ready for assertions against mock data
+ * @example
+ *   const page = await prepareFirstWindow(app)
+ */
+export async function prepareFirstWindow(
+  app: ElectronApplication,
+): Promise<Page> {
+  const page = await app.firstWindow()
+  await mockRaindropApi(page)
+  await page.reload()
+  await page.waitForLoadState('domcontentloaded')
+  return page
+}
+
 export const test = base.extend<ElectronFixtures>({
   electronApp: async ({}, use) => {
     // Fresh userData per launch: the app persists the ui/search/settings slices
     // to localStorage, so a shared profile would carry e.g. the last selected
     // collection into the next test and break its readiness checks.
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lain-e2e-'))
-    const app = await electron.launch({
-      args: [path.join(__dirname, '../dist-electron/main.js')],
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-        LAIN_TEST_MODE: '1',
-        LAIN_USER_DATA_DIR: userDataDir,
-      },
-    })
+    const app = await launchElectronApp(userDataDir)
     await use(app)
     await app.close()
     fs.rmSync(userDataDir, { recursive: true, force: true })
   },
   page: async ({ electronApp }, use) => {
-    const page = await electronApp.firstWindow()
-    await mockRaindropApi(page)
-    // Reload after mock setup to avoid race condition where RTK Query
-    // fires API calls before page.route() intercepts are registered.
-    // Without this, CI runners may fail because the app loads faster
-    // than Playwright can set up route handlers.
-    await page.reload()
-    await page.waitForLoadState('domcontentloaded')
+    const page = await prepareFirstWindow(electronApp)
     await use(page)
   },
 })

@@ -190,6 +190,12 @@ interface MainContentProps {
   onBatchAddTag?: (ids: string[], tags: string[]) => Promise<void>
   /** Batch delete selected raindrops */
   onBatchDelete?: (ids: string[]) => Promise<void>
+  /** Current view mode from Redux (effective: per-collection override > global) */
+  viewMode: ViewMode
+  /** Callback when view mode changes */
+  onViewModeChange: (mode: ViewMode) => void
+  /** Ref to expose the search input for programmatic focus (Cmd+F) */
+  searchInputRef?: React.RefObject<HTMLInputElement | null>
 }
 
 /**
@@ -357,11 +363,13 @@ const MainContent = React.memo(function MainContent({
   onBatchMove,
   onBatchAddTag,
   onBatchDelete,
+  viewMode,
+  onViewModeChange,
+  searchInputRef,
 }: MainContentProps) {
   // Reserved for bulk action "Move to..." functionality
   void _groups
   void _collections
-  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
   const currentCollectionName =
     breadcrumbs[breadcrumbs.length - 1] ?? 'Collection'
@@ -377,9 +385,12 @@ const MainContent = React.memo(function MainContent({
     () => setIsAdvancedSearchOpen((prev) => !prev),
     [],
   )
-  const handleViewModeChange = useCallback((val: string) => {
-    if (val) setViewMode(val as ViewMode)
-  }, [])
+  const handleViewModeChange = useCallback(
+    (val: string) => {
+      if (val) onViewModeChange(val as ViewMode)
+    },
+    [onViewModeChange],
+  )
   const handleSortChange = useCallback(
     (val: string) => onSortChange(val as SortOption),
     [onSortChange],
@@ -556,7 +567,8 @@ const MainContent = React.memo(function MainContent({
           <div className="relative max-w-md flex-1">
             <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
             <Input
-              placeholder="Search bookmarks... (Cmd+K)"
+              ref={searchInputRef}
+              placeholder="Search bookmarks... (⌘K)"
               value={searchQuery}
               onChange={handleSearchQueryChange}
               className="h-8 pr-8 pl-8 text-sm"
@@ -793,7 +805,10 @@ const MainContent = React.memo(function MainContent({
           </div>
         ) : viewMode === 'grid' ? (
           /* Grid View */
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4">
+          <div
+            data-testid="grid-view"
+            className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4"
+          >
             {filteredRaindrops.map((raindrop) => (
               <RaindropCardWrapper
                 key={raindrop.id}
@@ -811,7 +826,7 @@ const MainContent = React.memo(function MainContent({
           </div>
         ) : (
           /* List View (default) */
-          <div className="divide-y">
+          <div data-testid="list-view" className="divide-y">
             {filteredRaindrops.map((raindrop) => (
               <RaindropListItemWrapper
                 key={raindrop.id}

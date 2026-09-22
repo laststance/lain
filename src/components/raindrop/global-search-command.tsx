@@ -10,7 +10,7 @@ import {
   X,
   ArrowRight,
 } from 'lucide-react'
-import React, { useEffect, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 
 import { FaviconIcon } from '@/components/raindrop/favicon-icon'
 import { Badge } from '@/components/ui/badge'
@@ -238,27 +238,6 @@ const SEARCH_SCOPE_LABELS: Record<SearchScope, string> = {
 }
 
 /**
- * Register a global Cmd+K keyboard shortcut to toggle the search palette.
- * @param open - Whether the palette is currently open
- * @param onOpenChange - Callback to toggle palette visibility
- */
-function useGlobalSearchShortcut(
-  open: boolean,
-  onOpenChange: (open: boolean) => void,
-) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        onOpenChange(!open)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [open, onOpenChange])
-}
-
-/**
  * Global search command palette triggered by Cmd+K.
  * Searches across all raindrops with scope filtering and recent searches.
  *
@@ -295,8 +274,6 @@ const GlobalSearchCommand = React.memo(function GlobalSearchCommand({
   const searchScope = useAppSelector((s) => s.search.scope)
   const searchMode = useAppSelector((s) => s.search.mode)
   const recentSearches = useAppSelector((s) => s.search.recentSearches)
-
-  useGlobalSearchShortcut(open, onOpenChange)
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []

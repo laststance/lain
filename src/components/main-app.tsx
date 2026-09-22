@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
 
 import { AddBookmarkDialog } from '@/components/raindrop/add-bookmark-dialog'
 import { CollectionDialog } from '@/components/raindrop/collection-dialog'
@@ -8,10 +8,12 @@ import { LeftSidebar } from '@/components/raindrop/left-sidebar'
 import { MainContent } from '@/components/raindrop/main-content'
 import { MergeDialog } from '@/components/raindrop/merge-dialog'
 import { RightDetailPanel } from '@/components/raindrop/right-detail-panel'
+import { SettingsDialog } from '@/components/raindrop/settings-dialog'
 import { TagManagement } from '@/components/raindrop/tag-management'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { useCollectionsCrud } from '@/hooks/useCollectionsCrud'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useRaindropsCrud } from '@/hooks/useRaindropsCrud'
 import { useSidebarData } from '@/hooks/useSidebarData'
 import { useTagsCrud } from '@/hooks/useTagsCrud'
@@ -24,6 +26,7 @@ import type {
   SearchMode,
   SearchScope,
   SortOption,
+  ViewMode,
 } from '@/lib/types'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import {
@@ -31,11 +34,13 @@ import {
   closeCollectionDialog,
   closeGroupDialog,
   closeMergeDialog,
+  closeSettings,
   closeTagManagement,
   openAddBookmark,
   openCollectionDialog,
   openGroupDialog,
   openMergeDialog,
+  openSettings,
   openTagManagement,
 } from '@/store/slices/dialogSlice'
 import {
@@ -46,9 +51,12 @@ import {
 } from '@/store/slices/searchSlice'
 import {
   clearSelection,
+  getEffectiveViewMode,
+  selectAllRaindrops,
   setDetailPanelOpen,
   setSelectedCollectionId,
   setSelectedRaindropIds,
+  setViewMode,
 } from '@/store/slices/uiSlice'
 
 /**
@@ -78,6 +86,12 @@ export const MainApp = React.memo(function MainApp() {
   const isGroupDialogOpen = useAppSelector((s) => s.dialog.groupDialog.open)
   const isTagManagementOpen = useAppSelector((s) => s.dialog.tagManagement.open)
   const isMergeDialogOpen = useAppSelector((s) => s.dialog.mergeDialog.open)
+  const isSettingsOpen = useAppSelector((s) => s.dialog.settings.open)
+  const settingsTab = useAppSelector((s) => s.dialog.settings.tab)
+  const effectiveViewMode = useAppSelector(getEffectiveViewMode)
+
+  // --- Refs ---
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // --- Local State ---
   const [selectedRaindrop, setSelectedRaindrop] = useState<
@@ -426,6 +440,78 @@ export const MainApp = React.memo(function MainApp() {
     [dispatch],
   )
 
+  // --- View Mode ---
+  const handleViewModeChange = useCallback(
+    (mode: ViewMode) => dispatch(setViewMode(mode)),
+    [dispatch],
+  )
+
+  // --- Settings Dialog ---
+  const handleSettingsOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) dispatch(closeSettings())
+    },
+    [dispatch],
+  )
+
+  // --- Keyboard Shortcuts ---
+  useKeyboardShortcuts(
+    useMemo(
+      () => ({
+        search: () => dispatch(setSearchOpen(!isSearchOpen)),
+        newBookmark: handleAddBookmark,
+        newCollection: handleAddCollection,
+        viewGrid: () => dispatch(setViewMode('grid')),
+        viewList: () => dispatch(setViewMode('list')),
+        viewTable: () => dispatch(setViewMode('table')),
+        viewDirectory: () => dispatch(setViewMode('directory')),
+        settings: () => dispatch(openSettings()),
+        editShortcuts: () => dispatch(openSettings({ tab: 'shortcuts' })),
+        delete: () => {
+          const ids =
+            selectedRaindropIds.length > 0
+              ? selectedRaindropIds
+              : selectedRaindrop
+                ? [selectedRaindrop.id]
+                : []
+          if (ids.length > 0) batchDeleteRaindrops(ids)
+        },
+        selectAll: () => {
+          const allIds = raindrops.map((r) => r.id)
+          dispatch(selectAllRaindrops(allIds))
+        },
+        searchInView: () => searchInputRef.current?.focus(),
+        searchGlobal: () => {
+          dispatch(setSearchMode('global'))
+          dispatch(setSearchOpen(true))
+        },
+        toggleImportant: () => {
+          const targetId =
+            selectedRaindropIds.length === 1
+              ? selectedRaindropIds[0]
+              : selectedRaindrop?.id
+          if (!targetId) return
+          const target = raindrops.find((r) => r.id === targetId)
+          if (target)
+            updateRaindrop(targetId, { isImportant: !target.isImportant })
+        },
+        manageTags: handleManageTags,
+      }),
+      [
+        dispatch,
+        isSearchOpen,
+        handleAddBookmark,
+        handleAddCollection,
+        selectedRaindropIds,
+        selectedRaindrop,
+        batchDeleteRaindrops,
+        raindrops,
+        updateRaindrop,
+        handleManageTags,
+      ],
+    ),
+  )
+
   // --- Dialog Close Handlers ---
   const handleAddBookmarkOpenChange = useCallback(
     (open: boolean) => {
@@ -524,6 +610,9 @@ export const MainApp = React.memo(function MainApp() {
             onBatchMove={handleBatchMove}
             onBatchAddTag={handleBatchAddTag}
             onBatchDelete={handleBatchDelete}
+            viewMode={effectiveViewMode}
+            onViewModeChange={handleViewModeChange}
+            searchInputRef={searchInputRef}
           />
         </SidebarInset>
 
@@ -588,6 +677,12 @@ export const MainApp = React.memo(function MainApp() {
           onOpenChange={handleMergeDialogOpenChange}
           collections={groups.flatMap((g) => g.collections)}
           onConfirm={handleMergeCollections}
+        />
+
+        <SettingsDialog
+          open={isSettingsOpen}
+          onOpenChange={handleSettingsOpenChange}
+          defaultTab={settingsTab}
         />
       </div>
       <Toaster />

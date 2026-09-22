@@ -23,7 +23,93 @@ export interface ShortcutBinding {
   ctrl: boolean
 }
 
+/**
+ * All 20 keyboard shortcut action IDs from SPEC Section 6.1.
+ * PR1 wires modifier-key shortcuts; PR2 wires navigation keys.
+ */
+export type ShortcutActionId =
+  | 'search'
+  | 'newBookmark'
+  | 'newCollection'
+  | 'viewGrid'
+  | 'viewList'
+  | 'viewTable'
+  | 'viewDirectory'
+  | 'settings'
+  | 'delete'
+  | 'selectAll'
+  | 'navigateUp'
+  | 'navigateDown'
+  | 'openSelected'
+  | 'previewToggle'
+  | 'escape'
+  | 'editShortcuts'
+  | 'searchInView'
+  | 'searchGlobal'
+  | 'toggleImportant'
+  | 'manageTags'
+
 export type ShortcutMap = Record<string, ShortcutBinding>
+
+/**
+ * Shortcut category for grouping in the settings UI.
+ */
+export type ShortcutCategory = 'navigation' | 'editing' | 'view' | 'system'
+
+/**
+ * Metadata for a shortcut action, used by the settings dialog shortcut table.
+ * @example
+ *   SHORTCUT_DEFINITIONS[0]
+ *   // => { actionId: 'search', label: 'Global Search', category: 'navigation' }
+ */
+export interface ShortcutDefinition {
+  actionId: ShortcutActionId
+  label: string
+  category: ShortcutCategory
+}
+
+/**
+ * All 20 shortcut definitions with human-readable labels and categories.
+ * Used by the settings dialog to render the read-only shortcut table.
+ */
+export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
+  { actionId: 'search', label: 'Global Search', category: 'navigation' },
+  { actionId: 'searchInView', label: 'Search in View', category: 'navigation' },
+  {
+    actionId: 'searchGlobal',
+    label: 'Search All Collections',
+    category: 'navigation',
+  },
+  { actionId: 'navigateUp', label: 'Move Up', category: 'navigation' },
+  { actionId: 'navigateDown', label: 'Move Down', category: 'navigation' },
+  { actionId: 'openSelected', label: 'Open Selected', category: 'navigation' },
+  { actionId: 'escape', label: 'Close Panel / Dialog', category: 'navigation' },
+  { actionId: 'newBookmark', label: 'New Bookmark', category: 'editing' },
+  { actionId: 'newCollection', label: 'New Collection', category: 'editing' },
+  { actionId: 'delete', label: 'Delete Selected', category: 'editing' },
+  { actionId: 'selectAll', label: 'Select All', category: 'editing' },
+  {
+    actionId: 'toggleImportant',
+    label: 'Toggle Important',
+    category: 'editing',
+  },
+  { actionId: 'manageTags', label: 'Manage Tags', category: 'editing' },
+  { actionId: 'viewGrid', label: 'Grid View', category: 'view' },
+  { actionId: 'viewList', label: 'List View', category: 'view' },
+  { actionId: 'viewTable', label: 'Table View', category: 'view' },
+  { actionId: 'viewDirectory', label: 'Directory View', category: 'view' },
+  {
+    actionId: 'previewToggle',
+    label: 'Toggle Preview Panel',
+    category: 'view',
+  },
+  { actionId: 'settings', label: 'Settings', category: 'system' },
+  {
+    actionId: 'editShortcuts',
+    label: 'Keyboard Shortcuts',
+    category: 'system',
+  },
+]
 
 /**
  * Settings state for shortcuts, theme, and preferences.
@@ -43,8 +129,10 @@ interface SettingsState {
 
 /**
  * Default keyboard shortcut bindings following macOS conventions.
+ * All 20 shortcuts from SPEC Section 6.1.
  */
 export const DEFAULT_SHORTCUTS: ShortcutMap = {
+  search: { key: 'k', meta: true, shift: false, alt: false, ctrl: false },
   newBookmark: { key: 'n', meta: true, shift: false, alt: false, ctrl: false },
   newCollection: {
     key: 'n',
@@ -63,6 +151,13 @@ export const DEFAULT_SHORTCUTS: ShortcutMap = {
     alt: false,
     ctrl: false,
   },
+  settings: {
+    key: ',',
+    meta: true,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
   delete: {
     key: 'Backspace',
     meta: true,
@@ -71,11 +166,73 @@ export const DEFAULT_SHORTCUTS: ShortcutMap = {
     ctrl: false,
   },
   selectAll: { key: 'a', meta: true, shift: false, alt: false, ctrl: false },
-  search: { key: 'k', meta: true, shift: false, alt: false, ctrl: false },
+  navigateUp: {
+    key: 'ArrowUp',
+    meta: false,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
+  navigateDown: {
+    key: 'ArrowDown',
+    meta: false,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
+  openSelected: {
+    key: 'Enter',
+    meta: false,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
+  previewToggle: {
+    key: ' ',
+    meta: false,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
   escape: {
     key: 'Escape',
     meta: false,
     shift: false,
+    alt: false,
+    ctrl: false,
+  },
+  editShortcuts: {
+    key: 'k',
+    meta: true,
+    shift: true,
+    alt: false,
+    ctrl: false,
+  },
+  searchInView: {
+    key: 'f',
+    meta: true,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
+  searchGlobal: {
+    key: 'f',
+    meta: true,
+    shift: true,
+    alt: false,
+    ctrl: false,
+  },
+  toggleImportant: {
+    key: 'd',
+    meta: true,
+    shift: false,
+    alt: false,
+    ctrl: false,
+  },
+  manageTags: {
+    key: 't',
+    meta: true,
+    shift: true,
     alt: false,
     ctrl: false,
   },
@@ -86,6 +243,21 @@ const initialState: SettingsState = {
   theme: 'system',
   resolvedTheme: 'light',
   defaultViewMode: 'list',
+}
+
+/**
+ * Merge persisted shortcuts with defaults so new shortcuts added in code
+ * are available without clearing localStorage.
+ * Persisted bindings take precedence over defaults for existing keys.
+ *
+ * @param persisted - ShortcutMap from localStorage (may be missing new keys)
+ * @returns Complete ShortcutMap with all 20 shortcuts
+ * @example
+ *   migrateShortcuts({ search: { key: 'k', ... } })
+ *   // => { search: { key: 'k', ... }, settings: { key: ',', ... }, ... } (all 20)
+ */
+export function migrateShortcuts(persisted: ShortcutMap): ShortcutMap {
+  return { ...DEFAULT_SHORTCUTS, ...persisted }
 }
 
 export const settingsSlice = createSlice({
@@ -113,6 +285,13 @@ export const settingsSlice = createSlice({
     resetShortcuts(state) {
       state.shortcuts = DEFAULT_SHORTCUTS
     },
+    /**
+     * Called after hydration to merge persisted shortcuts with defaults.
+     * Ensures new shortcuts from code updates are available.
+     */
+    hydrateShortcuts(state) {
+      state.shortcuts = migrateShortcuts(state.shortcuts)
+    },
   },
 })
 
@@ -122,4 +301,5 @@ export const {
   setDefaultViewMode,
   updateShortcut,
   resetShortcuts,
+  hydrateShortcuts,
 } = settingsSlice.actions

@@ -10,10 +10,20 @@ import { RaindropAuth } from './raindrop-auth.ts'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const isTestMode = process.env.LAIN_TEST_MODE === '1'
+// E2E runs headless by default; LAIN_E2E_HEADED=1 shows the window for debugging.
+const isHeadless = isTestMode && process.env.LAIN_E2E_HEADED !== '1'
 
 const clientId = process.env.VITE_RAINDROP_CLIENT_ID ?? ''
 const clientSecret = process.env.RAINDROP_CLIENT_SECRET ?? ''
 const auth = isTestMode ? null : new RaindropAuth(clientId, clientSecret)
+
+// E2E isolation: each Playwright launch gets its own userData so persisted Redux
+// state (localStorage: selected collection, view mode, ...) never leaks between
+// tests or from the developer's real profile. Must run before app 'ready'.
+if (isTestMode && process.env.LAIN_USER_DATA_DIR) {
+  app.setPath('userData', process.env.LAIN_USER_DATA_DIR)
+  app.setPath('sessionData', process.env.LAIN_USER_DATA_DIR)
+}
 
 let mainWindow: BrowserWindow | null = null
 
@@ -26,11 +36,16 @@ function createWindow(): void {
     width: 1200,
     height: 800,
     title: 'Lain',
+    // Headless E2E: never show the window (Playwright drives it over CDP)
+    show: !isHeadless,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Hidden windows must keep timers/rAF running, otherwise Playwright's
+      // actionability checks (animations settled) never resolve.
+      backgroundThrottling: !isHeadless,
     },
   })
 
@@ -119,6 +134,8 @@ app.whenReady().then(async () => {
   registerShellIPC()
 
   if (isTestMode) {
+    // Headless E2E: no Dock icon, no focus stealing while the suite runs
+    if (isHeadless) app.dock?.hide()
     const { registerTestAuthIPC } = await import('./test-auth.ts')
     registerTestAuthIPC(() => mainWindow)
   } else {

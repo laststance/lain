@@ -7,6 +7,7 @@ import {
   setupAuthListeners,
   setupThemeListeners,
 } from './listenerMiddleware'
+import { withEphemeralUiReset } from './persistence'
 import { authSlice } from './slices/authSlice'
 import { dialogSlice } from './slices/dialogSlice'
 import { searchSlice } from './slices/searchSlice'
@@ -32,6 +33,8 @@ export type RootState = ReturnType<typeof rootReducer>
  * Persists: ui (viewMode, sidebarWidth, collectionViewModes),
  *           search (recentSearches), settings (shortcuts, theme, defaultViewMode).
  * Does NOT persist: RTK Query cache, dialog states, auth (checked via IPC on launch).
+ * The `ui` slice is stored wholesale, so {@link withEphemeralUiReset} discards the
+ * selected collection / selection / detail panel state after hydration (SPEC §3.5).
  */
 const {
   middleware: storageMiddleware,
@@ -58,7 +61,7 @@ const {
  *   const viewMode = useAppSelector(state => state.ui.viewMode)
  */
 export const store = configureStore({
-  reducer,
+  reducer: withEphemeralUiReset(reducer),
   middleware: (getDefault) =>
     getDefault()
       .prepend(listenerMiddleware.middleware)

@@ -1,90 +1,90 @@
 # E2E SPEC.md Coverage Report
 
-Generated: 2026-02-15
+Generated: 2026-09-22
 
 ## Summary
 
 | Category           | Total  | Covered | Coverage  |
 | ------------------ | ------ | ------- | --------- |
-| Feature (F1-F8)    | 43     | 3       | 7.0%      |
+| Feature (F1-F8)    | 43     | 35      | 81.4%     |
 | API Endpoints      | 36     | 8       | 22.2%     |
-| Keyboard Shortcuts | 20     | 1       | 5.0%      |
-| **Total**          | **99** | **12**  | **12.1%** |
+| Keyboard Shortcuts | 20     | 10      | 50.0%     |
+| **Total**          | **99** | **53**  | **53.5%** |
 
 ## Coverage Details
 
-### F1: Scoped Search (0/4)
+### F1: Scoped Search (4/4)
 
-- [ ] **F1.1** — Search only returns results from current collection when scoped
-- [ ] **F1.2** — Scope badge shows current collection name
-- [ ] **F1.3** — Toggle to global search is one click away
-- [ ] **F1.4** — Empty state shows "No results in [collection]" with option to search globally
+- [x] **F1.1** — Search only returns results from current collection when scoped — `e2e/specs/search.spec.ts:67`, `e2e/specs/search.spec.ts:111`
+- [x] **F1.2** — Scope badge shows current collection name — `e2e/specs/search.spec.ts:68`
+- [x] **F1.3** — Toggle to global search is one click away — `e2e/specs/search.spec.ts:69`, `e2e/specs/search.spec.ts:112`
+- [x] **F1.4** — Empty state shows "No results in [collection]" with option to search globally — `e2e/specs/search.spec.ts:70`
 
-### F2: Field-Specific Search (0/5)
+### F2: Field-Specific Search (5/5)
 
-- [ ] **F2.1** — URL-only search finds bookmarks by domain or URL substring
-- [ ] **F2.2** — Title-only search matches against bookmark titles
-- [ ] **F2.3** — Description-only search matches against excerpts
-- [ ] **F2.4** — Matched field is highlighted in search results
-- [ ] **F2.5** — Scope persists across searches (stored in searchSlice)
+- [x] **F2.1** — URL-only search finds bookmarks by domain or URL substring — `e2e/specs/search.spec.ts:152`
+- [x] **F2.2** — Title-only search matches against bookmark titles — `e2e/specs/search.spec.ts:153`
+- [x] **F2.3** — Description-only search matches against excerpts — `e2e/specs/search.spec.ts:154`
+- [x] **F2.4** — Matched field is highlighted in search results — `e2e/specs/search.spec.ts:155`
+- [x] **F2.5** — Scope persists across searches (stored in searchSlice) — `e2e/specs/search.spec.ts:156`
 
 ### F3: Multiple View Modes (1/5)
 
-- [x] **F3.1** — All 4 view modes render correctly with real data — `e2e/specs/crud.spec.ts:210`, `e2e/specs/crud.spec.ts:222`, `e2e/specs/crud.spec.ts:248`
+- [x] **F3.1** — All 4 view modes render correctly with real data — `e2e/specs/crud.spec.ts:390`, `e2e/specs/crud.spec.ts:406`, `e2e/specs/crud.spec.ts:436`
 - [ ] **F3.2** — View mode persists across app restarts
 - [ ] **F3.3** — Per-collection view mode overrides global default
 - [ ] **F3.4** — Cmd+1-4 shortcuts switch view mode
 - [ ] **F3.5** — Smooth transition between modes (no layout flash)
 
-### F4: Auto-Icon Assignment (0/4)
+### F4: Auto-Icon Assignment (4/4)
 
-- [ ] **F4.1** — New bookmarks auto-fetch icon from suggest API
-- [ ] **F4.2** — Fallback to Google Favicon API when suggest returns no icon
-- [ ] **F4.3** — Display domain first letter when no icon available
-- [ ] **F4.4** — Background icon resolution doesn't block UI
+- [x] **F4.1** — New bookmarks auto-fetch icon from suggest API — `e2e/specs/crud.spec.ts:128`
+- [x] **F4.2** — Fallback to Google Favicon API when suggest returns no icon — `e2e/specs/crud.spec.ts:154`
+- [x] **F4.3** — Display domain first letter when no icon available — `e2e/specs/crud.spec.ts:193`
+- [x] **F4.4** — Background icon resolution doesn't block UI — `e2e/specs/crud.spec.ts:226`
 
-### F5: Fuzzy Collection Search (0/5)
+### F5: Fuzzy Collection Search (5/5)
 
-- [ ] **F5.1** — Typing "rct" finds "React Resources" collection
-- [ ] **F5.2** — Match highlights show which characters matched
-- [ ] **F5.3** — Performance: <10ms for 100 collections
-- [ ] **F5.4** — Works in sidebar filter AND collection selector dropdowns
-- [ ] **F5.5** — Empty query shows all collections
+- [x] **F5.1** — Typing "rct" finds "React Resources" collection — `e2e/specs/search.spec.ts:218`
+- [x] **F5.2** — Match highlights show which characters matched — `e2e/specs/search.spec.ts:219`
+- [x] **F5.3** — Performance: <10ms for 100 collections — `e2e/specs/search.spec.ts:285`
+- [x] **F5.4** — Works in sidebar filter AND collection selector dropdowns — `e2e/specs/search.spec.ts:220`, `e2e/specs/search.spec.ts:255`
+- [x] **F5.5** — Empty query shows all collections — `e2e/specs/search.spec.ts:221`
 
-### F6: Group ↔ Collection Editing (0/7)
+### F6: Group ↔ Collection Editing (7/7)
 
-- [ ] **F6.1** — Drag collection between groups updates API
-- [ ] **F6.2** — Reorder within group works and persists
-- [ ] **F6.3** — Double-click enables inline rename
-- [ ] **F6.4** — Right-click context menu with all options
-- [ ] **F6.5** — Drag preview shows collection icon + name
-- [ ] **F6.6** — Drop indicator shows insertion point
-- [ ] **F6.7** — Optimistic updates: UI updates immediately, reverts on error
+- [x] **F6.1** — Drag collection between groups updates API — `e2e/specs/dnd.spec.ts:71`
+- [x] **F6.2** — Reorder within group works and persists — `e2e/specs/dnd.spec.ts:106`
+- [x] **F6.3** — Double-click enables inline rename — `e2e/specs/dnd.spec.ts:133`
+- [x] **F6.4** — Right-click context menu with all options — `e2e/specs/dnd.spec.ts:148`
+- [x] **F6.5** — Drag preview shows collection icon + name — `e2e/specs/dnd.spec.ts:72`
+- [x] **F6.6** — Drop indicator shows insertion point — `e2e/specs/dnd.spec.ts:73`
+- [x] **F6.7** — Optimistic updates: UI updates immediately, reverts on error — `e2e/specs/dnd.spec.ts:183`
 
 ### F7: Enhanced Readability (2/6)
 
 - [ ] **F7.1** — Collection icons use synced Raindrop.io colors
 - [ ] **F7.2** — Groups expand/collapse with persistent state
-- [x] **F7.3** — Breadcrumb shows full path: Group > Collection — `e2e/specs/crud.spec.ts:23`
-- [x] **F7.4** — Bookmark counts visible on collections — `e2e/specs/crud.spec.ts:124`
+- [x] **F7.3** — Breadcrumb shows full path: Group > Collection — `e2e/specs/crud.spec.ts:27`
+- [x] **F7.4** — Bookmark counts visible on collections — `e2e/specs/crud.spec.ts:288`
 - [ ] **F7.5** — Content type has distinct icon per type
 - [ ] **F7.6** — Arrow key navigation works in all view modes
 
-### F8: Keyboard Shortcut Editor (0/7)
+### F8: Keyboard Shortcut Editor (7/7)
 
-- [ ] **F8.1** — Settings dialog has "Keyboard Shortcuts" tab listing all actions
-- [ ] **F8.2** — Click "Edit" on any shortcut → captures next key combo → saves
-- [ ] **F8.3** — Conflict detection warns when binding already assigned, offers swap
-- [ ] **F8.4** — "Reset to Defaults" restores all shortcuts to defaults
-- [ ] **F8.5** — Search filter finds actions by name
-- [ ] **F8.6** — Custom shortcuts persist across app restarts (localStorage)
-- [ ] **F8.7** — Cmd+Shift+K opens shortcut editor from anywhere
+- [x] **F8.1** — Settings dialog has "Keyboard Shortcuts" tab listing all actions — `e2e/specs/keyboard.spec.ts:162`
+- [x] **F8.2** — Click "Edit" on any shortcut → captures next key combo → saves — `e2e/specs/keyboard.spec.ts:171`
+- [x] **F8.3** — Conflict detection warns when binding already assigned, offers swap — `e2e/specs/keyboard.spec.ts:190`
+- [x] **F8.4** — "Reset to Defaults" restores all shortcuts to defaults — `e2e/specs/keyboard.spec.ts:210`
+- [x] **F8.5** — Search filter finds actions by name — `e2e/specs/keyboard.spec.ts:233`
+- [x] **F8.6** — Custom shortcuts persist across app restarts (localStorage) — `e2e/specs/keyboard.spec.ts:241`
+- [x] **F8.7** — Cmd+Shift+K opens shortcut editor from anywhere — `e2e/specs/keyboard.spec.ts:113`
 
 ### API Endpoints (8/36)
 
-- [x] **API.1** — GET /raindrops/{collectionId} — Browse bookmarks in collection — `e2e/specs/crud.spec.ts:24`, `e2e/specs/crud.spec.ts:108`, `e2e/specs/crud.spec.ts:190`, `e2e/specs/crud.spec.ts:271`, `e2e/specs/crud.spec.ts:285`, `e2e/specs/smoke.spec.ts:22`
-- [x] **API.2** — GET /raindrop/{id} — View bookmark details — `e2e/specs/crud.spec.ts:364`, `e2e/specs/crud.spec.ts:394`, `e2e/specs/crud.spec.ts:422`
-- [x] **API.3** — POST /raindrop — Create new bookmark — `e2e/specs/crud.spec.ts:42`
+- [x] **API.1** — GET /raindrops/{collectionId} — Browse bookmarks in collection — `e2e/specs/crud.spec.ts:28`, `e2e/specs/crud.spec.ts:268`, `e2e/specs/crud.spec.ts:366`, `e2e/specs/crud.spec.ts:463`, `e2e/specs/crud.spec.ts:481`, `e2e/specs/smoke.spec.ts:26`
+- [x] **API.2** — GET /raindrop/{id} — View bookmark details — `e2e/specs/crud.spec.ts:572`, `e2e/specs/crud.spec.ts:612`, `e2e/specs/crud.spec.ts:644`
+- [x] **API.3** — POST /raindrop — Create new bookmark — `e2e/specs/crud.spec.ts:50`
 - [ ] **API.4** — PUT /raindrop/{id} — Edit bookmark (title, tags, notes)
 - [ ] **API.5** — DELETE /raindrop/{id} — Delete bookmark
 - [ ] **API.6** — PUT /raindrop/{id}/cover — Upload cover image
@@ -93,10 +93,10 @@ Generated: 2026-02-15
 - [ ] **API.9** — GET /raindrop/{id}/suggest — Re-fetch metadata for existing
 - [ ] **API.10** — PUT /raindrop/file — Upload file as bookmark
 - [ ] **API.11** — POST /raindrops — Batch create (≤100)
-- [x] **API.12** — PUT /raindrops/{collectionId} — Batch update (move, tag, important) — `e2e/specs/crud.spec.ts:141`, `e2e/specs/crud.spec.ts:164`, `e2e/specs/crud.spec.ts:463`
-- [x] **API.13** — DELETE /raindrops/{collectionId} — Batch delete to Trash / purge — `e2e/specs/crud.spec.ts:306`, `e2e/specs/crud.spec.ts:339`
-- [x] **API.14** — GET /collections — Load root collection tree — `e2e/specs/crud.spec.ts:13`, `e2e/specs/smoke.spec.ts:32`
-- [x] **API.15** — GET /collections/childrens — Load nested collections — `e2e/specs/crud.spec.ts:14`, `e2e/specs/smoke.spec.ts:33`
+- [x] **API.12** — PUT /raindrops/{collectionId} — Batch update (move, tag, important) — `e2e/specs/crud.spec.ts:309`, `e2e/specs/crud.spec.ts:336`, `e2e/specs/crud.spec.ts:689`
+- [x] **API.13** — DELETE /raindrops/{collectionId} — Batch delete to Trash / purge — `e2e/specs/crud.spec.ts:506`, `e2e/specs/crud.spec.ts:543`
+- [x] **API.14** — GET /collections — Load root collection tree — `e2e/specs/crud.spec.ts:13`, `e2e/specs/smoke.spec.ts:40`
+- [x] **API.15** — GET /collections/childrens — Load nested collections — `e2e/specs/crud.spec.ts:14`, `e2e/specs/smoke.spec.ts:41`
 - [ ] **API.16** — POST /collection — Create collection
 - [ ] **API.17** — GET /collection/{id} — Load collection for editing
 - [ ] **API.18** — PUT /collection/{id} — Update collection (name, icon, color, parent)
@@ -119,28 +119,28 @@ Generated: 2026-02-15
 - [ ] **API.35** — GET /backups — List backups
 - [ ] **API.36** — POST /backup — Generate backup
 
-### Keyboard Shortcuts (1/20)
+### Keyboard Shortcuts (10/20)
 
-- [ ] **KB.1** — Cmd+K opens global search
-- [ ] **KB.2** — Cmd+N opens new bookmark dialog
-- [ ] **KB.3** — Cmd+Shift+N opens new collection dialog
-- [ ] **KB.4** — Cmd+1 switches to grid view
-- [ ] **KB.5** — Cmd+2 switches to list view
+- [x] **KB.1** — Cmd+K opens global search — `e2e/specs/keyboard.spec.ts:61`
+- [x] **KB.2** — Cmd+N opens new bookmark dialog — `e2e/specs/keyboard.spec.ts:68`
+- [x] **KB.3** — Cmd+Shift+N opens new collection dialog — `e2e/specs/keyboard.spec.ts:77`
+- [x] **KB.4** — Cmd+1 switches to grid view — `e2e/specs/keyboard.spec.ts:86`
+- [x] **KB.5** — Cmd+2 switches to list view — `e2e/specs/keyboard.spec.ts:94`
 - [ ] **KB.6** — Cmd+3 switches to table view
 - [ ] **KB.7** — Cmd+4 switches to directory view
-- [ ] **KB.8** — Cmd+, opens settings
+- [x] **KB.8** — Cmd+, opens settings — `e2e/specs/keyboard.spec.ts:105`
 - [ ] **KB.9** — Cmd+Backspace deletes selected bookmark(s)
-- [ ] **KB.10** — Cmd+A selects all bookmarks in view
+- [x] **KB.10** — Cmd+A selects all bookmarks in view — `e2e/specs/keyboard.spec.ts:123`
 - [ ] **KB.11** — Arrow Up moves selection up
 - [ ] **KB.12** — Arrow Down moves selection down
 - [ ] **KB.13** — Enter opens selected bookmark in browser
 - [ ] **KB.14** — Space toggles detail panel for selected
-- [x] **KB.15** — Escape closes active panel/dialog — `e2e/specs/crud.spec.ts:61`, `e2e/specs/crud.spec.ts:84`
-- [ ] **KB.16** — Cmd+Shift+K opens shortcut editor
+- [x] **KB.15** — Escape closes active panel/dialog — `e2e/specs/crud.spec.ts:73`, `e2e/specs/crud.spec.ts:100`
+- [x] **KB.16** — Cmd+Shift+K opens shortcut editor — `e2e/specs/keyboard.spec.ts:112`
 - [ ] **KB.17** — Cmd+F focuses search bar (scoped to current collection)
 - [ ] **KB.18** — Cmd+Shift+F opens global search across all collections
 - [ ] **KB.19** — Cmd+D toggles important flag on selected
-- [ ] **KB.20** — Cmd+Shift+T opens tag management
+- [x] **KB.20** — Cmd+Shift+T opens tag management — `e2e/specs/keyboard.spec.ts:131`
 
 ## Uncovered Requirements by Phase
 
@@ -175,38 +175,7 @@ Generated: 2026-02-15
 - API.35 — GET /backups — List backups
 - API.36 — POST /backup — Generate backup
 
-### P3 (14 uncovered)
-
-- F1.1 — Search only returns results from current collection when scoped
-- F1.2 — Scope badge shows current collection name
-- F1.3 — Toggle to global search is one click away
-- F1.4 — Empty state shows "No results in [collection]" with option to search globally
-- F2.1 — URL-only search finds bookmarks by domain or URL substring
-- F2.2 — Title-only search matches against bookmark titles
-- F2.3 — Description-only search matches against excerpts
-- F2.4 — Matched field is highlighted in search results
-- F2.5 — Scope persists across searches (stored in searchSlice)
-- F5.1 — Typing "rct" finds "React Resources" collection
-- F5.2 — Match highlights show which characters matched
-- F5.3 — Performance: <10ms for 100 collections
-- F5.4 — Works in sidebar filter AND collection selector dropdowns
-- F5.5 — Empty query shows all collections
-
-### P4 (11 uncovered)
-
-- F4.1 — New bookmarks auto-fetch icon from suggest API
-- F4.2 — Fallback to Google Favicon API when suggest returns no icon
-- F4.3 — Display domain first letter when no icon available
-- F4.4 — Background icon resolution doesn't block UI
-- F6.1 — Drag collection between groups updates API
-- F6.2 — Reorder within group works and persists
-- F6.3 — Double-click enables inline rename
-- F6.4 — Right-click context menu with all options
-- F6.5 — Drag preview shows collection icon + name
-- F6.6 — Drop indicator shows insertion point
-- F6.7 — Optimistic updates: UI updates immediately, reverts on error
-
-### P5 (34 uncovered)
+### P5 (18 uncovered)
 
 - F3.2 — View mode persists across app restarts
 - F3.3 — Per-collection view mode overrides global default
@@ -216,29 +185,13 @@ Generated: 2026-02-15
 - F7.2 — Groups expand/collapse with persistent state
 - F7.5 — Content type has distinct icon per type
 - F7.6 — Arrow key navigation works in all view modes
-- F8.1 — Settings dialog has "Keyboard Shortcuts" tab listing all actions
-- F8.2 — Click "Edit" on any shortcut → captures next key combo → saves
-- F8.3 — Conflict detection warns when binding already assigned, offers swap
-- F8.4 — "Reset to Defaults" restores all shortcuts to defaults
-- F8.5 — Search filter finds actions by name
-- F8.6 — Custom shortcuts persist across app restarts (localStorage)
-- F8.7 — Cmd+Shift+K opens shortcut editor from anywhere
-- KB.1 — Cmd+K opens global search
-- KB.2 — Cmd+N opens new bookmark dialog
-- KB.3 — Cmd+Shift+N opens new collection dialog
-- KB.4 — Cmd+1 switches to grid view
-- KB.5 — Cmd+2 switches to list view
 - KB.6 — Cmd+3 switches to table view
 - KB.7 — Cmd+4 switches to directory view
-- KB.8 — Cmd+, opens settings
 - KB.9 — Cmd+Backspace deletes selected bookmark(s)
-- KB.10 — Cmd+A selects all bookmarks in view
 - KB.11 — Arrow Up moves selection up
 - KB.12 — Arrow Down moves selection down
 - KB.13 — Enter opens selected bookmark in browser
 - KB.14 — Space toggles detail panel for selected
-- KB.16 — Cmd+Shift+K opens shortcut editor
 - KB.17 — Cmd+F focuses search bar (scoped to current collection)
 - KB.18 — Cmd+Shift+F opens global search across all collections
 - KB.19 — Cmd+D toggles important flag on selected
-- KB.20 — Cmd+Shift+T opens tag management

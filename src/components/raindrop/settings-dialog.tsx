@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 
+import { ShortcutEditor } from '@/components/raindrop/shortcut-editor'
 import {
   Dialog,
   DialogContent,
@@ -8,15 +9,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { formatShortcut } from '@/lib/shortcut-utils'
+import { isShortcutCaptureTarget } from '@/lib/shortcut-utils'
 import type { ViewMode } from '@/lib/types'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import {
-  SHORTCUT_DEFINITIONS,
-  setDefaultViewMode,
-  setTheme,
-} from '@/store/slices/settingsSlice'
-import type { ShortcutCategory } from '@/store/slices/settingsSlice'
+import { setDefaultViewMode, setTheme } from '@/store/slices/settingsSlice'
 
 interface SettingsDialogProps {
   open: boolean
@@ -24,23 +20,10 @@ interface SettingsDialogProps {
   defaultTab?: string
 }
 
-const CATEGORY_LABELS: Record<ShortcutCategory, string> = {
-  navigation: 'Navigation',
-  editing: 'Editing',
-  view: 'View',
-  system: 'System',
-}
-
-const CATEGORY_ORDER: ShortcutCategory[] = [
-  'navigation',
-  'editing',
-  'view',
-  'system',
-]
-
 /**
  * Settings dialog with General and Keyboard Shortcuts tabs.
- * Shortcuts tab is read-only in PR1; editing ships in PR2.
+ * The shortcuts tab hosts {@link ShortcutEditor}; while it captures a key combo,
+ * Escape cancels the capture instead of closing the dialog.
  *
  * @example
  *   <SettingsDialog open={isOpen} onOpenChange={setIsOpen} defaultTab="shortcuts" />
@@ -51,13 +34,17 @@ export const SettingsDialog = React.memo(function SettingsDialog({
   defaultTab,
 }: SettingsDialogProps) {
   const dispatch = useAppDispatch()
-  const shortcuts = useAppSelector((s) => s.settings.shortcuts)
   const theme = useAppSelector((s) => s.settings.theme)
   const defaultViewMode = useAppSelector((s) => s.settings.defaultViewMode)
 
+  // Radix hears Escape in the capture phase, before the editor's field can cancel the capture
+  const handleEscapeKeyDown = useCallback((event: KeyboardEvent) => {
+    if (isShortcutCaptureTarget(event.target)) event.preventDefault()
+  }, [])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl" onEscapeKeyDown={handleEscapeKeyDown}>
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>Customize your Lain experience.</DialogDescription>
@@ -120,39 +107,7 @@ export const SettingsDialog = React.memo(function SettingsDialog({
           </TabsContent>
 
           <TabsContent value="shortcuts" className="pt-4">
-            <div className="max-h-[400px] overflow-y-auto">
-              {CATEGORY_ORDER.map((category) => {
-                const defs = SHORTCUT_DEFINITIONS.filter(
-                  (d) => d.category === category,
-                )
-                if (defs.length === 0) return null
-                return (
-                  <div key={category} className="mb-4">
-                    <h4 className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-                      {CATEGORY_LABELS[category]}
-                    </h4>
-                    <div className="space-y-1">
-                      {defs.map((def) => {
-                        const binding = shortcuts[def.actionId]
-                        return (
-                          <div
-                            key={def.actionId}
-                            className="flex items-center justify-between rounded-md px-2 py-1.5"
-                          >
-                            <span className="text-sm">{def.label}</span>
-                            {binding && (
-                              <kbd className="bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-xs">
-                                {formatShortcut(binding)}
-                              </kbd>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <ShortcutEditor />
           </TabsContent>
         </Tabs>
       </DialogContent>

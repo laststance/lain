@@ -286,6 +286,22 @@ export const settingsSlice = createSlice({
       state.shortcuts = DEFAULT_SHORTCUTS
     },
     /**
+     * Exchange the bindings of two actions — the "Swap" outcome of the shortcut
+     * editor's conflict prompt. Unknown ids leave the map untouched.
+     */
+    swapShortcuts(
+      state,
+      action: PayloadAction<{ actionId: string; otherActionId: string }>,
+    ) {
+      const { actionId, otherActionId } = action.payload
+      const binding = state.shortcuts[actionId]
+      const otherBinding = state.shortcuts[otherActionId]
+      // A stale persisted map may miss an id — never write undefined into the map
+      if (!binding || !otherBinding) return
+      state.shortcuts[actionId] = otherBinding
+      state.shortcuts[otherActionId] = binding
+    },
+    /**
      * Called after hydration to merge persisted shortcuts with defaults.
      * Ensures new shortcuts from code updates are available.
      */
@@ -301,5 +317,6 @@ export const {
   setDefaultViewMode,
   updateShortcut,
   resetShortcuts,
+  swapShortcuts,
   hydrateShortcuts,
 } = settingsSlice.actions

@@ -11,9 +11,12 @@ import {
   X,
 } from 'lucide-react'
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { match } from 'ts-pattern'
 
+import { DirectoryView } from '@/components/raindrop/directory-view'
 import { RaindropCard } from '@/components/raindrop/raindrop-card'
 import { RaindropListItem } from '@/components/raindrop/raindrop-list-item'
+import { TableView } from '@/components/raindrop/table-view'
 import { Badge } from '@/components/ui/badge'
 import {
   Breadcrumb,
@@ -26,10 +29,12 @@ import {
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -57,6 +62,15 @@ import type {
   SearchMode,
   SearchScope,
 } from '@/lib/types'
+import { buildDirectoryTree } from '@/utils/build-directory-tree'
+
+/**
+ * Keep the view-mode menu open after toggling "Remember for this collection", so a
+ * view can be picked right away (Radix closes menus on item select by default).
+ * @param event - Radix `onSelect` custom event
+ * @example <DropdownMenuCheckboxItem onSelect={keepMenuOpen} />
+ */
+const keepMenuOpen = (event: Event) => event.preventDefault()
 
 /**
  * Static map of view mode to icon component and label for the toolbar dropdown.
@@ -194,6 +208,12 @@ interface MainContentProps {
   viewMode: ViewMode
   /** Callback when view mode changes */
   onViewModeChange: (mode: ViewMode) => void
+  /** True when the selected collection is remembered with its own view mode (F3.3) */
+  hasCollectionViewModeOverride: boolean
+  /** Remember / forget the selected collection's own view mode */
+  onCollectionViewModeOverrideChange: (enabled: boolean) => void
+  /** Toggle the important flag of a single raindrop (table view row actions) */
+  onToggleImportant?: (raindropId: string) => void
   /** Ref to expose the search input for programmatic focus (Cmd+F) */
   searchInputRef?: React.RefObject<HTMLInputElement | null>
 }
@@ -350,7 +370,7 @@ const MainContent = React.memo(function MainContent({
   selectedRaindropIds,
   onSelectedRaindropIdsChange,
   groups: _groups,
-  collections: _collections,
+  collections,
   onAddBookmark,
   sortOption,
   onSortChange,
@@ -365,11 +385,13 @@ const MainContent = React.memo(function MainContent({
   onBatchDelete,
   viewMode,
   onViewModeChange,
+  hasCollectionViewModeOverride,
+  onCollectionViewModeOverrideChange,
+  onToggleImportant,
   searchInputRef,
 }: MainContentProps) {
   // Reserved for bulk action "Move to..." functionality
   void _groups
-  void _collections
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false)
   const currentCollectionName =
     breadcrumbs[breadcrumbs.length - 1] ?? 'Collection'
@@ -429,6 +451,23 @@ const MainContent = React.memo(function MainContent({
   const filteredRaindrops = useMemo(() => {
     return filterByScope(raindrops, searchQuery, searchScope)
   }, [raindrops, searchQuery, searchScope])
+
+  // Directory view hangs the loaded raindrops off the collection tree of the current scope
+  const directoryTree = useMemo(
+    () =>
+      buildDirectoryTree({
+        collections,
+        raindrops: filteredRaindrops,
+        selectedCollectionId,
+        currentCollectionName,
+      }),
+    [
+      collections,
+      filteredRaindrops,
+      selectedCollectionId,
+      currentCollectionName,
+    ],
+  )
 
   const handleBatchDelete = useCallback(async () => {
     await onBatchDelete?.([...selectedRaindropIds])
@@ -504,6 +543,18 @@ const MainContent = React.memo(function MainContent({
   const handleRaindropDoubleClick = useCallback((raindrop: Raindrop) => {
     window.shell.openExternal(raindrop.url)
   }, [])
+
+  // Table / directory views hand back a URL rather than a raindrop
+  const handleOpenUrl = useCallback((url: string) => {
+    window.shell.openExternal(url)
+  }, [])
+
+  const handleDeleteRaindrops = useCallback(
+    (ids: string[]) => {
+      void onBatchDelete?.(ids)
+    },
+    [onBatchDelete],
+  )
 
   // --- Infinite Scroll ---
   const scrollAreaRef = useRef<HTMLDivElement>(null)
@@ -667,6 +718,14 @@ const MainContent = React.memo(function MainContent({
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={hasCollectionViewModeOverride}
+                onCheckedChange={onCollectionViewModeOverrideChange}
+                onSelect={keepMenuOpen}
+              >
+                Remember for this collection
+              </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -713,8 +772,8 @@ const MainContent = React.memo(function MainContent({
           </div>
         )}
 
-        {/* Bulk Actions Bar */}
-        {selectedRaindropIds.size > 0 && (
+        {/* Bulk Actions Bar — the table view renders its own */}
+        {selectedRaindropIds.size > 0 && viewMode !== 'table' && (
           <div className="bg-muted/30 flex items-center gap-2 border-t px-4 pt-2 pb-2">
             <span className="text-xs font-medium">
               {selectedRaindropIds.size} selected
@@ -803,46 +862,73 @@ const MainContent = React.memo(function MainContent({
               </Button>
             )}
           </div>
-        ) : viewMode === 'grid' ? (
-          /* Grid View */
-          <div
-            data-testid="grid-view"
-            className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4"
-          >
-            {filteredRaindrops.map((raindrop) => (
-              <RaindropCardWrapper
-                key={raindrop.id}
-                raindrop={raindrop}
-                isSelected={
-                  selectedRaindropId === raindrop.id ||
-                  selectedRaindropIds.has(raindrop.id)
-                }
-                onRaindropClick={handleRaindropClick}
-                onRaindropDoubleClick={handleRaindropDoubleClick}
-                searchQuery={searchQuery}
-                searchScope={searchScope}
-              />
-            ))}
-          </div>
         ) : (
-          /* List View (default) */
-          <div data-testid="list-view" className="divide-y">
-            {filteredRaindrops.map((raindrop) => (
-              <RaindropListItemWrapper
-                key={raindrop.id}
-                raindrop={raindrop}
-                isSelected={
-                  selectedRaindropId === raindrop.id ||
-                  selectedRaindropIds.has(raindrop.id)
-                }
-                onRaindropClick={handleRaindropClick}
-                onToggleSelect={handleToggleSelect}
-                onRaindropDoubleClick={handleRaindropDoubleClick}
-                searchQuery={searchQuery}
-                searchScope={searchScope}
-              />
-            ))}
-          </div>
+          match(viewMode)
+            .with('grid', () => (
+              <div
+                data-testid="grid-view"
+                className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4"
+              >
+                {filteredRaindrops.map((raindrop) => (
+                  <RaindropCardWrapper
+                    key={raindrop.id}
+                    raindrop={raindrop}
+                    isSelected={
+                      selectedRaindropId === raindrop.id ||
+                      selectedRaindropIds.has(raindrop.id)
+                    }
+                    onRaindropClick={handleRaindropClick}
+                    onRaindropDoubleClick={handleRaindropDoubleClick}
+                    searchQuery={searchQuery}
+                    searchScope={searchScope}
+                  />
+                ))}
+              </div>
+            ))
+            .with('list', () => (
+              <div data-testid="list-view" className="divide-y">
+                {filteredRaindrops.map((raindrop) => (
+                  <RaindropListItemWrapper
+                    key={raindrop.id}
+                    raindrop={raindrop}
+                    isSelected={
+                      selectedRaindropId === raindrop.id ||
+                      selectedRaindropIds.has(raindrop.id)
+                    }
+                    onRaindropClick={handleRaindropClick}
+                    onToggleSelect={handleToggleSelect}
+                    onRaindropDoubleClick={handleRaindropDoubleClick}
+                    searchQuery={searchQuery}
+                    searchScope={searchScope}
+                  />
+                ))}
+              </div>
+            ))
+            .with('table', () => (
+              <div data-testid="table-view">
+                <TableView
+                  raindrops={filteredRaindrops}
+                  selectedIds={selectedRaindropIds}
+                  onSelectionChange={onSelectedRaindropIdsChange}
+                  onSelect={onSelectRaindrop}
+                  onOpenUrl={handleOpenUrl}
+                  onDelete={handleDeleteRaindrops}
+                  onToggleImportant={onToggleImportant}
+                />
+              </div>
+            ))
+            .with('directory', () => (
+              <div data-testid="directory-view">
+                <DirectoryView
+                  collections={directoryTree.collections}
+                  raindropsByCollection={directoryTree.raindropsByCollection}
+                  selectedRaindropId={selectedRaindropId}
+                  onSelectRaindrop={onSelectRaindrop}
+                  onOpenUrl={handleOpenUrl}
+                />
+              </div>
+            ))
+            .exhaustive()
         )}
 
         {/* Infinite scroll sentinel + loading indicator */}

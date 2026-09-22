@@ -51,8 +51,11 @@ import {
 } from '@/store/slices/searchSlice'
 import {
   clearSelection,
+  clearCollectionViewMode,
   getEffectiveViewMode,
+  getHasCollectionViewModeOverride,
   selectAllRaindrops,
+  setCollectionViewMode,
   setDetailPanelOpen,
   setSelectedCollectionId,
   setSelectedRaindropIds,
@@ -89,6 +92,9 @@ export const MainApp = React.memo(function MainApp() {
   const isSettingsOpen = useAppSelector((s) => s.dialog.settings.open)
   const settingsTab = useAppSelector((s) => s.dialog.settings.tab)
   const effectiveViewMode = useAppSelector(getEffectiveViewMode)
+  const hasCollectionViewModeOverride = useAppSelector(
+    getHasCollectionViewModeOverride,
+  )
 
   // --- Refs ---
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -441,9 +447,47 @@ export const MainApp = React.memo(function MainApp() {
   )
 
   // --- View Mode ---
+  // A remembered collection keeps its own mode; the global default stays untouched (F3.3)
   const handleViewModeChange = useCallback(
-    (mode: ViewMode) => dispatch(setViewMode(mode)),
-    [dispatch],
+    (mode: ViewMode) => {
+      if (hasCollectionViewModeOverride) {
+        dispatch(
+          setCollectionViewMode({
+            collectionId: selectedCollectionId,
+            viewMode: mode,
+          }),
+        )
+      } else {
+        dispatch(setViewMode(mode))
+      }
+    },
+    [dispatch, hasCollectionViewModeOverride, selectedCollectionId],
+  )
+
+  const handleCollectionViewModeOverrideChange = useCallback(
+    (enabled: boolean) => {
+      if (enabled) {
+        dispatch(
+          setCollectionViewMode({
+            collectionId: selectedCollectionId,
+            viewMode: effectiveViewMode,
+          }),
+        )
+      } else {
+        dispatch(clearCollectionViewMode(selectedCollectionId))
+      }
+    },
+    [dispatch, effectiveViewMode, selectedCollectionId],
+  )
+
+  const handleToggleImportant = useCallback(
+    (raindropId: string) => {
+      const target = raindrops.find((r) => r.id === raindropId)
+      if (target) {
+        updateRaindrop(raindropId, { isImportant: !target.isImportant })
+      }
+    },
+    [raindrops, updateRaindrop],
   )
 
   // --- Settings Dialog ---
@@ -461,10 +505,10 @@ export const MainApp = React.memo(function MainApp() {
         search: () => dispatch(setSearchOpen(!isSearchOpen)),
         newBookmark: handleAddBookmark,
         newCollection: handleAddCollection,
-        viewGrid: () => dispatch(setViewMode('grid')),
-        viewList: () => dispatch(setViewMode('list')),
-        viewTable: () => dispatch(setViewMode('table')),
-        viewDirectory: () => dispatch(setViewMode('directory')),
+        viewGrid: () => handleViewModeChange('grid'),
+        viewList: () => handleViewModeChange('list'),
+        viewTable: () => handleViewModeChange('table'),
+        viewDirectory: () => handleViewModeChange('directory'),
         settings: () => dispatch(openSettings()),
         editShortcuts: () => dispatch(openSettings({ tab: 'shortcuts' })),
         delete: () => {
@@ -490,10 +534,7 @@ export const MainApp = React.memo(function MainApp() {
             selectedRaindropIds.length === 1
               ? selectedRaindropIds[0]
               : selectedRaindrop?.id
-          if (!targetId) return
-          const target = raindrops.find((r) => r.id === targetId)
-          if (target)
-            updateRaindrop(targetId, { isImportant: !target.isImportant })
+          if (targetId) handleToggleImportant(targetId)
         },
         manageTags: handleManageTags,
       }),
@@ -506,7 +547,8 @@ export const MainApp = React.memo(function MainApp() {
         selectedRaindrop,
         batchDeleteRaindrops,
         raindrops,
-        updateRaindrop,
+        handleToggleImportant,
+        handleViewModeChange,
         handleManageTags,
       ],
     ),
@@ -612,6 +654,11 @@ export const MainApp = React.memo(function MainApp() {
             onBatchDelete={handleBatchDelete}
             viewMode={effectiveViewMode}
             onViewModeChange={handleViewModeChange}
+            hasCollectionViewModeOverride={hasCollectionViewModeOverride}
+            onCollectionViewModeOverrideChange={
+              handleCollectionViewModeOverrideChange
+            }
+            onToggleImportant={handleToggleImportant}
             searchInputRef={searchInputRef}
           />
         </SidebarInset>

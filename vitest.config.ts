@@ -13,6 +13,15 @@ export default defineConfig({
       reporter: ['text', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['test/**', 'src/**/*.test.*', 'src/store/api/raindropApi.ts'],
+      // Gate: fail `pnpm test:coverage` when coverage regresses below these floors.
+      // Baseline 2026-09-22: 50.0% stmts / 35.0% branches / 38.0% funcs / 51.1% lines.
+      // Raise the floors as coverage grows — never lower them.
+      thresholds: {
+        statements: 45,
+        branches: 30,
+        functions: 33,
+        lines: 45,
+      },
     },
   },
   resolve: {

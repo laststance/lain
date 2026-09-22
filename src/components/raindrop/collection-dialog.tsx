@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
 import { CollectionSelector } from '@/components/raindrop/collection-selector'
@@ -175,7 +175,7 @@ const CollectionDialog = React.memo(function CollectionDialog({
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CollectionFormValues>({
     resolver: zodResolver(collectionSchema),
@@ -190,10 +190,13 @@ const CollectionDialog = React.memo(function CollectionDialog({
     },
   })
 
-  const selectedColor = watch('color')
-  const selectedIcon = watch('icon')
-  const selectedGroupId = watch('groupId')
-  const isPublic = watch('isPublic')
+  // useWatch (not watch()) keeps the component eligible for React Compiler memoization
+  const selectedColor = useWatch({ control, name: 'color' })
+  const selectedIcon = useWatch({ control, name: 'icon' })
+  const selectedGroupId = useWatch({ control, name: 'groupId' })
+  const isPublic = useWatch({ control, name: 'isPublic' })
+  const selectedParentId = useWatch({ control, name: 'parentId' })
+  const selectedViewMode = useWatch({ control, name: 'viewMode' })
 
   useCollectionFormReset(open, collection, groups, reset, setIconSearch)
 
@@ -293,7 +296,7 @@ const CollectionDialog = React.memo(function CollectionDialog({
               <Label>Parent Collection</Label>
               <CollectionSelector
                 groups={groups}
-                value={watch('parentId')}
+                value={selectedParentId}
                 onChange={handleParentChange}
                 placeholder="None (root level)"
                 allowNone
@@ -357,7 +360,7 @@ const CollectionDialog = React.memo(function CollectionDialog({
             <div className="grid gap-2">
               <Label htmlFor="collection-view">Default View</Label>
               <Select
-                value={watch('viewMode')}
+                value={selectedViewMode}
                 onValueChange={handleViewModeChange}
               >
                 <SelectTrigger id="collection-view">

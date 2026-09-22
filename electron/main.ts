@@ -6,6 +6,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import type { AuthState } from '../src/lib/types.ts'
 
 import { RaindropAuth } from './raindrop-auth.ts'
+import { startAutoUpdater } from './updater.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -142,6 +143,8 @@ app.whenReady().then(async () => {
     if (!auth) throw new Error('auth must be initialized in non-test mode')
     registerShellIPC()
     registerAuthIPC(auth)
+    // Release builds update themselves from GitHub Releases (see electron-builder.yml)
+    if (app.isPackaged) startAutoUpdater()
   }
 
   createWindow()

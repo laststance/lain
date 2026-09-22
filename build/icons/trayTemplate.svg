@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22">
+  <!-- monochrome template glyph: hub + 6 satellites -->
+  <g stroke="#000" stroke-width="1.6" stroke-linecap="round" fill="none">
+    <path d="M11 11 L11 4 M11 11 L17 7.5 M11 11 L17 14.5 M11 11 L11 18 M11 11 L5 14.5 M11 11 L5 7.5"/>
+  </g>
+  <g fill="#000">
+    <circle cx="11" cy="4" r="1.7"/><circle cx="17" cy="7.5" r="1.7"/><circle cx="17" cy="14.5" r="1.7"/>
+    <circle cx="11" cy="18" r="1.7"/><circle cx="5" cy="14.5" r="1.7"/><circle cx="5" cy="7.5" r="1.7"/>
+    <circle cx="11" cy="11" r="2.6"/>
+  </g>
+</svg>

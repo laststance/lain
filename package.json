@@ -2,6 +2,16 @@
   "name": "lain",
   "private": true,
   "version": "0.1.0",
+  "description": "macOS-native Raindrop.io desktop client for power users",
+  "author": {
+    "name": "Laststance.io",
+    "url": "https://laststance.io"
+  },
+  "homepage": "https://github.com/laststance/lain",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laststance/lain.git"
+  },
   "type": "module",
   "packageManager": "pnpm@10.29.3",
   "main": "dist-electron/main.js",
@@ -20,7 +30,9 @@
     "prepare": "husky",
     "prettier": "prettier --ignore-unknown --write .",
     "knip": "knip",
-    "coverage:e2e-spec": "tsx scripts/e2e-coverage-report.ts"
+    "coverage:e2e-spec": "tsx scripts/e2e-coverage-report.ts",
+    "electron:build": "pnpm build && electron-builder --mac",
+    "electron:build:dir": "pnpm build && electron-builder --mac --dir"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
@@ -38,6 +50,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.564.0",
     "motion": "^12.34.0",

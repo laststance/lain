@@ -86,7 +86,6 @@ const config: KnipConfig = {
 
     // DevDeps: CLI/build tools not imported in source
     '@faker-js/faker',
-    'electron-builder',
     'esbuild-runner',
 
     // DevDeps: peer deps of eslint-config-ts-prefixer

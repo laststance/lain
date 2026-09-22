@@ -1753,12 +1753,12 @@ iconutil --convert icns build/icons/icon.iconset
 
 ### 9.1 Overview
 
-| Property   | Value                            |
-| ---------- | -------------------------------- |
-| Repository | `laststance/lain-web` (separate) |
-| Framework  | Next.js or Vite + React          |
-| Hosting    | Vercel (Laststance org)          |
-| Domain     | TBD (`lain.app` or similar)      |
+| Property   | Value                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| Repository | [`laststance/lain-web`](https://github.com/laststance/lain-web) (separate)                     |
+| Framework  | Next.js (App Router) + Tailwind CSS v4                                                         |
+| Hosting    | Vercel (Laststance org)                                                                        |
+| Domain     | [lain-web.vercel.app](https://lain-web.vercel.app) — custom domain TBD (`lain.app` or similar) |
 
 ### 9.2 Page Structure
 

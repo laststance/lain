@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#241548"/>
+      <stop offset="1" stop-color="#0a0616"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c4b5fd"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#a78bfa" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="node" cx="0.35" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#f5f3ff"/>
+      <stop offset="0.45" stop-color="#c4b5fd"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </radialGradient>
+    <filter id="blur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <clipPath id="squircle">
+      <rect x="100" y="100" width="824" height="824" rx="185" ry="185"/>
+    </clipPath>
+  </defs>
+
+  <!-- macOS squircle tile -->
+  <rect x="100" y="100" width="824" height="824" rx="185" ry="185" fill="url(#bg)"/>
+  <g clip-path="url(#squircle)">
+    <!-- faint circuit grid -->
+    <g stroke="#7c3aed" stroke-opacity="0.16" stroke-width="3">
+      <path d="M100 340 H924 M100 512 H924 M100 684 H924 M340 100 V924 M512 100 V924 M684 100 V924"/>
+    </g>
+    <!-- ambient glow behind the network -->
+    <circle cx="512" cy="512" r="330" fill="url(#glow)"/>
+  </g>
+
+  <!-- neural network: hub + 6 satellites, wired -->
+  <g stroke="url(#edge)" stroke-width="22" stroke-linecap="round" fill="none">
+    <path d="M512 512 L512 262"/>
+    <path d="M512 512 L728 387"/>
+    <path d="M512 512 L728 637"/>
+    <path d="M512 512 L512 762"/>
+    <path d="M512 512 L296 637"/>
+    <path d="M512 512 L296 387"/>
+    <!-- outer ring links -->
+    <path d="M512 262 L728 387 L728 637 L512 762 L296 637 L296 387 Z" stroke-width="12" stroke-opacity="0.75"/>
+  </g>
+
+  <!-- satellite halos -->
+  <g fill="#a78bfa" fill-opacity="0.35" filter="url(#blur)">
+    <circle cx="512" cy="262" r="46"/><circle cx="728" cy="387" r="46"/><circle cx="728" cy="637" r="46"/>
+    <circle cx="512" cy="762" r="46"/><circle cx="296" cy="637" r="46"/><circle cx="296" cy="387" r="46"/>
+  </g>
+  <!-- satellites -->
+  <g fill="url(#node)">
+    <circle cx="512" cy="262" r="40"/><circle cx="728" cy="387" r="40"/><circle cx="728" cy="637" r="40"/>
+    <circle cx="512" cy="762" r="40"/><circle cx="296" cy="637" r="40"/><circle cx="296" cy="387" r="40"/>
+  </g>
+  <!-- hub -->
+  <circle cx="512" cy="512" r="110" fill="#a78bfa" fill-opacity="0.45" filter="url(#blur)"/>
+  <circle cx="512" cy="512" r="84" fill="url(#node)"/>
+  <circle cx="512" cy="512" r="84" fill="none" stroke="#ede9fe" stroke-opacity="0.6" stroke-width="6"/>
+</svg>

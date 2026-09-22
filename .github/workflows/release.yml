@@ -1,0 +1,64 @@
+name: Release
+
+# Builds the macOS app and uploads it to a draft GitHub Release.
+# Trigger: push a tag such as v0.1.0 (or run manually). Publish the draft by hand.
+#
+# Required repository secrets:
+#   VITE_RAINDROP_CLIENT_ID, RAINDROP_CLIENT_SECRET   Raindrop.io OAuth app (inlined at build time)
+# Optional (unsigned/un-notarized build without them):
+#   CSC_LINK, CSC_KEY_PASSWORD                          Developer ID Application certificate (.p12, base64)
+#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID  Notarization
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/prepare
+
+      - name: Check Raindrop.io OAuth secrets
+        env:
+          VITE_RAINDROP_CLIENT_ID: ${{ secrets.VITE_RAINDROP_CLIENT_ID }}
+          RAINDROP_CLIENT_SECRET: ${{ secrets.RAINDROP_CLIENT_SECRET }}
+        run: |
+          if [ -z "$VITE_RAINDROP_CLIENT_ID" ] || [ -z "$RAINDROP_CLIENT_SECRET" ]; then
+            echo "::error::VITE_RAINDROP_CLIENT_ID and RAINDROP_CLIENT_SECRET repository secrets are required — the OAuth client is inlined into the main process at build time."
+            exit 1
+          fi
+
+      - name: Build renderer + main process
+        env:
+          VITE_RAINDROP_CLIENT_ID: ${{ secrets.VITE_RAINDROP_CLIENT_ID }}
+          RAINDROP_CLIENT_SECRET: ${{ secrets.RAINDROP_CLIENT_SECRET }}
+        run: pnpm build
+
+      - name: Package, sign, notarize and upload to the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm exec electron-builder --mac --arm64 --x64 --publish always
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: lain-macos
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/latest-mac.yml
+          if-no-files-found: warn

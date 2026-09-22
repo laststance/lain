@@ -3,8 +3,8 @@
 > Raindrop.io Desktop Client for macOS
 
 **Version:** 0.1.0
-**Date:** 2026-02-14
-**Status:** Pre-Alpha (UI Prototype Complete, API Integration Pending)
+**Date:** 2026-09-23
+**Status:** Alpha (v0.1.0 released 2026-09-23 — phases P1–P7 delivered)
 
 ---
 

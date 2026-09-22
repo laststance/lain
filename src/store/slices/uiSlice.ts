@@ -71,6 +71,9 @@ export const uiSlice = createSlice({
       state.collectionViewModes[action.payload.collectionId] =
         action.payload.viewMode
     },
+    clearCollectionViewMode(state, action: PayloadAction<string>) {
+      delete state.collectionViewModes[action.payload]
+    },
   },
 })
 
@@ -84,6 +87,7 @@ export const {
   selectAllRaindrops,
   clearSelection,
   setCollectionViewMode,
+  clearCollectionViewMode,
 } = uiSlice.actions
 
 /**
@@ -100,3 +104,12 @@ export const getEffectiveViewMode = createSelector(
   (collectionViewModes, selectedCollectionId, viewMode) =>
     collectionViewModes[selectedCollectionId] ?? viewMode,
 )
+
+/**
+ * Whether the selected collection is remembered with its own view mode (F3.3).
+ * @example
+ *   const isRemembered = useAppSelector(getHasCollectionViewModeOverride) // true | false
+ */
+export const getHasCollectionViewModeOverride = (state: {
+  ui: UiState
+}): boolean => state.ui.selectedCollectionId in state.ui.collectionViewModes

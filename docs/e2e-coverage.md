@@ -6,10 +6,10 @@ Generated: 2026-09-22
 
 | Category           | Total  | Covered | Coverage  |
 | ------------------ | ------ | ------- | --------- |
-| Feature (F1-F8)    | 43     | 35      | 81.4%     |
+| Feature (F1-F8)    | 43     | 38      | 88.4%     |
 | API Endpoints      | 36     | 8       | 22.2%     |
-| Keyboard Shortcuts | 20     | 10      | 50.0%     |
-| **Total**          | **99** | **53**  | **53.5%** |
+| Keyboard Shortcuts | 20     | 12      | 60.0%     |
+| **Total**          | **99** | **58**  | **58.6%** |
 
 ## Coverage Details
 
@@ -28,12 +28,12 @@ Generated: 2026-09-22
 - [x] **F2.4** — Matched field is highlighted in search results — `e2e/specs/search.spec.ts:155`
 - [x] **F2.5** — Scope persists across searches (stored in searchSlice) — `e2e/specs/search.spec.ts:156`
 
-### F3: Multiple View Modes (1/5)
+### F3: Multiple View Modes (4/5)
 
-- [x] **F3.1** — All 4 view modes render correctly with real data — `e2e/specs/crud.spec.ts:390`, `e2e/specs/crud.spec.ts:406`, `e2e/specs/crud.spec.ts:436`
-- [ ] **F3.2** — View mode persists across app restarts
-- [ ] **F3.3** — Per-collection view mode overrides global default
-- [ ] **F3.4** — Cmd+1-4 shortcuts switch view mode
+- [x] **F3.1** — All 4 view modes render correctly with real data — `e2e/specs/crud.spec.ts:390`, `e2e/specs/crud.spec.ts:406`, `e2e/specs/crud.spec.ts:436`, `e2e/specs/view-modes.spec.ts:34`, `e2e/specs/view-modes.spec.ts:47`
+- [x] **F3.2** — View mode persists across app restarts — `e2e/specs/view-modes.spec.ts:117`
+- [x] **F3.3** — Per-collection view mode overrides global default — `e2e/specs/view-modes.spec.ts:85`
+- [x] **F3.4** — Cmd+1-4 shortcuts switch view mode — `e2e/specs/view-modes.spec.ts:66`
 - [ ] **F3.5** — Smooth transition between modes (no layout flash)
 
 ### F4: Auto-Icon Assignment (4/4)
@@ -119,15 +119,15 @@ Generated: 2026-09-22
 - [ ] **API.35** — GET /backups — List backups
 - [ ] **API.36** — POST /backup — Generate backup
 
-### Keyboard Shortcuts (10/20)
+### Keyboard Shortcuts (12/20)
 
 - [x] **KB.1** — Cmd+K opens global search — `e2e/specs/keyboard.spec.ts:61`
 - [x] **KB.2** — Cmd+N opens new bookmark dialog — `e2e/specs/keyboard.spec.ts:68`
 - [x] **KB.3** — Cmd+Shift+N opens new collection dialog — `e2e/specs/keyboard.spec.ts:77`
 - [x] **KB.4** — Cmd+1 switches to grid view — `e2e/specs/keyboard.spec.ts:86`
 - [x] **KB.5** — Cmd+2 switches to list view — `e2e/specs/keyboard.spec.ts:94`
-- [ ] **KB.6** — Cmd+3 switches to table view
-- [ ] **KB.7** — Cmd+4 switches to directory view
+- [x] **KB.6** — Cmd+3 switches to table view — `e2e/specs/view-modes.spec.ts:35`
+- [x] **KB.7** — Cmd+4 switches to directory view — `e2e/specs/view-modes.spec.ts:48`
 - [x] **KB.8** — Cmd+, opens settings — `e2e/specs/keyboard.spec.ts:105`
 - [ ] **KB.9** — Cmd+Backspace deletes selected bookmark(s)
 - [x] **KB.10** — Cmd+A selects all bookmarks in view — `e2e/specs/keyboard.spec.ts:123`
@@ -175,18 +175,13 @@ Generated: 2026-09-22
 - API.35 — GET /backups — List backups
 - API.36 — POST /backup — Generate backup
 
-### P5 (18 uncovered)
+### P5 (13 uncovered)
 
-- F3.2 — View mode persists across app restarts
-- F3.3 — Per-collection view mode overrides global default
-- F3.4 — Cmd+1-4 shortcuts switch view mode
 - F3.5 — Smooth transition between modes (no layout flash)
 - F7.1 — Collection icons use synced Raindrop.io colors
 - F7.2 — Groups expand/collapse with persistent state
 - F7.5 — Content type has distinct icon per type
 - F7.6 — Arrow key navigation works in all view modes
-- KB.6 — Cmd+3 switches to table view
-- KB.7 — Cmd+4 switches to directory view
 - KB.9 — Cmd+Backspace deletes selected bookmark(s)
 - KB.11 — Arrow Up moves selection up
 - KB.12 — Arrow Down moves selection down

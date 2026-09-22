@@ -8,7 +8,10 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type CollisionDetection,
+  type DroppableContainer,
   closestCenter,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
@@ -98,6 +101,10 @@ import {
   parseGroupDndId,
   updateRootCollection,
 } from '@/lib/collection-organization'
+import {
+  RAINDROP_LIST_DND_ID,
+  parseRaindropDndId,
+} from '@/lib/raindrop-organization'
 import type { Collection, Group, SystemCollection } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -178,6 +185,67 @@ function resolveDropIndicator(
   return null
 }
 
+/** Highlight for the collection row a dragged bookmark would land on. */
+const RAINDROP_DROP_TARGET_CLASS =
+  'ring-primary/60 rounded-md ring-2 ring-inset'
+
+/**
+ * Targets that take part in collection sorting: group zones and root collection rows
+ * (root rows carry their group in `data`; bookmark-only targets and bookmark rows do not).
+ * @param container - Registered droppable
+ * @returns true for a group zone or a root collection row
+ * @example
+ *   droppableContainers.filter(isCollectionSortTarget)
+ */
+function isCollectionSortTarget(container: DroppableContainer): boolean {
+  return (
+    parseGroupDndId(container.id) !== null ||
+    container.data.current?.groupId !== undefined
+  )
+}
+
+/**
+ * Collision rules for the shared DnD context: collections keep centre-based sorting
+ * among group zones and root rows; a dragged bookmark lands on the collection under
+ * the pointer, or — only while the pointer is inside the bookmark list — on the
+ * closest bookmark row (manual reorder).
+ * @param args - dnd-kit collision arguments
+ * @returns Collisions for the active drag, empty when nothing valid is under it
+ * @example
+ *   <DndContext collisionDetection={organizationCollisionDetection}>
+ */
+const organizationCollisionDetection: CollisionDetection = (args) => {
+  if (parseRaindropDndId(args.active.id) === null) {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        isCollectionSortTarget,
+      ),
+    })
+  }
+
+  const collectionTargets = args.droppableContainers.filter(
+    (container) => parseCollectionDndId(container.id) !== null,
+  )
+  const overCollection = pointerWithin({
+    ...args,
+    droppableContainers: collectionTargets,
+  })
+  if (overCollection.length > 0) return overCollection
+
+  const listContainers = args.droppableContainers.filter(
+    (container) => container.id === RAINDROP_LIST_DND_ID,
+  )
+  const isPointerInList =
+    pointerWithin({ ...args, droppableContainers: listContainers }).length > 0
+  if (!isPointerInList) return []
+
+  const raindropTargets = args.droppableContainers.filter(
+    (container) => parseRaindropDndId(container.id) !== null,
+  )
+  return closestCenter({ ...args, droppableContainers: raindropTargets })
+}
+
 /**
  * Static map of system collection icon names to lucide components.
  */
@@ -207,11 +275,14 @@ const SystemIcon = React.memo(function SystemIcon({
 const SystemCollectionItem = React.memo(function SystemCollectionItem({
   collection,
   isSelected,
+  isRaindropDragActive,
   onSelectCollection,
   onEmptyTrash,
 }: {
   collection: SystemCollection
   isSelected: boolean
+  /** A bookmark drag is in progress — Unsorted becomes a drop target */
+  isRaindropDragActive: boolean
   onSelectCollection: (id: string) => void
   onEmptyTrash: () => Promise<void>
 }) {
@@ -219,8 +290,19 @@ const SystemCollectionItem = React.memo(function SystemCollectionItem({
     onSelectCollection(collection.id)
   }, [collection.id, onSelectCollection])
 
+  // Only Unsorted can receive bookmarks (All is virtual, Trash would mean delete)
+  const { setNodeRef, isOver } = useDroppable({
+    id: getCollectionDndId(collection.id),
+    disabled: collection.id !== 'unsorted',
+  })
+  const isRaindropDropTarget = isRaindropDragActive && isOver
+
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem
+      ref={setNodeRef}
+      data-drop-target={isRaindropDropTarget || undefined}
+      className={cn(isRaindropDropTarget && RAINDROP_DROP_TARGET_CLASS)}
+    >
       <SidebarMenuButton
         isActive={isSelected}
         onClick={handleClick}
@@ -285,6 +367,7 @@ const CollectionRow = React.memo(function CollectionRow({
   sidebarMenuButtonStyles,
   sortable,
   isRoot,
+  isRaindropDragActive,
 }: {
   collection: Collection
   depth: number
@@ -318,13 +401,24 @@ const CollectionRow = React.memo(function CollectionRow({
     listeners?: DraggableSyntheticListeners
     style: CSSProperties
     isDragging: boolean
+    isOver: boolean
   }
   isRoot: boolean
+  /** A bookmark drag is in progress — this collection may become its drop target */
+  isRaindropDragActive: boolean
 }) {
   const isSelected = selectedCollectionId === collection.id
   const hasChildren = (collection.children?.length ?? 0) > 0
   const isExpanded = expandedCollections.has(collection.id)
   const isEditing = editingCollectionId === collection.id
+
+  // Root rows are already droppable through useSortable; nested rows register here
+  const droppable = useDroppable({
+    id: getCollectionDndId(collection.id),
+    disabled: isRoot,
+  })
+  const isOver = isRoot ? (sortable?.isOver ?? false) : droppable.isOver
+  const isRaindropDropTarget = isRaindropDragActive && isOver
 
   const handleSelect = useCallback(() => {
     onSelectCollection(collection.id)
@@ -377,10 +471,14 @@ const CollectionRow = React.memo(function CollectionRow({
 
   const row = (
     <div
-      ref={sortable?.setNodeRef}
+      ref={isRoot ? sortable?.setNodeRef : droppable.setNodeRef}
       style={sortable?.style}
       data-testid={isRoot ? `sidebar-collection-${collection.id}` : undefined}
-      className={cn(sortable?.isDragging && 'opacity-50')}
+      data-drop-target={isRaindropDropTarget || undefined}
+      className={cn(
+        sortable?.isDragging && 'opacity-50',
+        isRaindropDropTarget && RAINDROP_DROP_TARGET_CLASS,
+      )}
     >
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -530,6 +628,7 @@ const CollectionRow = React.memo(function CollectionRow({
               groups={groups}
               sidebarMenuButtonStyles={sidebarMenuButtonStyles}
               isRoot={false}
+              isRaindropDragActive={isRaindropDragActive}
             />
           ))}
         </div>
@@ -559,6 +658,7 @@ const SortableRootCollectionRow = React.memo(
     onEditingNameChange,
     groups,
     sidebarMenuButtonStyles,
+    isRaindropDragActive,
   }: {
     collection: Collection
     selectedCollectionId: string
@@ -585,6 +685,7 @@ const SortableRootCollectionRow = React.memo(
     onEditingNameChange: (nextName: string) => void
     groups: Group[]
     sidebarMenuButtonStyles: Record<number, CSSProperties>
+    isRaindropDragActive: boolean
   }) {
     const {
       attributes,
@@ -593,6 +694,7 @@ const SortableRootCollectionRow = React.memo(
       transform,
       transition,
       isDragging,
+      isOver,
     } = useSortable({
       id: getCollectionDndId(collection.id),
       data: { collectionId: collection.id, groupId: collection.groupId },
@@ -612,8 +714,9 @@ const SortableRootCollectionRow = React.memo(
         listeners: listeners ?? undefined,
         style,
         isDragging,
+        isOver,
       }),
-      [attributes, isDragging, listeners, setNodeRef, style],
+      [attributes, isDragging, isOver, listeners, setNodeRef, style],
     )
 
     return (
@@ -637,6 +740,7 @@ const SortableRootCollectionRow = React.memo(
         sidebarMenuButtonStyles={sidebarMenuButtonStyles}
         isRoot
         sortable={sortableProps}
+        isRaindropDragActive={isRaindropDragActive}
       />
     )
   },
@@ -666,6 +770,7 @@ const GroupSection = React.memo(function GroupSection({
   sidebarMenuButtonStyles,
   groups,
   dropIndicator,
+  isRaindropDragActive,
 }: {
   group: Group
   isExpanded: boolean
@@ -696,6 +801,8 @@ const GroupSection = React.memo(function GroupSection({
   sidebarMenuButtonStyles: Record<number, CSSProperties>
   groups: Group[]
   dropIndicator: { groupId: string; index: number } | null
+  /** A bookmark drag is in progress — rows highlight as drop targets */
+  isRaindropDragActive: boolean
 }) {
   const handleOpenChange = useCallback(() => {
     onToggleGroup(group.id)
@@ -786,6 +893,7 @@ const GroupSection = React.memo(function GroupSection({
                         onEditingNameChange={onEditingNameChange}
                         groups={groups}
                         sidebarMenuButtonStyles={sidebarMenuButtonStyles}
+                        isRaindropDragActive={isRaindropDragActive}
                       />
                     </React.Fragment>
                   ))}
@@ -828,10 +936,17 @@ interface LeftSidebarProps {
     collectionId: string,
     color: string,
   ) => Promise<void>
+  /**
+   * Content rendered inside the sidebar's DndContext (main content, detail panel) so
+   * bookmarks dragged out of the list can be dropped on the collections here.
+   */
+  children?: React.ReactNode
 }
 
 /**
  * Left sidebar navigation with system collections, grouped collections, and DnD.
+ * Owns the single DndContext shared with its children: collection reordering here,
+ * bookmark moves/reorders observed by MainContent through useDndMonitor.
  */
 const LeftSidebar = React.memo(function LeftSidebar({
   systemCollections,
@@ -848,6 +963,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
   onPersistGroups,
   onRenameCollection,
   onChangeCollectionColor,
+  children,
 }: LeftSidebarProps) {
   const [collapsedGroupIds, setCollapsedGroupIds] = useState<Set<string>>(
     new Set(),
@@ -868,6 +984,7 @@ const LeftSidebar = React.memo(function LeftSidebar({
     groupId: string
     index: number
   } | null>(null)
+  const [isRaindropDragActive, setIsRaindropDragActive] = useState(false)
   const inlineRenameCancelledRef = useRef(false)
 
   const displayedGroups = useMemo(() => {
@@ -1082,11 +1199,14 @@ const LeftSidebar = React.memo(function LeftSidebar({
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setEditingCollectionId(null)
     setEditingName('')
+    setIsRaindropDragActive(parseRaindropDndId(event.active.id) !== null)
     setActiveDragCollectionId(parseCollectionDndId(event.active.id))
   }, [])
 
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
+      // Bookmark drags highlight their target row instead of an insertion line
+      if (parseRaindropDndId(event.active.id) !== null) return
       setDropIndicator(resolveDropIndicator(event.over?.id, displayedGroups))
     },
     [displayedGroups],
@@ -1094,12 +1214,15 @@ const LeftSidebar = React.memo(function LeftSidebar({
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
-      const activeCollectionId = parseCollectionDndId(event.active.id)
-      const dropTarget = resolveDropIndicator(event.over?.id, displayedGroups)
-
       setActiveDragCollectionId(null)
       setDropIndicator(null)
+      setIsRaindropDragActive(false)
 
+      // Bookmark drops are handled by MainContent's drag monitor
+      if (parseRaindropDndId(event.active.id) !== null) return
+
+      const activeCollectionId = parseCollectionDndId(event.active.id)
+      const dropTarget = resolveDropIndicator(event.over?.id, displayedGroups)
       if (!activeCollectionId || !dropTarget) return
 
       const sourceLocation = findRootCollectionLocation(
@@ -1137,96 +1260,102 @@ const LeftSidebar = React.memo(function LeftSidebar({
   const handleDragCancel = useCallback(() => {
     setActiveDragCollectionId(null)
     setDropIndicator(null)
+    setIsRaindropDragActive(false)
   }, [])
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className="px-3 py-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-            <div className="bg-primary text-primary-foreground flex h-7 w-7 items-center justify-center rounded-lg">
-              <Layers className="h-4 w-4" />
+    <DndContext
+      sensors={sensors}
+      collisionDetection={organizationCollisionDetection}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <Sidebar collapsible="icon" className="border-r">
+        <SidebarHeader className="px-3 py-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+              <div className="bg-primary text-primary-foreground flex h-7 w-7 items-center justify-center rounded-lg">
+                <Layers className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight">Lain</span>
             </div>
-            <span className="text-sm font-semibold tracking-tight">Lain</span>
+            <SidebarTrigger className="h-7 w-7" />
           </div>
-          <SidebarTrigger className="h-7 w-7" />
-        </div>
-      </SidebarHeader>
+        </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup className="px-3 py-1 group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 flex-1 text-xs"
-                  onClick={onAddBookmark}
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Add Bookmark
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Add a new bookmark</TooltipContent>
-            </Tooltip>
+        <SidebarContent>
+          <SidebarGroup className="px-3 py-1 group-data-[collapsible=icon]:hidden">
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 flex-1 text-xs"
+                    onClick={onAddBookmark}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    Add Bookmark
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Add a new bookmark
+                </TooltipContent>
+              </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleOpenSearch}
-                >
-                  <Search className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Search collections</TooltipContent>
-            </Tooltip>
-          </div>
-        </SidebarGroup>
-
-        {isSearchOpen && (
-          <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
-            <CollectionSearch
-              groups={displayedGroups}
-              onSelect={handleSearchSelect}
-              onClose={handleCloseSearch}
-            />
-          </div>
-        )}
-
-        <ScrollArea className="flex-1">
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-muted-foreground px-3 text-xs font-medium tracking-wider uppercase">
-              Library
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {systemCollections.map((collection) => (
-                  <SystemCollectionItem
-                    key={collection.id}
-                    collection={collection}
-                    isSelected={selectedCollectionId === collection.id}
-                    onSelectCollection={onSelectCollection}
-                    onEmptyTrash={onEmptyTrash}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={handleOpenSearch}
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Search collections
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </SidebarGroup>
 
-          <Separator className="mx-3 my-1" />
+          {isSearchOpen && (
+            <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
+              <CollectionSearch
+                groups={displayedGroups}
+                onSelect={handleSearchSelect}
+                onClose={handleCloseSearch}
+              />
+            </div>
+          )}
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-            onDragCancel={handleDragCancel}
-          >
+          <ScrollArea className="flex-1">
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-muted-foreground px-3 text-xs font-medium tracking-wider uppercase">
+                Library
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {systemCollections.map((collection) => (
+                    <SystemCollectionItem
+                      key={collection.id}
+                      collection={collection}
+                      isSelected={selectedCollectionId === collection.id}
+                      onSelectCollection={onSelectCollection}
+                      onEmptyTrash={onEmptyTrash}
+                      isRaindropDragActive={isRaindropDragActive}
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <Separator className="mx-3 my-1" />
+
             {displayedGroups.map((group) => (
               <GroupSection
                 key={group.id}
@@ -1250,65 +1379,67 @@ const LeftSidebar = React.memo(function LeftSidebar({
                 sidebarMenuButtonStyles={sidebarMenuButtonStyles}
                 groups={displayedGroups}
                 dropIndicator={dropIndicator}
+                isRaindropDragActive={isRaindropDragActive}
               />
             ))}
             <DragOverlay>
               <DragPreview collection={activeDragCollection} />
             </DragOverlay>
-          </DndContext>
-        </ScrollArea>
-      </SidebarContent>
+          </ScrollArea>
+        </SidebarContent>
 
-      <SidebarFooter className="border-t p-2 group-data-[collapsible=icon]:hidden">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={onAddGroup}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">New Group</TooltipContent>
-            </Tooltip>
+        <SidebarFooter className="border-t p-2 group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={onAddGroup}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">New Group</TooltipContent>
+              </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={onManageTags}
-                >
-                  <Tag className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Manage Tags</TooltipContent>
-            </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={onManageTags}
+                  >
+                    <Tag className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Manage Tags</TooltipContent>
+              </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={onMergeCollections}
-                >
-                  <Merge className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Merge Collections</TooltipContent>
-            </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={onMergeCollections}
+                  >
+                    <Merge className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Merge Collections</TooltipContent>
+              </Tooltip>
+            </div>
+
+            <ThemeToggle />
           </div>
-
-          <ThemeToggle />
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+        </SidebarFooter>
+      </Sidebar>
+      {children}
+    </DndContext>
   )
 })
 

@@ -1,3 +1,4 @@
+import { DndContext } from '@dnd-kit/core'
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, test, vi } from 'vitest'
@@ -94,7 +95,14 @@ function renderMainContent(overrides: Partial<MainContentProps> = {}) {
     onTogglePreview: vi.fn(),
     ...overrides,
   }
-  return { ...renderWithProviders(<MainContent {...props} />), props }
+  return {
+    ...renderWithProviders(
+      <DndContext>
+        <MainContent {...props} />
+      </DndContext>,
+    ),
+    props,
+  }
 }
 
 describe('MainContent view modes (F3)', () => {

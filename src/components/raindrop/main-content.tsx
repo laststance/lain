@@ -1,3 +1,12 @@
+import { DragOverlay, useDndMonitor, useDroppable } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import {
   Search,
   Plus,
@@ -14,6 +23,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { match } from 'ts-pattern'
 
 import { DirectoryView } from '@/components/raindrop/directory-view'
+import { DragPreview } from '@/components/raindrop/drag-preview'
 import { RaindropCard } from '@/components/raindrop/raindrop-card'
 import { RaindropListItem } from '@/components/raindrop/raindrop-list-item'
 import { TableView } from '@/components/raindrop/table-view'
@@ -53,6 +63,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useViewNavigation } from '@/hooks/useViewNavigation'
+import { parseCollectionDndId } from '@/lib/collection-organization'
+import {
+  RAINDROP_LIST_DND_ID,
+  getRaindropDndId,
+  parseRaindropDndId,
+  resolveDraggedRaindropIds,
+} from '@/lib/raindrop-organization'
 import { filterByScope } from '@/lib/search'
 import type {
   Raindrop,
@@ -63,6 +80,7 @@ import type {
   SearchMode,
   SearchScope,
 } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { buildDirectoryTree } from '@/utils/build-directory-tree'
 
 /**
@@ -219,6 +237,10 @@ interface MainContentProps {
   onCollectionViewModeOverrideChange: (enabled: boolean) => void
   /** Toggle the important flag of a single raindrop (table view row actions) */
   onToggleImportant?: (raindropId: string) => void
+  /** Bookmark rows accept drops from each other (manual sort inside one collection) */
+  canReorderRaindrops?: boolean
+  /** A bookmark was dropped on another one while reordering is allowed */
+  onReorderRaindrop?: (activeRaindropId: string, overRaindropId: string) => void
   /** Ref to expose the search input for programmatic focus (Cmd+F) */
   searchInputRef?: React.RefObject<HTMLInputElement | null>
 }
@@ -253,6 +275,50 @@ interface MainContentProps {
  *     onAddBookmark={() => setIsAddOpen(true)}
  *   />
  */
+
+/**
+ * Drag source around one bookmark row/card. Pointer drags start anywhere on the row;
+ * the row inside keeps its own click and keyboard behaviour. Other rows only become
+ * drop targets (with sort animation) while reordering is allowed.
+ */
+const DraggableRaindrop = React.memo(function DraggableRaindrop({
+  raindropId,
+  canReorder,
+  children,
+}: {
+  raindropId: string
+  canReorder: boolean
+  children: React.ReactNode
+}) {
+  const {
+    setNodeRef,
+    setActivatorNodeRef,
+    listeners,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: getRaindropDndId(raindropId),
+    disabled: { draggable: false, droppable: !canReorder },
+  })
+
+  return (
+    <div
+      // The wrapper is both sortable node and keyboard activator, so Enter/Space
+      // bubbling up from the focused row inside never start a keyboard drag
+      ref={(node) => {
+        setNodeRef(node)
+        setActivatorNodeRef(node)
+      }}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      data-testid={`raindrop-drag-${raindropId}`}
+      className={cn(isDragging && 'opacity-40')}
+      {...listeners}
+    >
+      {children}
+    </div>
+  )
+})
 
 /**
  * Wrapper for RaindropCard inside a .map() to allow useCallback for event handlers.
@@ -397,6 +463,8 @@ const MainContent = React.memo(function MainContent({
   hasCollectionViewModeOverride,
   onCollectionViewModeOverrideChange,
   onToggleImportant,
+  canReorderRaindrops = false,
+  onReorderRaindrop,
   searchInputRef,
 }: MainContentProps) {
   // Reserved for bulk action "Move to..." functionality
@@ -605,6 +673,83 @@ const MainContent = React.memo(function MainContent({
     onPreviewToggle: handleTogglePreview,
   })
 
+  // --- Bookmark Drag & Drop (F6) ---
+  // The DndContext lives in LeftSidebar and wraps this content; drops are observed here
+  const sortableIds = useMemo(
+    () => filteredRaindrops.map((raindrop) => getRaindropDndId(raindrop.id)),
+    [filteredRaindrops],
+  )
+  // Lets the collision rules tell "pointer over the list" from "pointer over the sidebar"
+  const { setNodeRef: setListDropZoneRef } = useDroppable({
+    id: RAINDROP_LIST_DND_ID,
+  })
+  const [activeDragRaindropId, setActiveDragRaindropId] = useState<
+    string | null
+  >(null)
+  const activeDragRaindrop = activeDragRaindropId
+    ? filteredRaindrops.find((r) => r.id === activeDragRaindropId)
+    : undefined
+  const draggedCount = activeDragRaindropId
+    ? resolveDraggedRaindropIds(activeDragRaindropId, selectedRaindropIds)
+        .length
+    : 0
+  const handleRaindropDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragRaindropId(parseRaindropDndId(event.active.id))
+  }, [])
+  const handleRaindropDragCancel = useCallback(() => {
+    setActiveDragRaindropId(null)
+  }, [])
+  const handleRaindropDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const activeRaindropId = parseRaindropDndId(event.active.id)
+      if (!activeRaindropId) return
+      setActiveDragRaindropId(null)
+
+      // Dropped on a sidebar collection → move the dragged selection there
+      const targetCollectionId = parseCollectionDndId(event.over?.id)
+      if (targetCollectionId) {
+        if (targetCollectionId !== selectedCollectionId) {
+          void onBatchMove?.(
+            resolveDraggedRaindropIds(activeRaindropId, selectedRaindropIds),
+            targetCollectionId,
+          )
+        }
+        return
+      }
+
+      // Dropped on another bookmark → manual reorder
+      const overRaindropId = parseRaindropDndId(event.over?.id)
+      if (
+        canReorderRaindrops &&
+        overRaindropId &&
+        overRaindropId !== activeRaindropId
+      ) {
+        onReorderRaindrop?.(activeRaindropId, overRaindropId)
+      }
+    },
+    [
+      canReorderRaindrops,
+      onBatchMove,
+      onReorderRaindrop,
+      selectedCollectionId,
+      selectedRaindropIds,
+    ],
+  )
+  useDndMonitor(
+    useMemo(
+      () => ({
+        onDragStart: handleRaindropDragStart,
+        onDragCancel: handleRaindropDragCancel,
+        onDragEnd: handleRaindropDragEnd,
+      }),
+      [
+        handleRaindropDragStart,
+        handleRaindropDragCancel,
+        handleRaindropDragEnd,
+      ],
+    ),
+  )
+
   return (
     <div className="flex h-full flex-col">
       {/* Toolbar */}
@@ -783,6 +928,7 @@ const MainContent = React.memo(function MainContent({
               <SelectItem value="title-desc">Title Z-A</SelectItem>
               <SelectItem value="domain">By Domain</SelectItem>
               <SelectItem value="relevance">By Relevance</SelectItem>
+              <SelectItem value="manual">Manual Order</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -906,42 +1052,67 @@ const MainContent = React.memo(function MainContent({
           match(viewMode)
             .with('grid', () => (
               <div
+                ref={setListDropZoneRef}
                 data-testid="grid-view"
                 className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-4"
               >
-                {filteredRaindrops.map((raindrop) => (
-                  <RaindropCardWrapper
-                    key={raindrop.id}
-                    raindrop={raindrop}
-                    isSelected={
-                      selectedRaindropId === raindrop.id ||
-                      selectedRaindropIds.has(raindrop.id)
-                    }
-                    onRaindropClick={handleRaindropClick}
-                    onRaindropDoubleClick={handleRaindropDoubleClick}
-                    searchQuery={searchQuery}
-                    searchScope={searchScope}
-                  />
-                ))}
+                <SortableContext
+                  items={sortableIds}
+                  strategy={rectSortingStrategy}
+                >
+                  {filteredRaindrops.map((raindrop) => (
+                    <DraggableRaindrop
+                      key={raindrop.id}
+                      raindropId={raindrop.id}
+                      canReorder={canReorderRaindrops}
+                    >
+                      <RaindropCardWrapper
+                        raindrop={raindrop}
+                        isSelected={
+                          selectedRaindropId === raindrop.id ||
+                          selectedRaindropIds.has(raindrop.id)
+                        }
+                        onRaindropClick={handleRaindropClick}
+                        onRaindropDoubleClick={handleRaindropDoubleClick}
+                        searchQuery={searchQuery}
+                        searchScope={searchScope}
+                      />
+                    </DraggableRaindrop>
+                  ))}
+                </SortableContext>
               </div>
             ))
             .with('list', () => (
-              <div data-testid="list-view" className="divide-y">
-                {filteredRaindrops.map((raindrop) => (
-                  <RaindropListItemWrapper
-                    key={raindrop.id}
-                    raindrop={raindrop}
-                    isSelected={
-                      selectedRaindropId === raindrop.id ||
-                      selectedRaindropIds.has(raindrop.id)
-                    }
-                    onRaindropClick={handleRaindropClick}
-                    onToggleSelect={handleToggleSelect}
-                    onRaindropDoubleClick={handleRaindropDoubleClick}
-                    searchQuery={searchQuery}
-                    searchScope={searchScope}
-                  />
-                ))}
+              <div
+                ref={setListDropZoneRef}
+                data-testid="list-view"
+                className="divide-y"
+              >
+                <SortableContext
+                  items={sortableIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {filteredRaindrops.map((raindrop) => (
+                    <DraggableRaindrop
+                      key={raindrop.id}
+                      raindropId={raindrop.id}
+                      canReorder={canReorderRaindrops}
+                    >
+                      <RaindropListItemWrapper
+                        raindrop={raindrop}
+                        isSelected={
+                          selectedRaindropId === raindrop.id ||
+                          selectedRaindropIds.has(raindrop.id)
+                        }
+                        onRaindropClick={handleRaindropClick}
+                        onToggleSelect={handleToggleSelect}
+                        onRaindropDoubleClick={handleRaindropDoubleClick}
+                        searchQuery={searchQuery}
+                        searchScope={searchScope}
+                      />
+                    </DraggableRaindrop>
+                  ))}
+                </SortableContext>
               </div>
             ))
             .with('table', () => (
@@ -983,6 +1154,12 @@ const MainContent = React.memo(function MainContent({
           </div>
         )}
       </ScrollArea>
+
+      <DragOverlay dropAnimation={null}>
+        {activeDragRaindrop && (
+          <DragPreview raindrop={activeDragRaindrop} count={draggedCount} />
+        )}
+      </DragOverlay>
     </div>
   )
 })

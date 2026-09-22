@@ -99,6 +99,7 @@ export type SortOption =
   | 'title-desc'
   | 'domain'
   | 'relevance'
+  | 'manual'
 
 export type SearchScope = 'all' | 'url' | 'title' | 'description'
 export type SearchMode = 'scoped' | 'global'

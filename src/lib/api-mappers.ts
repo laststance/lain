@@ -54,6 +54,7 @@ export function mapSortOptionToApi(sort: SortOption): ApiSort {
     'title-desc': '-title',
     domain: 'domain',
     relevance: 'score',
+    manual: '-sort',
   }
   return map[sort]
 }

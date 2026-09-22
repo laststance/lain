@@ -192,9 +192,11 @@ const RaindropListItem = React.memo(function RaindropListItem({
 
   return (
     <div
+      data-raindrop-id={raindrop.id}
+      tabIndex={-1}
       className={cn(
         'group flex h-16 cursor-pointer items-center gap-3 px-4 transition-colors duration-150',
-        'hover:bg-accent/50',
+        'hover:bg-accent/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
         isSelected && 'bg-accent',
       )}
       onMouseEnter={handleMouseEnter}
@@ -241,7 +243,10 @@ const RaindropListItem = React.memo(function RaindropListItem({
               : raindrop.title}
           </h3>
           {raindrop.isImportant && (
-            <Star className="h-3 w-3 flex-shrink-0 fill-yellow-400 text-yellow-400" />
+            <Star
+              data-testid="important-indicator"
+              className="h-3 w-3 flex-shrink-0 fill-yellow-400 text-yellow-400"
+            />
           )}
         </div>
         <div className="flex min-w-0 items-center gap-2">

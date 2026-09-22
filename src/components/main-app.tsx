@@ -216,6 +216,20 @@ export const MainApp = React.memo(function MainApp() {
     [dispatch],
   )
 
+  // ↑/↓ only highlight (and feed an already-open detail panel); Space decides the panel
+  const handleFocusRaindrop = useCallback(
+    (raindrop: Raindrop) => setSelectedRaindrop(raindrop),
+    [],
+  )
+
+  const handleTogglePreview = useCallback(
+    (raindrop: Raindrop) => {
+      setSelectedRaindrop(raindrop)
+      dispatch(setDetailPanelOpen(!isDetailPanelOpen))
+    },
+    [dispatch, isDetailPanelOpen],
+  )
+
   const handleSelectedIdsChange = useCallback(
     (ids: Set<string>) => dispatch(setSelectedRaindropIds([...ids])),
     [dispatch],
@@ -635,6 +649,8 @@ export const MainApp = React.memo(function MainApp() {
             hasMore={hasMore}
             onLoadMore={loadMore}
             onSelectRaindrop={handleSelectRaindrop}
+            onFocusRaindrop={handleFocusRaindrop}
+            onTogglePreview={handleTogglePreview}
             selectedRaindropId={selectedRaindrop?.id}
             selectedRaindropIds={selectedRaindropIdsSet}
             onSelectedRaindropIdsChange={handleSelectedIdsChange}

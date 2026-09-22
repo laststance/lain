@@ -52,6 +52,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useViewNavigation } from '@/hooks/useViewNavigation'
 import { filterByScope } from '@/lib/search'
 import type {
   Raindrop,
@@ -170,6 +171,10 @@ interface MainContentProps {
   onLoadMore?: () => void
   /** Callback when a raindrop is selected */
   onSelectRaindrop: (raindrop: Raindrop) => void
+  /** ↑/↓ moved keyboard focus to a raindrop: highlight it without opening the detail panel (F7.6) */
+  onFocusRaindrop: (raindrop: Raindrop) => void
+  /** Space on the focused raindrop: open or close its detail panel (KB.14) */
+  onTogglePreview: (raindrop: Raindrop) => void
   /** ID of the currently selected raindrop */
   selectedRaindropId?: string
   /** Set of selected raindrop IDs for multi-select */
@@ -226,6 +231,8 @@ interface MainContentProps {
  * @param breadcrumbs - Path segments for the breadcrumb navigation
  * @param raindrops - Bookmarks to display in the chosen view mode
  * @param onSelectRaindrop - Fires when a single raindrop is clicked
+ * @param onFocusRaindrop - Fires when ↑/↓ moves keyboard focus to a raindrop
+ * @param onTogglePreview - Fires when Space toggles the detail panel of the focused raindrop
  * @param selectedRaindropId - Currently focused raindrop for detail panel
  * @param selectedRaindropIds - Set of IDs for multi-selection
  * @param onSelectedRaindropIdsChange - Updates multi-selection state
@@ -366,6 +373,8 @@ const MainContent = React.memo(function MainContent({
   hasMore,
   onLoadMore,
   onSelectRaindrop,
+  onFocusRaindrop,
+  onTogglePreview,
   selectedRaindropId,
   selectedRaindropIds,
   onSelectedRaindropIdsChange,
@@ -563,6 +572,37 @@ const MainContent = React.memo(function MainContent({
     isFetching: isFetching ?? false,
     onLoadMore,
     scrollContainerRef: scrollAreaRef,
+  })
+
+  // --- Keyboard Navigation (F7.6) ---
+  // The hook reports row ids; resolve them against what is on screen
+  const handleNavigateToRaindrop = useCallback(
+    (raindropId: string) => {
+      const raindrop = filteredRaindrops.find((r) => r.id === raindropId)
+      if (raindrop) onFocusRaindrop(raindrop)
+    },
+    [filteredRaindrops, onFocusRaindrop],
+  )
+  const handleOpenRaindrop = useCallback(
+    (raindropId: string) => {
+      const raindrop = filteredRaindrops.find((r) => r.id === raindropId)
+      if (raindrop) window.shell.openExternal(raindrop.url)
+    },
+    [filteredRaindrops],
+  )
+  const handleTogglePreview = useCallback(
+    (raindropId: string) => {
+      const raindrop = filteredRaindrops.find((r) => r.id === raindropId)
+      if (raindrop) onTogglePreview(raindrop)
+    },
+    [filteredRaindrops, onTogglePreview],
+  )
+  useViewNavigation({
+    containerRef: scrollAreaRef,
+    selectedRaindropId,
+    onNavigate: handleNavigateToRaindrop,
+    onOpen: handleOpenRaindrop,
+    onPreviewToggle: handleTogglePreview,
   })
 
   return (

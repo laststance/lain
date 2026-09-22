@@ -90,6 +90,8 @@ function renderMainContent(overrides: Partial<MainContentProps> = {}) {
     hasCollectionViewModeOverride: false,
     onCollectionViewModeOverrideChange: vi.fn(),
     onToggleImportant: vi.fn(),
+    onFocusRaindrop: vi.fn(),
+    onTogglePreview: vi.fn(),
     ...overrides,
   }
   return { ...renderWithProviders(<MainContent {...props} />), props }

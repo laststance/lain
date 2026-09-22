@@ -74,6 +74,30 @@ export async function prepareFirstWindow(
   return page
 }
 
+/** Mirrors the global key set by `registerTestShellIPC` in electron/test-auth.ts. */
+const OPENED_EXTERNAL_URLS_GLOBAL_KEY = '__LAIN_OPENED_EXTERNAL_URLS__'
+
+/**
+ * URLs the renderer asked the main process to open externally since launch.
+ * Test mode records them instead of opening a browser (see electron/test-auth.ts).
+ *
+ * @param app - Application returned by {@link launchElectronApp}
+ * @returns Recorded URLs in call order (empty when nothing was opened)
+ * @example
+ *   await page.keyboard.press('Enter')
+ *   expect(await getOpenedExternalUrls(electronApp)).toEqual(['https://react.dev'])
+ */
+export async function getOpenedExternalUrls(
+  app: ElectronApplication,
+): Promise<string[]> {
+  const recorded: unknown = await app.evaluate(
+    (_electron, globalKey) => Reflect.get(globalThis, globalKey),
+    OPENED_EXTERNAL_URLS_GLOBAL_KEY,
+  )
+  if (!Array.isArray(recorded)) return []
+  return recorded.filter((value): value is string => typeof value === 'string')
+}
+
 export const test = base.extend<ElectronFixtures>({
   electronApp: async ({}, use) => {
     // Fresh userData per launch: the app persists the ui/search/settings slices

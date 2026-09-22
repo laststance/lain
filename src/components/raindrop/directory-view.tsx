@@ -223,8 +223,9 @@ const CollectionTreeNode = React.memo(function CollectionTreeNode({
                 <TooltipTrigger asChild>
                   <button
                     type="button"
+                    data-raindrop-id={raindrop.id}
                     className={cn(
-                      'hover:bg-accent flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-left text-sm transition-colors',
+                      'hover:bg-accent focus-visible:ring-ring flex w-full items-center gap-1.5 rounded-sm px-2 py-1 text-left text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none',
                       selectedRaindropId === raindrop.id && 'bg-accent',
                     )}
                     onClick={() => onSelectRaindrop?.(raindrop)}

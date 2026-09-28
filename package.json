@@ -1,7 +1,7 @@
 {
   "name": "lain",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "macOS-native Raindrop.io desktop client for power users",
   "author": {
     "name": "Laststance.io",
@@ -33,7 +33,8 @@
     "coverage:e2e-spec": "tsx scripts/e2e-coverage-report.ts",
     "electron:build": "pnpm build && electron-builder --mac",
     "electron:build:dir": "pnpm build && electron-builder --mac --dir",
-    "electron:finalize:mac": "tsx scripts/finalize-mac-release-artifacts.ts"
+    "electron:finalize:mac": "tsx scripts/finalize-mac-release-artifacts.ts",
+    "electron:release:mac": "rm -rf release && pnpm build && electron-builder --mac --arm64 --x64 --publish never && pnpm electron:finalize:mac"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

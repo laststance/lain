@@ -4,8 +4,8 @@
  *
  * electron-builder notarizes the `.app` (and therefore the `.zip`), but not the
  * `.dmg` container, so a downloaded DMG still trips Gatekeeper until its own
- * ticket is stapled. Runs after `electron-builder --mac --publish never` in
- * `.github/workflows/release.yml` (ported from laststance/corelive).
+ * ticket is stapled. Last step of `pnpm electron:release:mac`, right after
+ * `electron-builder --mac --publish never` (ported from laststance/corelive).
  *
  * @example
  * ```sh

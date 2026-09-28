@@ -1,0 +1,34 @@
+name: Package check
+
+# Releases are built, signed and notarized locally (`pnpm electron:release:mac`, see README "Release"),
+# so CI only makes sure packaging still works: pull requests touching packaging files run an
+# unsigned `--dir` build that needs no secrets.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - electron-builder.yml
+      - build/**
+      - electron/**
+      - package.json
+      - pnpm-lock.yaml
+      - scripts/finalize-mac-release-artifacts.ts
+      - .github/workflows/package-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package-check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/prepare
+      - name: Unsigned package check (no secrets)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm electron:build:dir

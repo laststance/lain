@@ -70,15 +70,14 @@ Every push to `main` and every pull request runs `knip`, `lint`, `typecheck`, `t
 
 `pnpm electron:build` packages the app with [electron-builder](https://www.electron.build) using [electron-builder.yml](electron-builder.yml): a `.dmg` and a `.zip` per architecture land in `release/`, together with `latest-mac.yml`, the feed that packaged builds poll through electron-updater (checked at startup and every 4 hours, installed on quit).
 
-Pushing a `v*` tag runs [.github/workflows/release.yml](.github/workflows/release.yml), which builds arm64 + x64 and uploads everything to a **draft** GitHub Release for a final check before publishing.
+Releases are built on a Mac, not in CI:
 
-| Secret / env var                                           | Purpose                                                                                            |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `VITE_RAINDROP_CLIENT_ID`, `RAINDROP_CLIENT_SECRET`        | Raindrop.io OAuth app, inlined into the main-process bundle at build time (required)               |
-| `CSC_LINK`, `CSC_KEY_PASSWORD`                             | Developer ID Application certificate (`.p12`, base64) for code signing — unsigned build without it |
-| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | Notarization; skipped when absent (an App Store Connect API key via `APPLE_API_KEY*` also works)   |
+1. Bump `version` in `package.json` (via a PR, `main` is protected) and pull `main`.
+2. Export the notarization credentials (`APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, or `APPLE_KEYCHAIN_PROFILE`) and keep the Raindrop.io OAuth app in `.env`.
+3. Run `pnpm electron:release:mac`: it builds arm64 + x64, signs with the Developer ID Application identity from your keychain, lets electron-builder notarize the app, then [scripts/finalize-mac-release-artifacts.ts](scripts/finalize-mac-release-artifacts.ts) notarizes + staples both DMGs and rewrites `latest-mac.yml` / `checksums.json`.
+4. Upload `release/*.dmg`, `release/*.zip`, `release/*-mac.zip.blockmap`, `release/latest-mac.yml` and `release/checksums.json` with `gh release create vX.Y.Z --target <main sha>`.
 
-Unsigned builds run locally but Gatekeeper blocks them on other Macs until the app is signed and notarized.
+CI only runs an unsigned `--dir` package check on pull requests that touch packaging files ([.github/workflows/package-check.yml](.github/workflows/package-check.yml)).
 
 ## Security model
 

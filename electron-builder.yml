@@ -38,6 +38,9 @@ mac:
   notarize: true
 
 dmg:
+  # Sign the DMG container as well; scripts/finalize-mac-release-artifacts.ts
+  # then notarizes + staples it (electron-builder only notarizes the .app).
+  sign: true
   background: build/dmg-background.tiff
   icon: build/icons/icon.icns
   iconSize: 128

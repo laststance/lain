@@ -32,7 +32,8 @@
     "knip": "knip",
     "coverage:e2e-spec": "tsx scripts/e2e-coverage-report.ts",
     "electron:build": "pnpm build && electron-builder --mac",
-    "electron:build:dir": "pnpm build && electron-builder --mac --dir"
+    "electron:build:dir": "pnpm build && electron-builder --mac --dir",
+    "electron:finalize:mac": "tsx scripts/finalize-mac-release-artifacts.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",

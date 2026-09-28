@@ -1,39 +1,74 @@
 name: Release
 
-# Builds the macOS app and uploads it to a draft GitHub Release.
-# Trigger: push a tag such as v0.1.0 (or run manually). Publish the draft by hand.
+# Signed + notarized macOS release, same flow as laststance/corelive's build-and-release.yml.
 #
-# Required repository secrets:
-#   VITE_RAINDROP_CLIENT_ID, RAINDROP_CLIENT_SECRET   Raindrop.io OAuth app (inlined at build time)
-# Optional (unsigned/un-notarized build without them):
-#   CSC_LINK, CSC_KEY_PASSWORD                          Developer ID Application certificate (.p12, base64)
-#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID  Notarization
+# - Tag push (v*): import the Developer ID cert into a temp keychain, build arm64 + x64,
+#   let electron-builder sign + notarize the app, notarize + staple the DMGs
+#   (scripts/finalize-mac-release-artifacts.ts), then upload to a DRAFT GitHub Release.
+# - Pull request touching packaging files: unsigned `--dir` build only, no secrets needed.
+#
+# Required repository secrets for tag builds:
+#   VITE_RAINDROP_CLIENT_ID, RAINDROP_CLIENT_SECRET         Raindrop.io OAuth app (inlined at build time)
+#   APPLE_CERTIFICATES_P12, APPLE_CERTIFICATES_PASSWORD     Developer ID Application cert (.p12 base64) + its password
+#   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID    Notarization (notarytool)
 on:
   push:
     tags: ['v*']
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - electron-builder.yml
+      - build/**
+      - electron/**
+      - package.json
+      - pnpm-lock.yaml
+      - scripts/finalize-mac-release-artifacts.ts
+      - .github/workflows/release.yml
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  release:
+  package-check:
+    if: github.event_name == 'pull_request'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/prepare
+      - name: Unsigned package check (no secrets)
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm electron:build:dir
 
-      - name: Check Raindrop.io OAuth secrets
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/prepare
+
+      - name: Check release secrets
         env:
           VITE_RAINDROP_CLIENT_ID: ${{ secrets.VITE_RAINDROP_CLIENT_ID }}
           RAINDROP_CLIENT_SECRET: ${{ secrets.RAINDROP_CLIENT_SECRET }}
+          APPLE_CERTIFICATES_P12: ${{ secrets.APPLE_CERTIFICATES_P12 }}
+          APPLE_CERTIFICATES_PASSWORD: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if [ -z "$VITE_RAINDROP_CLIENT_ID" ] || [ -z "$RAINDROP_CLIENT_SECRET" ]; then
-            echo "::error::VITE_RAINDROP_CLIENT_ID and RAINDROP_CLIENT_SECRET repository secrets are required — the OAuth client is inlined into the main process at build time."
+          missing=()
+          for name in VITE_RAINDROP_CLIENT_ID RAINDROP_CLIENT_SECRET APPLE_CERTIFICATES_P12 APPLE_CERTIFICATES_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository secrets: ${missing[*]} — see the header of .github/workflows/release.yml"
             exit 1
           fi
 
@@ -43,22 +78,47 @@ jobs:
           RAINDROP_CLIENT_SECRET: ${{ secrets.RAINDROP_CLIENT_SECRET }}
         run: pnpm build
 
-      - name: Package, sign, notarize and upload to the draft release
+      - name: Import code-signing certificate
+        uses: Apple-Actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7.0.0
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATES_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATES_PASSWORD }}
+
+      - name: Package, sign and notarize the app
+        # Reuse the imported keychain; electron-builder's own CSC_LINK reimport mixes keychain and certificate passwords.
+        run: CSC_KEYCHAIN="$HOME/Library/Keychains/signing_temp.keychain-db" pnpm exec electron-builder --mac --arm64 --x64 --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm exec electron-builder --mac --arm64 --x64 --publish always
+
+      - name: Notarize + staple DMGs, rewrite update feed
+        run: pnpm electron:finalize:mac
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - uses: actions/upload-artifact@v7
-        if: always()
         with:
           name: lain-macos
           path: |
             release/*.dmg
             release/*.zip
+            release/*.blockmap
             release/latest-mac.yml
-          if-no-files-found: warn
+            release/checksums.json
+          retention-days: 30
+
+      - name: Upload to draft GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(release/*.dmg release/*.zip release/*.blockmap release/latest-mac.yml release/checksums.json)
+          # Re-running a tag replaces the assets of the existing release instead of failing
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${files[@]}" --draft --generate-notes --title "Lain ${GITHUB_REF_NAME}"
+          fi

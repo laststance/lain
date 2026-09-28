@@ -70,15 +70,15 @@ Every push to `main` and every pull request runs `knip`, `lint`, `typecheck`, `t
 
 `pnpm electron:build` packages the app with [electron-builder](https://www.electron.build) using [electron-builder.yml](electron-builder.yml): a `.dmg` and a `.zip` per architecture land in `release/`, together with `latest-mac.yml`, the feed that packaged builds poll through electron-updater (checked at startup and every 4 hours, installed on quit).
 
-Pushing a `v*` tag runs [.github/workflows/release.yml](.github/workflows/release.yml), which builds arm64 + x64 and uploads everything to a **draft** GitHub Release for a final check before publishing.
+Pushing a `v*` tag runs [.github/workflows/release.yml](.github/workflows/release.yml) (the same flow as laststance/corelive): it imports the Developer ID certificate into a temporary keychain, builds arm64 + x64, lets electron-builder sign and notarize the app, notarizes and staples both DMGs with [scripts/finalize-mac-release-artifacts.ts](scripts/finalize-mac-release-artifacts.ts), and uploads everything to a **draft** GitHub Release for a final check before publishing. Pull requests that touch packaging files get an unsigned `--dir` build instead.
 
-| Secret / env var                                           | Purpose                                                                                            |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `VITE_RAINDROP_CLIENT_ID`, `RAINDROP_CLIENT_SECRET`        | Raindrop.io OAuth app, inlined into the main-process bundle at build time (required)               |
-| `CSC_LINK`, `CSC_KEY_PASSWORD`                             | Developer ID Application certificate (`.p12`, base64) for code signing — unsigned build without it |
-| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | Notarization; skipped when absent (an App Store Connect API key via `APPLE_API_KEY*` also works)   |
+| Repository secret                                          | Purpose                                                                   |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `VITE_RAINDROP_CLIENT_ID`, `RAINDROP_CLIENT_SECRET`        | Raindrop.io OAuth app, inlined into the main-process bundle at build time |
+| `APPLE_CERTIFICATES_P12`, `APPLE_CERTIFICATES_PASSWORD`    | Developer ID Application certificate (`.p12`, base64) and its password    |
+| `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` | Notarization of the app and the DMGs                                      |
 
-Unsigned builds run locally but Gatekeeper blocks them on other Macs until the app is signed and notarized.
+All seven are required for a tag build; the workflow fails fast and lists the missing ones. Locally, `pnpm electron:build` signs with a Developer ID identity from your keychain, and `pnpm electron:finalize:mac` notarizes the DMGs when `APPLE_KEYCHAIN_PROFILE` (or the Apple ID trio) is set.
 
 ## Security model
 
